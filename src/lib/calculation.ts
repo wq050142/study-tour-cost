@@ -1,4 +1,30 @@
-import { ProjectData, CostSummary, DailyCostBreakdown } from '@/types';
+import { ProjectData, CostSummary, DailyCostBreakdown, DEFAULT_MEAL_CONFIG } from '@/types';
+
+// 计算单餐费用
+function calculateMealAmount(
+  mealConfig: { clientMealType?: string; tableCount?: number; staffMealType?: string; amount?: number },
+  coreConfig: ProjectData['coreConfig'],
+  totalClients: number,
+  totalStaff: number
+): number {
+  // 如果有手动输入的金额，直接使用
+  if (mealConfig.amount && mealConfig.amount > 0) {
+    return mealConfig.amount;
+  }
+  
+  // 客户餐费
+  const clientMealType = mealConfig.clientMealType || 'individual';
+  const clientAmount = clientMealType === 'table'
+    ? (coreConfig.mealStandardClient || 0) * 10 * (mealConfig.tableCount || Math.ceil(totalClients / 10))
+    : (coreConfig.mealStandardClient || 0) * totalClients;
+  
+  // 工作人员餐费
+  const staffAmount = mealConfig.staffMealType === 'independent'
+    ? (coreConfig.mealStandardStaff || 0) * totalStaff
+    : 0;
+  
+  return clientAmount + staffAmount;
+}
 
 // 计算成本汇总
 export function calculateCostSummary(data: ProjectData): CostSummary {
@@ -17,27 +43,14 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   const kingRoomTotal = (coreConfig.kingRoom?.price || 0) * ((coreConfig.kingRoom?.countClient || 0) + (coreConfig.kingRoom?.countStaff || 0)) * coreConfig.accommodationDays;
   const totalAccommodation = twinRoomTotal + kingRoomTotal;
   
-  // 计算用餐费用
+  // 计算用餐费用（中餐 + 晚餐）
   let totalMeal = 0;
   dailyExpenses.forEach(day => {
-    totalMeal += day.meal;
+    const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+    const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+    totalMeal += calculateMealAmount(lunch, coreConfig, totalClients, totalStaff);
+    totalMeal += calculateMealAmount(dinner, coreConfig, totalClients, totalStaff);
   });
-  
-  // 如果没有每日用餐费用，使用餐标计算
-  if (totalMeal === 0) {
-    // 客户餐费：例餐按人数×餐标，桌餐按桌数×餐标×10
-    const clientMealType = coreConfig.clientMealType || 'individual';
-    const clientMealPerMeal = clientMealType === 'table'
-      ? (coreConfig.mealStandardClient || 0) * 10 * (coreConfig.tableCount || Math.ceil(totalClients / 10))
-      : (coreConfig.mealStandardClient || 0) * totalClients;
-    
-    // 工作人员餐费：随团用餐不计，独立用餐按人数×餐标
-    const staffMealPerMeal = coreConfig.staffMealType === 'independent'
-      ? (coreConfig.mealStandardStaff || 0) * totalStaff
-      : 0;
-    
-    totalMeal = (clientMealPerMeal + staffMealPerMeal) * coreConfig.mealCountPerDay * coreConfig.tripDays;
-  }
   
   // 计算交通费用（大巴全程费用，含司机薪资，不乘天数）
   const totalBus = coreConfig.busFee;
@@ -94,14 +107,19 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
       day.staffFees.guide * coreConfig.staffCounts.guide +
       day.staffFees.photographer * coreConfig.staffCounts.photographer +
       day.staffFees.videographer * coreConfig.staffCounts.videographer;
-    // 司机薪资不单独计算
     
     const daySingleItems = day.singleItems.reduce((sum, item) => 
       sum + (item.totalPrice || item.price * item.count), 0);
     
+    const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+    const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+    const lunchAmount = calculateMealAmount(lunch, coreConfig, totalClients, totalStaff);
+    const dinnerAmount = calculateMealAmount(dinner, coreConfig, totalClients, totalStaff);
+    
     const dailyTotal = 
       day.accommodation + 
-      day.meal + 
+      lunchAmount + 
+      dinnerAmount + 
       dayStaffFee + 
       daySingleItems + 
       day.teamExpenses;
@@ -109,7 +127,8 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     return {
       day: day.day,
       accommodation: day.accommodation,
-      meal: day.meal,
+      lunch: lunchAmount,
+      dinner: dinnerAmount,
       staffFee: dayStaffFee,
       singleItems: daySingleItems,
       teamExpenses: day.teamExpenses,
@@ -143,7 +162,8 @@ export function generateInitialDailyExpenses(tripDays: number, accommodationDays
   return Array.from({ length: tripDays }, (_, index) => ({
     day: index + 1,
     accommodation: index < accommodationDays ? 0 : 0,
-    meal: 0,
+    lunch: { ...DEFAULT_MEAL_CONFIG },
+    dinner: { ...DEFAULT_MEAL_CONFIG },
     staffFees: {
       guide: 0,
       photographer: 0,
