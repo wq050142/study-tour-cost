@@ -15,7 +15,6 @@ import {
   StaffMember, 
   MaterialItem, 
   OtherExpenseItem,
-  TransportationItem,
   ACCOMMODATION_TYPE_LABELS, 
   DEFAULT_MEAL_CONFIG,
   DEFAULT_STAFF_MEMBERS,
@@ -88,14 +87,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         }
       }
     });
-    
-    // 迁移交通费用数据
-    if ((data.coreConfig as any).busFee !== undefined && !data.coreConfig.transportation) {
-      const oldBusFee = (data.coreConfig as any).busFee || 0;
-      data.coreConfig.transportation = [
-        { id: 'bus_1', name: '大巴', price: oldBusFee, count: 1, totalPrice: oldBusFee }
-      ];
-    }
   };
 
   const updateData = (updates: Partial<ProjectData>) => {
@@ -260,34 +251,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const removeStaffMember = (id: string) => {
     updateData({
       coreConfig: { ...coreConfig, staffMembers: coreConfig.staffMembers.filter(m => m.id !== id) }
-    });
-  };
-
-  // 添加交通项目
-  const addTransportation = () => {
-    const newTransportation = [...(coreConfig.transportation || []), { id: `trans_${Date.now()}`, name: '', price: 0, count: 1, totalPrice: 0 }];
-    updateData({ coreConfig: { ...coreConfig, transportation: newTransportation } });
-  };
-
-  // 更新交通项目
-  const updateTransportation = (id: string, updates: Partial<TransportationItem>) => {
-    const newTransportation = (coreConfig.transportation || []).map(t => {
-      if (t.id === id) {
-        const updated = { ...t, ...updates };
-        if ('price' in updates || 'count' in updates) {
-          updated.totalPrice = updated.price * updated.count;
-        }
-        return updated;
-      }
-      return t;
-    });
-    updateData({ coreConfig: { ...coreConfig, transportation: newTransportation } });
-  };
-
-  // 删除交通项目
-  const removeTransportation = (id: string) => {
-    updateData({
-      coreConfig: { ...coreConfig, transportation: (coreConfig.transportation || []).filter(t => t.id !== id) }
     });
   };
 
@@ -594,35 +557,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               )}
 
               <Separator className="my-3" />
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 font-medium">大交通</span>
-                  <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addTransportation}><Plus className="w-4 h-4 mr-1" />添加</Button>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                <span className="text-gray-500 w-12">交通</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-600">大巴费</span>
+                  <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={coreConfig.busFee} onChange={(v) => updateData({ coreConfig: { ...coreConfig, busFee: v } })} />
+                  <span className="text-gray-500">元</span>
                 </div>
-                {(coreConfig.transportation || []).map((item) => (
-                  <div key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm bg-gray-50 rounded-lg p-2">
-                    <Input 
-                      placeholder="交通类型" 
-                      className="h-8 w-20 text-sm px-2" 
-                      value={item.name} 
-                      onChange={(e) => updateTransportation(item.id, { name: e.target.value })} 
-                    />
-                    <div className="flex items-center gap-1">
-                      <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={item.price} onChange={(v) => updateTransportation(item.id, { price: v })} />
-                      <span className="text-gray-500 whitespace-nowrap">元 ×</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={item.count} onChange={(v) => updateTransportation(item.id, { count: v })} />
-                      <span className="text-gray-500">=</span>
-                    </div>
-                    <span className="text-sm font-medium">{formatMoney(item.totalPrice || item.price * item.count)}</span>
-                    {(coreConfig.transportation || []).length > 1 && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeTransportation(item.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>
