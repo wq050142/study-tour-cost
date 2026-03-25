@@ -73,12 +73,6 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     });
   });
   
-  // 计算团队费用
-  let totalTeamExpenses = 0;
-  dailyExpenses.forEach(day => {
-    totalTeamExpenses += day.teamExpenses;
-  });
-  
   // 计算其他费用
   const totalOtherExpenses = 
     otherExpenses.insurance +
@@ -95,7 +89,6 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalBus +
     totalStaffFee +
     totalSingleItems +
-    totalTeamExpenses +
     totalOtherExpenses;
   
   // 计算人均成本（按客户人数）
@@ -121,8 +114,7 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
       lunchAmount + 
       dinnerAmount + 
       dayStaffFee + 
-      daySingleItems + 
-      day.teamExpenses;
+      daySingleItems;
     
     return {
       day: day.day,
@@ -131,7 +123,6 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
       dinner: dinnerAmount,
       staffFee: dayStaffFee,
       singleItems: daySingleItems,
-      teamExpenses: day.teamExpenses,
       dailyTotal,
     };
   });
@@ -144,7 +135,6 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalBus,
     totalStaffFee,
     totalSingleItems,
-    totalTeamExpenses,
     totalOtherExpenses,
     totalCost,
     avgCostPerClient,
@@ -171,6 +161,5 @@ export function generateInitialDailyExpenses(tripDays: number, accommodationDays
       driver: 0,
     },
     singleItems: [],
-    teamExpenses: 0,
   }));
 }

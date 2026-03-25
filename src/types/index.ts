@@ -84,7 +84,8 @@ export interface StaffFeeConfig {
 // 单项费用项目
 export interface SingleItem {
   id: string;
-  name: string;
+  name: string; // 项目名称
+  remark: string; // 备注说明
   price: number; // 单价
   count: number; // 数量
   totalPrice: number; // 总价
@@ -105,9 +106,6 @@ export interface DailyExpense {
   
   // 单项费用（门票、活动等）
   singleItems: SingleItem[];
-  
-  // 团队费用（一次性费用，如场地租赁等）
-  teamExpenses: number;
 }
 
 // 其他费用
@@ -140,7 +138,6 @@ export interface CostSummary {
   totalBus: number; // 总交通费用
   totalStaffFee: number; // 总工作人员费用
   totalSingleItems: number; // 总单项费用
-  totalTeamExpenses: number; // 总团队费用
   totalOtherExpenses: number; // 总其他费用
   
   // 总成本
@@ -161,15 +158,14 @@ export interface DailyCostBreakdown {
   dinner: number;
   staffFee: number;
   singleItems: number;
-  teamExpenses: number;
   dailyTotal: number;
 }
 
 // 默认餐食配置
 export const DEFAULT_MEAL_CONFIG: MealConfig = {
-  clientMealType: 'individual',
+  clientMealType: 'table', // 客户默认桌餐
   tableCount: 0,
-  staffMealType: 'with-group',
+  staffMealType: 'with-group', // 工作人员默认随团用餐
   amount: 0,
 };
 
