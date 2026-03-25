@@ -38,10 +38,17 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     coreConfig.staffCounts.videographer + 
     coreConfig.staffCounts.driver;
   
-  // 计算住宿费用（双床房 + 大床房）
-  const twinRoomTotal = (coreConfig.twinRoom?.price || 0) * ((coreConfig.twinRoom?.countClient || 0) + (coreConfig.twinRoom?.countStaff || 0)) * coreConfig.accommodationDays;
-  const kingRoomTotal = (coreConfig.kingRoom?.price || 0) * ((coreConfig.kingRoom?.countClient || 0) + (coreConfig.kingRoom?.countStaff || 0)) * coreConfig.accommodationDays;
-  const totalAccommodation = twinRoomTotal + kingRoomTotal;
+  // 计算住宿费用
+  // 客户住宿费用（双床房 + 大床房）
+  const clientTwinRoomTotal = (coreConfig.twinRoom?.price || 0) * (coreConfig.twinRoom?.countClient || 0) * coreConfig.accommodationDays;
+  const clientKingRoomTotal = (coreConfig.kingRoom?.price || 0) * (coreConfig.kingRoom?.countClient || 0) * coreConfig.accommodationDays;
+  
+  // 工作人员住宿费用
+  const staffAccommodationTotal = coreConfig.staffAccommodation
+    ? (coreConfig.staffRoomPrice || 0) * Math.ceil(totalStaff / 2) * (coreConfig.staffAccommodationNights || 0)
+    : 0;
+  
+  const totalAccommodation = clientTwinRoomTotal + clientKingRoomTotal + staffAccommodationTotal;
   
   // 计算用餐费用（中餐 + 晚餐）
   let totalMeal = 0;
@@ -152,8 +159,8 @@ export function generateInitialDailyExpenses(tripDays: number, accommodationDays
   return Array.from({ length: tripDays }, (_, index) => ({
     day: index + 1,
     accommodation: index < accommodationDays ? 0 : 0,
-    lunch: { ...DEFAULT_MEAL_CONFIG },
-    dinner: { ...DEFAULT_MEAL_CONFIG },
+    lunch: { ...DEFAULT_MEAL_CONFIG, restaurantName: '' },
+    dinner: { ...DEFAULT_MEAL_CONFIG, restaurantName: '' },
     staffFees: {
       guide: 0,
       photographer: 0,

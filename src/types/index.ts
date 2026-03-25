@@ -19,6 +19,7 @@ export interface MealConfig {
   tableCount: number; // 桌餐桌数（仅桌餐时使用）
   staffMealType: StaffMealType; // 工作人员用餐方式
   amount: number; // 实际金额（可手动修改）
+  restaurantName: string; // 餐厅名称备注
 }
 
 // 项目基础信息
@@ -65,6 +66,12 @@ export interface CoreConfig {
   twinRoom: RoomConfig; // 双床房
   kingRoom: RoomConfig; // 大床房
   
+  // 工作人员住宿配置
+  staffAccommodation: boolean; // 工作人员是否住宿
+  staffAccommodationNights: number; // 工作人员住宿晚数
+  staffRoomType: 'twin' | 'king'; // 工作人员床型：双床或大床
+  staffRoomPrice: number; // 工作人员房间单价
+  
   // 用餐 - 仅保留餐标
   mealStandardClient: number; // 客户每正餐人均餐费
   mealStandardStaff: number; // 工作人员每正餐人均餐费（独立用餐时使用）
@@ -86,6 +93,7 @@ export interface SingleItem {
   id: string;
   name: string; // 项目名称
   remark: string; // 备注说明
+  timeSlot: string; // 时间段，如 "09:00-11:00"
   price: number; // 单价
   count: number; // 数量
   totalPrice: number; // 总价
@@ -167,6 +175,7 @@ export const DEFAULT_MEAL_CONFIG: MealConfig = {
   tableCount: 0,
   staffMealType: 'with-group', // 工作人员默认随团用餐
   amount: 0,
+  restaurantName: '', // 餐厅名称
 };
 
 // 默认值
@@ -199,6 +208,10 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
     countClient: 0,
     countStaff: 0,
   },
+  staffAccommodation: false, // 工作人员默认不住宿
+  staffAccommodationNights: 0,
+  staffRoomType: 'twin',
+  staffRoomPrice: 0,
   mealStandardClient: 0,
   mealStandardStaff: 0,
   busFee: 0,

@@ -338,23 +338,43 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <Separator className="my-1" />
 
               {projectData.project.type === 'multi-day' && (
-                <>
+                <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                     <span className="text-gray-500 w-12">住宿:</span>
-                    <span className="text-gray-400 w-12">双床房</span>
-                    <div className="flex items-center gap-0.5">
-                      <NumberInput className={numInput} value={coreConfig.twinRoom?.countStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, countStaff: v, price: coreConfig.twinRoom?.price || 0, countClient: coreConfig.twinRoom?.countClient || 0 } } })} />
-                      <span className="text-gray-400 w-4">间</span>
-                    </div>
+                    <label className="flex items-center gap-0.5 cursor-pointer">
+                      <input type="radio" name="staffAccommodation" checked={coreConfig.staffAccommodation === true} onChange={() => updateData({ coreConfig: { ...coreConfig, staffAccommodation: true } })} className="w-3 h-3 accent-blue-500" />
+                      <span className="text-[11px]">是</span>
+                    </label>
+                    <label className="flex items-center gap-0.5 cursor-pointer">
+                      <input type="radio" name="staffAccommodation" checked={coreConfig.staffAccommodation === false} onChange={() => updateData({ coreConfig: { ...coreConfig, staffAccommodation: false } })} className="w-3 h-3 accent-blue-500" />
+                      <span className="text-[11px]">否</span>
+                    </label>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs pl-14">
-                    <span className="text-gray-400 w-12">大床房</span>
-                    <div className="flex items-center gap-0.5">
-                      <NumberInput className={numInput} value={coreConfig.kingRoom?.countStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, countStaff: v, price: coreConfig.kingRoom?.price || 0, countClient: coreConfig.kingRoom?.countClient || 0 } } })} />
-                      <span className="text-gray-400 w-4">间</span>
-                    </div>
-                  </div>
-                </>
+                  {coreConfig.staffAccommodation && (
+                    <>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs pl-14">
+                        <span className="text-gray-400">床型</span>
+                        <label className="flex items-center gap-0.5 cursor-pointer">
+                          <input type="radio" name="staffRoomType" checked={(coreConfig.staffRoomType || 'twin') === 'twin'} onChange={() => updateData({ coreConfig: { ...coreConfig, staffRoomType: 'twin' } })} className="w-2.5 h-2.5 accent-blue-500" />
+                          <span className="text-[10px]">双床</span>
+                        </label>
+                        <label className="flex items-center gap-0.5 cursor-pointer">
+                          <input type="radio" name="staffRoomType" checked={coreConfig.staffRoomType === 'king'} onChange={() => updateData({ coreConfig: { ...coreConfig, staffRoomType: 'king' } })} className="w-2.5 h-2.5 accent-blue-500" />
+                          <span className="text-[10px]">大床</span>
+                        </label>
+                        <div className="flex items-center gap-0.5">
+                          <NumberInput className={numInputMid} value={coreConfig.staffRoomPrice || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffRoomPrice: v } })} />
+                          <span className="text-gray-400">元/间</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <NumberInput className={numInput} value={coreConfig.staffAccommodationNights || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffAccommodationNights: v } })} />
+                          <span className="text-gray-400">晚</span>
+                        </div>
+                        <span className="text-gray-400 text-[10px]">({Math.ceil(totalStaff / 2)}间)</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
 
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
@@ -502,6 +522,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span className="text-gray-400 text-[10px]">元</span>
                           </div>
                         </div>
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="text-gray-400 text-[10px]">餐厅</span>
+                          <Input 
+                            placeholder="餐厅名称" 
+                            className="h-5 flex-1 text-[10px] px-1.5" 
+                            value={lunch.restaurantName || ''} 
+                            onChange={(e) => updateMeal('lunch', { restaurantName: e.target.value })} 
+                          />
+                        </div>
                       </div>
 
                       {/* 晚餐 */}
@@ -519,12 +548,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <span className="text-[10px]">桌餐</span>
                             </label>
                           </div>
-                          {dinner.clientMealType === 'table' && (
-                            <div className="flex items-center gap-0.5">
-                              <NumberInput className="h-5 w-10 text-[10px] px-1" value={dinner.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('dinner', { tableCount: v })} />
-                              <span className="text-gray-400 text-[10px]">桌</span>
-                            </div>
-                          )}
                           {(dinner.clientMealType || 'table') === 'table' && (
                             <div className="flex items-center gap-0.5">
                               <NumberInput className="h-5 w-10 text-[10px] px-1" value={dinner.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('dinner', { tableCount: v })} />
@@ -553,18 +576,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span className="text-gray-400 text-[10px]">元</span>
                           </div>
                         </div>
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="text-gray-400 text-[10px]">餐厅</span>
+                          <Input 
+                            placeholder="餐厅名称" 
+                            className="h-5 flex-1 text-[10px] px-1.5" 
+                            value={dinner.restaurantName || ''} 
+                            onChange={(e) => updateMeal('dinner', { restaurantName: e.target.value })} 
+                          />
+                        </div>
                       </div>
 
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-400">单项费用</span>
-                          <Button variant="ghost" size="sm" className="h-5 text-xs px-2" onClick={() => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, singleItems: [...day.singleItems, { id: Date.now().toString(), name: '', remark: '', price: 0, count: totalClients, totalPrice: 0 }] }; updateData({ dailyExpenses: newDays }); }}><Plus className="w-3 h-3" /></Button>
+                          <Button variant="ghost" size="sm" className="h-5 text-xs px-2" onClick={() => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, singleItems: [...day.singleItems, { id: Date.now().toString(), name: '', remark: '', timeSlot: '', price: 0, count: totalClients, totalPrice: 0 }] }; updateData({ dailyExpenses: newDays }); }}><Plus className="w-3 h-3" /></Button>
                         </div>
                         {day.singleItems.map((item, itemIdx) => (
                           <div key={item.id} className="space-y-1">
                             <div className="flex gap-1 items-center text-xs">
+                              <Input placeholder="时间" className="h-6 w-16 text-xs px-1.5 text-center" value={item.timeSlot || ''} onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], timeSlot: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
                               <Input placeholder="项目名称" className="h-6 flex-1 text-xs px-1.5" value={item.name} onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
-                              <Input placeholder="备注" className="h-6 w-20 text-xs px-1.5" value={item.remark || ''} onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], remark: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
+                              <Input placeholder="备注" className="h-6 w-16 text-xs px-1.5" value={item.remark || ''} onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], remark: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
                             </div>
                             <div className="flex gap-1 items-center text-xs">
                               <div className="flex items-center gap-0.5 flex-1">
