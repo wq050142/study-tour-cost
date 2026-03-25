@@ -154,11 +154,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                   <span className="text-gray-500">客户:</span>
                   <span className="text-gray-400">学生</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.studentCount || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, studentCount: parseInt(e.target.value) || 0 } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.studentCount} onChange={(e) => updateData({ coreConfig: { ...coreConfig, studentCount: parseInt(e.target.value) || 0 } })} />
                   <span className="text-gray-400">家长</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.parentCount || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, parentCount: parseInt(e.target.value) || 0 } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.parentCount} onChange={(e) => updateData({ coreConfig: { ...coreConfig, parentCount: parseInt(e.target.value) || 0 } })} />
                   <span className="text-gray-400">老师</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.teacherCount || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, teacherCount: parseInt(e.target.value) || 0 } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.teacherCount} onChange={(e) => updateData({ coreConfig: { ...coreConfig, teacherCount: parseInt(e.target.value) || 0 } })} />
                   <span className="text-blue-600 font-medium">共{totalClients}人</span>
                 </div>
 
@@ -166,13 +166,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                   <span className="text-gray-500">工作人员:</span>
                   <span className="text-gray-400">导游</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.guide || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, guide: parseInt(e.target.value) || 0 } } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.guide} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, guide: parseInt(e.target.value) || 0 } } })} />
                   <span className="text-gray-400">摄影</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.photographer || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, photographer: parseInt(e.target.value) || 0 } } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.photographer} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, photographer: parseInt(e.target.value) || 0 } } })} />
                   <span className="text-gray-400">摄像</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.videographer || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, videographer: parseInt(e.target.value) || 0 } } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.videographer} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, videographer: parseInt(e.target.value) || 0 } } })} />
                   <span className="text-gray-400">司机</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.driver || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, driver: parseInt(e.target.value) || 0 } } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.staffCounts.driver} onChange={(e) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, driver: parseInt(e.target.value) || 0 } } })} />
                   <span className="text-green-600 font-medium">共{totalStaff}人</span>
                 </div>
 
@@ -182,21 +182,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                   <span className="text-gray-500">住宿:</span>
                   <span className="text-gray-400">房单价</span>
-                  <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.roomPrice || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomPrice: parseFloat(e.target.value) || 0 } })} />
+                  <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.roomPrice} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomPrice: parseFloat(e.target.value) || 0 } })} />
                   <span className="text-gray-400">房间数</span>
-                  <Input type="number" min="0" className={numInput} value={coreConfig.roomCount || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomCount: parseInt(e.target.value) || 0 } })} />
+                  <Input type="number" min="0" className={numInput} value={coreConfig.roomCount} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomCount: parseInt(e.target.value) || 0 } })} />
                   <span className="text-purple-600 font-medium">住宿费 {formatMoney(coreConfig.roomPrice * coreConfig.roomCount * coreConfig.accommodationDays)}</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                   <span className="text-gray-500">用餐:</span>
                   <span className="text-gray-400">餐标</span>
-                  <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.mealStandard || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, mealStandard: parseFloat(e.target.value) || 0 } })} />
+                  <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.mealStandard} onChange={(e) => updateData({ coreConfig: { ...coreConfig, mealStandard: parseFloat(e.target.value) || 0 } })} />
                   <span className="text-gray-400">日餐数</span>
-                  <Input type="number" min="0" max="5" className={numInput} value={coreConfig.mealCountPerDay || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, mealCountPerDay: parseInt(e.target.value) || 0 } })} />
-                  <span className="text-gray-400">大巴/天</span>
-                  <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.busFee || ''} onChange={(e) => updateData({ coreConfig: { ...coreConfig, busFee: parseFloat(e.target.value) || 0 } })} />
-                  <span className="text-cyan-600 font-medium">交通 {formatMoney(coreConfig.busFee * coreConfig.tripDays)}</span>
+                  <Input type="number" min="0" max="5" className={numInput} value={coreConfig.mealCountPerDay} onChange={(e) => updateData({ coreConfig: { ...coreConfig, mealCountPerDay: parseInt(e.target.value) || 0 } })} />
+                  <span className="text-gray-400">大巴全程</span>
+                  <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.busFee} onChange={(e) => updateData({ coreConfig: { ...coreConfig, busFee: parseFloat(e.target.value) || 0 } })} />
                 </div>
               </CardContent>
             </CollapsibleContent>
@@ -230,38 +229,38 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                         <span className="text-gray-400">住宿</span>
-                        <Input type="number" min="0" step="0.01" className={numInput} value={day.accommodation || ''} onChange={(e) => {
+                        <Input type="number" min="0" step="0.01" className={numInput} value={day.accommodation} onChange={(e) => {
                           const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, accommodation: parseFloat(e.target.value) || 0 }; updateData({ dailyExpenses: newDays });
                         }} />
                         <span className="text-gray-400">用餐</span>
-                        <Input type="number" min="0" step="0.01" className={numInput} value={day.meal || ''} onChange={(e) => {
+                        <Input type="number" min="0" step="0.01" className={numInput} value={day.meal} onChange={(e) => {
                           const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, meal: parseFloat(e.target.value) || 0 }; updateData({ dailyExpenses: newDays });
                         }} />
                         <span className="text-gray-400">团队</span>
-                        <Input type="number" min="0" step="0.01" className={numInput} value={day.teamExpenses || ''} onChange={(e) => {
+                        <Input type="number" min="0" step="0.01" className={numInput} value={day.teamExpenses} onChange={(e) => {
                           const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, teamExpenses: parseFloat(e.target.value) || 0 }; updateData({ dailyExpenses: newDays });
                         }} />
                         {coreConfig.staffCounts.guide > 0 && <>
                           <span className="text-gray-400">导游薪</span>
-                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.guide || ''} onChange={(e) => {
+                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.guide} onChange={(e) => {
                             const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, guide: parseFloat(e.target.value) || 0 } }; updateData({ dailyExpenses: newDays });
                           }} />
                         </>}
                         {coreConfig.staffCounts.photographer > 0 && <>
                           <span className="text-gray-400">摄影薪</span>
-                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.photographer || ''} onChange={(e) => {
+                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.photographer} onChange={(e) => {
                             const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, photographer: parseFloat(e.target.value) || 0 } }; updateData({ dailyExpenses: newDays });
                           }} />
                         </>}
                         {coreConfig.staffCounts.videographer > 0 && <>
                           <span className="text-gray-400">摄像薪</span>
-                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.videographer || ''} onChange={(e) => {
+                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.videographer} onChange={(e) => {
                             const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, videographer: parseFloat(e.target.value) || 0 } }; updateData({ dailyExpenses: newDays });
                           }} />
                         </>}
                         {coreConfig.staffCounts.driver > 0 && <>
                           <span className="text-gray-400">司机薪</span>
-                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.driver || ''} onChange={(e) => {
+                          <Input type="number" min="0" step="0.01" className={numInput} value={day.staffFees.driver} onChange={(e) => {
                             const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, driver: parseFloat(e.target.value) || 0 } }; updateData({ dailyExpenses: newDays });
                           }} />
                         </>}
@@ -283,12 +282,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], name: e.target.value };
                               newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays });
                             }} />
-                            <Input type="number" placeholder="单价" className="h-7 w-16 text-xs px-1" value={item.price || ''} onChange={(e) => {
+                            <Input type="number" placeholder="单价" className="h-7 w-16 text-xs px-1" value={item.price} onChange={(e) => {
                               const newDays = [...dailyExpenses]; const items = [...day.singleItems]; const price = parseFloat(e.target.value) || 0;
                               items[itemIdx] = { ...items[itemIdx], price, totalPrice: price * items[itemIdx].count };
                               newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays });
                             }} />
-                            <Input type="number" placeholder="数" className="h-7 w-12 text-xs px-1" value={item.count || ''} onChange={(e) => {
+                            <Input type="number" placeholder="数" className="h-7 w-12 text-xs px-1" value={item.count} onChange={(e) => {
                               const newDays = [...dailyExpenses]; const items = [...day.singleItems]; const count = parseInt(e.target.value) || 1;
                               items[itemIdx] = { ...items[itemIdx], count, totalPrice: items[itemIdx].price * count };
                               newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays });
@@ -333,7 +332,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   ].map(({ key, label }) => (
                     <div key={key} className="flex items-center gap-1">
                       <span className="text-gray-400">{label}</span>
-                      <Input type="number" min="0" step="0.01" className={numInputMid} value={otherExpenses[key as keyof typeof otherExpenses] || ''} 
+                      <Input type="number" min="0" step="0.01" className={numInputMid} value={otherExpenses[key as keyof typeof otherExpenses]} 
                         onChange={(e) => updateData({ otherExpenses: { ...otherExpenses, [key]: parseFloat(e.target.value) || 0 } })} />
                     </div>
                   ))}

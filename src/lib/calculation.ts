@@ -26,8 +26,8 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalMeal = coreConfig.mealStandard * coreConfig.mealCountPerDay * coreConfig.tripDays * (totalClients + totalStaff);
   }
   
-  // 计算交通费用
-  const totalBus = coreConfig.busFee * coreConfig.tripDays;
+  // 计算交通费用（大巴全程费用，不乘天数）
+  const totalBus = coreConfig.busFee;
   
   // 计算工作人员费用
   let totalStaffFee = 0;
