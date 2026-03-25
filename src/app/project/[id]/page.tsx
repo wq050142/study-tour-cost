@@ -1205,7 +1205,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="text-gray-600 font-medium">用餐费</span>
                       <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
                     </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                    <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
                       {dailyExpenses.map((day, idx) => {
                         const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
                         const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
@@ -1213,17 +1213,31 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         const dinnerAmount = dinner.amount || 0;
                         const dayMealTotal = lunchAmount + dinnerAmount;
                         if (dayMealTotal === 0) return null;
+                        
+                        // 计算用餐人数
+                        const getMealDetail = (meal: typeof lunch, amount: number) => {
+                          if (amount === 0) return null;
+                          const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
+                          if (meal.clientMealType === 'table') {
+                            const tables = meal.tableCount || Math.ceil(totalClients / 10);
+                            return `${tables}桌 × ${price}元/人 × 10人`;
+                          } else {
+                            const count = meal.clientCount || totalClients;
+                            return `${count}人 × ${price}元/人`;
+                          }
+                        };
+                        
                         return (
                           <div key={idx} className="space-y-0.5">
                             {lunchAmount > 0 && (
                               <div className="flex justify-between">
-                                <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
+                                <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''} {getMealDetail(lunch, lunchAmount)}</span>
                                 <span>{formatMoney(lunchAmount)}</span>
                               </div>
                             )}
                             {dinnerAmount > 0 && (
                               <div className="flex justify-between">
-                                <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
+                                <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''} {getMealDetail(dinner, dinnerAmount)}</span>
                                 <span>{formatMoney(dinnerAmount)}</span>
                               </div>
                             )}
@@ -1445,7 +1459,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     )}
                     
                     {/* 用餐费明细 */}
-                    {quoteMealTotal > 0 && (
+                    {summary.totalMeal > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
                           <span className="text-gray-600 font-medium">用餐费</span>
@@ -1455,9 +1469,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           {dailyExpenses.map((day) => {
                             const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
                             const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                            const lunchQuote = lunch.quoteAmount ?? lunch.amount ?? 0;
-                            const dinnerQuote = dinner.quoteAmount ?? dinner.amount ?? 0;
-                            if (lunchQuote === 0 && dinnerQuote === 0) return null;
+                            const lunchAmount = lunch.amount || 0;
+                            const dinnerAmount = dinner.amount || 0;
+                            if (lunchAmount === 0 && dinnerAmount === 0) return null;
+                            
+                            const lunchQuote = lunch.quoteAmount ?? lunchAmount;
+                            const dinnerQuote = dinner.quoteAmount ?? dinnerAmount;
                             
                             const updateMealQuote = (mealType: 'lunch' | 'dinner', value: number) => {
                               const newDays = [...dailyExpenses];
@@ -1470,7 +1487,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             
                             return (
                               <div key={day.day} className="space-y-1">
-                                {lunchQuote > 0 && (
+                                {lunchAmount > 0 && (
                                   <div className="flex justify-between items-center">
                                     <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
                                     <div className="flex items-center gap-1">
@@ -1483,7 +1500,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                     </div>
                                   </div>
                                 )}
-                                {dinnerQuote > 0 && (
+                                {dinnerAmount > 0 && (
                                   <div className="flex justify-between items-center">
                                     <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
                                     <div className="flex items-center gap-1">
