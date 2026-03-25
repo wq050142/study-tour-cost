@@ -77,6 +77,14 @@ export interface CoreConfig {
   
   // 交通
   busFee: number; // 大巴车包车费用（含司机薪资）
+  // 飞机
+  flightEnabled: boolean; // 是否启用飞机
+  flightPrice: number; // 飞机单价
+  flightCount: number; // 飞机票数
+  // 高铁
+  trainEnabled: boolean; // 是否启用高铁
+  trainPrice: number; // 高铁单价
+  trainCount: number; // 高铁票数
 }
 
 // 单项费用项目
@@ -229,6 +237,12 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
   mealStandardClient: 0,
   mealStandardStaff: 0,
   busFee: 0,
+  flightEnabled: false,
+  flightPrice: 0,
+  flightCount: 0,
+  trainEnabled: false,
+  trainPrice: 0,
+  trainCount: 0,
 };
 
 export const DEFAULT_INSURANCE_CONFIG: InsuranceConfig = {

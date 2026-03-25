@@ -82,8 +82,11 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalMeal += calculateMealAmount(dinner, coreConfig, totalClients, totalStaff);
   });
   
-  // 计算交通费用（大巴全程费用，含司机薪资，不乘天数）
-  const totalBus = coreConfig.busFee;
+  // 计算交通费用（大巴 + 飞机 + 高铁）
+  const totalBus = coreConfig.busFee || 0;
+  const totalFlight = (coreConfig.flightEnabled ? (coreConfig.flightPrice || 0) * (coreConfig.flightCount || 0) : 0);
+  const totalTrain = (coreConfig.trainEnabled ? (coreConfig.trainPrice || 0) * (coreConfig.trainCount || 0) : 0);
+  const totalTransport = totalBus + totalFlight + totalTrain;
   
   // 计算工作人员费用
   let totalStaffFee = 0;
@@ -109,7 +112,7 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   const totalCost = 
     totalAccommodation +
     totalMeal +
-    totalBus +
+    totalTransport +
     totalStaffFee +
     totalSingleItems +
     totalOtherExpenses;
@@ -156,7 +159,7 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalStaff,
     totalAccommodation,
     totalMeal,
-    totalBus,
+    totalBus: totalTransport,
     totalStaffFee,
     totalSingleItems,
     totalOtherExpenses,

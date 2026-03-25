@@ -557,12 +557,86 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               )}
 
               <Separator className="my-3" />
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <span className="text-gray-500 w-12">交通</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-600">大巴费</span>
-                  <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={coreConfig.busFee} onChange={(v) => updateData({ coreConfig: { ...coreConfig, busFee: v } })} />
-                  <span className="text-gray-500">元</span>
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-gray-700">大交通</span>
+                
+                {/* 大巴 - 默认显示 */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={coreConfig.busFee > 0 || (!coreConfig.flightEnabled && !coreConfig.trainEnabled)} 
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          updateData({ coreConfig: { ...coreConfig, busFee: coreConfig.busFee || 0 } });
+                        } else {
+                          updateData({ coreConfig: { ...coreConfig, busFee: 0 } });
+                        }
+                      }} 
+                      className="w-4 h-4 accent-blue-500" 
+                    />
+                    <span>大巴</span>
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={coreConfig.busFee} onChange={(v) => updateData({ coreConfig: { ...coreConfig, busFee: v } })} />
+                    <span className="text-gray-500">元</span>
+                  </div>
+                </div>
+                
+                {/* 飞机 - 可选 */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={coreConfig.flightEnabled || false} 
+                      onChange={(e) => updateData({ coreConfig: { ...coreConfig, flightEnabled: e.target.checked, flightCount: e.target.checked ? (coreConfig.flightCount || totalClients + totalStaff) : 0 } })} 
+                      className="w-4 h-4 accent-blue-500" 
+                    />
+                    <span>飞机</span>
+                  </label>
+                  {(coreConfig.flightEnabled) && (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.flightPrice || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, flightPrice: v } })} />
+                        <span className="text-gray-500 whitespace-nowrap">元/张</span>
+                      </div>
+                      <span className="text-gray-400">×</span>
+                      <div className="flex items-center gap-1">
+                        <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.flightCount || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, flightCount: v } })} />
+                        <span className="text-gray-500">张</span>
+                      </div>
+                      <span className="text-gray-400">=</span>
+                      <span className="font-medium">{formatMoney((coreConfig.flightPrice || 0) * (coreConfig.flightCount || 0))}</span>
+                    </>
+                  )}
+                </div>
+                
+                {/* 高铁 - 可选 */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={coreConfig.trainEnabled || false} 
+                      onChange={(e) => updateData({ coreConfig: { ...coreConfig, trainEnabled: e.target.checked, trainCount: e.target.checked ? (coreConfig.trainCount || totalClients + totalStaff) : 0 } })} 
+                      className="w-4 h-4 accent-blue-500" 
+                    />
+                    <span>高铁</span>
+                  </label>
+                  {(coreConfig.trainEnabled) && (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.trainPrice || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, trainPrice: v } })} />
+                        <span className="text-gray-500 whitespace-nowrap">元/张</span>
+                      </div>
+                      <span className="text-gray-400">×</span>
+                      <div className="flex items-center gap-1">
+                        <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.trainCount || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, trainCount: v } })} />
+                        <span className="text-gray-500">张</span>
+                      </div>
+                      <span className="text-gray-400">=</span>
+                      <span className="font-medium">{formatMoney((coreConfig.trainPrice || 0) * (coreConfig.trainCount || 0))}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
