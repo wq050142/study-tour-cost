@@ -347,13 +347,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </header>
 
-      <main className="flex gap-3 p-3">
-        <div className="flex-1 min-w-0 space-y-3">
+      <main className="flex gap-4 p-4">
+        <div className="flex-1 min-w-0 space-y-4">
           {/* 项目设置 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b"><CardTitle className="text-sm font-semibold">项目设置</CardTitle></CardHeader>
-            <CardContent className="py-2 px-3">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">项目设置</CardTitle></CardHeader>
+            <CardContent className="py-3 px-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">类型</span>
                 <div className="flex gap-4">
                   {PROJECT_TYPES.map(type => (
@@ -394,9 +394,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 客户配置 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b"><CardTitle className="text-sm font-semibold">客户配置 <span className="text-blue-600 font-normal text-xs">共{totalClients}人</span></CardTitle></CardHeader>
-            <CardContent className="py-2 px-3 space-y-2">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">客户配置 <span className="text-blue-600 font-normal text-sm">共{totalClients}人</span></CardTitle></CardHeader>
+            <CardContent className="py-3 px-4 space-y-3">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">人员</span>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600">学生</span>
@@ -417,8 +417,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
               {projectData.project.type === 'multi-day' && (
                 <>
-                  <Separator className="my-1" />
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                  <Separator />
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <span className="text-gray-500 w-12">住宿</span>
                     <span className="text-gray-600">标准</span>
                     <div className="flex gap-3">
@@ -436,37 +436,37 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       ))}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm pl-16">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm pl-16">
                     <div className="flex items-center gap-1">
                       <span className="text-gray-600 w-12">双床房</span>
-                      <NumberInput className="h-7 w-14 text-sm px-1.5 border rounded" value={coreConfig.twinRoom?.countClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, countClient: v, price: coreConfig.twinRoom?.price || 0, countStaff: coreConfig.twinRoom?.countStaff || 0 } } })} />
+                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.twinRoom?.countClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, countClient: v, price: coreConfig.twinRoom?.price || 0, countStaff: coreConfig.twinRoom?.countStaff || 0 } } })} />
                       <span className="text-gray-500">间</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <NumberInput className="h-7 w-16 text-sm px-1.5 border rounded" value={coreConfig.twinRoom?.price || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, price: v, countClient: coreConfig.twinRoom?.countClient || 0, countStaff: coreConfig.twinRoom?.countStaff || 0 } } })} />
+                      <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.twinRoom?.price || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, price: v, countClient: coreConfig.twinRoom?.countClient || 0, countStaff: coreConfig.twinRoom?.countStaff || 0 } } })} />
                       <span className="text-gray-500 whitespace-nowrap">元/间</span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm pl-16">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm pl-16">
                     <div className="flex items-center gap-1">
                       <span className="text-gray-600 w-12">大床房</span>
-                      <NumberInput className="h-7 w-14 text-sm px-1.5 border rounded" value={coreConfig.kingRoom?.countClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, countClient: v, price: coreConfig.kingRoom?.price || 0, countStaff: coreConfig.kingRoom?.countStaff || 0 } } })} />
+                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.kingRoom?.countClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, countClient: v, price: coreConfig.kingRoom?.price || 0, countStaff: coreConfig.kingRoom?.countStaff || 0 } } })} />
                       <span className="text-gray-500">间</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <NumberInput className="h-7 w-16 text-sm px-1.5 border rounded" value={coreConfig.kingRoom?.price || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, price: v, countClient: coreConfig.kingRoom?.countClient || 0, countStaff: coreConfig.kingRoom?.countStaff || 0 } } })} />
+                      <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.kingRoom?.price || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, price: v, countClient: coreConfig.kingRoom?.countClient || 0, countStaff: coreConfig.kingRoom?.countStaff || 0 } } })} />
                       <span className="text-gray-500 whitespace-nowrap">元/间</span>
                     </div>
                   </div>
                 </>
               )}
 
-              <Separator className="my-1" />
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+              <Separator />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">用餐</span>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600">餐标</span>
-                  <NumberInput className="h-7 w-16 text-sm px-1.5 border rounded" value={coreConfig.mealStandardClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardClient: v } })} />
+                  <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.mealStandardClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardClient: v } })} />
                   <span className="text-gray-500 whitespace-nowrap">元/人</span>
                 </div>
               </div>
@@ -475,25 +475,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 人员及大交通 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b">
-              <CardTitle className="text-sm font-semibold">人员及大交通 <span className="text-green-600 font-normal text-xs">共{totalStaff}人</span></CardTitle>
+            <CardHeader className="py-3 px-4 border-b">
+              <CardTitle className="text-base font-semibold">人员及大交通 <span className="text-green-600 font-normal text-sm">共{totalStaff}人</span></CardTitle>
             </CardHeader>
-            <CardContent className="py-2 px-3 space-y-1.5">
+            <CardContent className="py-3 px-4 space-y-2">
               {coreConfig.staffMembers.map((member, index) => (
-                <div key={member.id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm bg-gray-50 rounded p-1.5">
+                <div key={member.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm bg-gray-50 rounded-lg p-2">
                   <Input 
                     placeholder="角色名称" 
-                    className="h-7 w-20 text-sm px-1.5" 
+                    className="h-8 w-24 text-sm px-2" 
                     value={member.name} 
                     onChange={(e) => updateStaffMember(member.id, { name: e.target.value })} 
                   />
-                  <div className="flex items-center gap-0.5">
-                    <NumberInput className="h-7 w-14 text-sm px-1.5 border rounded" value={member.count} onChange={(v) => updateStaffMember(member.id, { count: v })} />
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={member.count} onChange={(v) => updateStaffMember(member.id, { count: v })} />
                     <span className="text-gray-500">人</span>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-gray-400 text-xs">日薪</span>
-                    <NumberInput className="h-7 w-16 text-sm px-1.5 border rounded" value={member.dailyFee} onChange={(v) => {
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">日薪</span>
+                    <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={member.dailyFee} onChange={(v) => {
                       updateStaffMember(member.id, { dailyFee: v });
                       // 同步更新每日费用中的参考薪资
                       const newDailyExpenses = dailyExpenses.map(day => ({
@@ -505,64 +505,64 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <span className="text-gray-500">元</span>
                   </div>
                   {coreConfig.staffMembers.length > 1 && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-red-500" onClick={() => removeStaffMember(member.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeStaffMember(member.id)}>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
                 </div>
               ))}
-              <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={addStaffMember}><Plus className="w-3.5 h-3.5 mr-0.5" />添加角色</Button>
+              <Button variant="outline" size="sm" className="h-7 text-sm mt-1" onClick={addStaffMember}><Plus className="w-4 h-4 mr-1" />添加角色</Button>
               
               {projectData.project.type === 'multi-day' && (
                 <>
-                  <Separator className="my-2" />
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                  <Separator className="my-3" />
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                       <span className="text-gray-500 w-12">住宿</span>
                       <label className="flex items-center gap-1 cursor-pointer">
-                        <input type="radio" name="staffAccommodation" checked={coreConfig.staffAccommodation === true} onChange={() => updateData({ coreConfig: { ...coreConfig, staffAccommodation: true } })} className="w-3.5 h-3.5 accent-blue-500" />
+                        <input type="radio" name="staffAccommodation" checked={coreConfig.staffAccommodation === true} onChange={() => updateData({ coreConfig: { ...coreConfig, staffAccommodation: true } })} className="w-4 h-4 accent-blue-500" />
                         <span>是</span>
                       </label>
                       <label className="flex items-center gap-1 cursor-pointer">
-                        <input type="radio" name="staffAccommodation" checked={coreConfig.staffAccommodation === false} onChange={() => updateData({ coreConfig: { ...coreConfig, staffAccommodation: false } })} className="w-3.5 h-3.5 accent-blue-500" />
+                        <input type="radio" name="staffAccommodation" checked={coreConfig.staffAccommodation === false} onChange={() => updateData({ coreConfig: { ...coreConfig, staffAccommodation: false } })} className="w-4 h-4 accent-blue-500" />
                         <span>否</span>
                       </label>
                     </div>
                     {coreConfig.staffAccommodation && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm pl-16">
-                        <div className="flex items-center gap-0.5">
-                          <span className="text-gray-600 text-xs">床型</span>
-                          <label className="flex items-center gap-0.5 cursor-pointer">
-                            <input type="radio" name="staffRoomType" checked={(coreConfig.staffRoomType || 'twin') === 'twin'} onChange={() => updateData({ coreConfig: { ...coreConfig, staffRoomType: 'twin' } })} className="w-3.5 h-3.5 accent-blue-500" />
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm pl-16">
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-600">床型</span>
+                          <label className="flex items-center gap-1 cursor-pointer">
+                            <input type="radio" name="staffRoomType" checked={(coreConfig.staffRoomType || 'twin') === 'twin'} onChange={() => updateData({ coreConfig: { ...coreConfig, staffRoomType: 'twin' } })} className="w-4 h-4 accent-blue-500" />
                             <span>双床</span>
                           </label>
-                          <label className="flex items-center gap-0.5 cursor-pointer">
-                            <input type="radio" name="staffRoomType" checked={coreConfig.staffRoomType === 'king'} onChange={() => updateData({ coreConfig: { ...coreConfig, staffRoomType: 'king' } })} className="w-3.5 h-3.5 accent-blue-500" />
+                          <label className="flex items-center gap-1 cursor-pointer">
+                            <input type="radio" name="staffRoomType" checked={coreConfig.staffRoomType === 'king'} onChange={() => updateData({ coreConfig: { ...coreConfig, staffRoomType: 'king' } })} className="w-4 h-4 accent-blue-500" />
                             <span>大床</span>
                           </label>
                         </div>
-                        <div className="flex items-center gap-0.5">
-                          <NumberInput className="h-7 w-16 text-sm px-1.5 border rounded" value={coreConfig.staffRoomPrice || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffRoomPrice: v } })} />
-                          <span className="text-gray-500 whitespace-nowrap text-xs">元/间</span>
+                        <div className="flex items-center gap-1">
+                          <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.staffRoomPrice || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffRoomPrice: v } })} />
+                          <span className="text-gray-500 whitespace-nowrap">元/间</span>
                         </div>
-                        <div className="flex items-center gap-0.5">
-                          <NumberInput className="h-7 w-14 text-sm px-1.5 border rounded" value={coreConfig.staffAccommodationNights || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffAccommodationNights: v } })} />
-                          <span className="text-gray-500 text-xs">晚</span>
+                        <div className="flex items-center gap-1">
+                          <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.staffAccommodationNights || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffAccommodationNights: v } })} />
+                          <span className="text-gray-500">晚</span>
                         </div>
-                        <span className="text-gray-400 text-xs">({Math.ceil(totalStaff / 2)}间)</span>
+                        <span className="text-gray-400 text-sm">({Math.ceil(totalStaff / 2)}间)</span>
                       </div>
                     )}
                   </div>
                 </>
               )}
 
-              <Separator className="my-2" />
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+              <Separator className="my-3" />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">交通</span>
-                <div className="flex items-center gap-0.5">
-                  <span className="text-gray-600 text-xs">大巴费</span>
-                  <NumberInput className="h-7 w-20 text-sm px-1.5 border rounded" value={coreConfig.busFee} onChange={(v) => updateData({ coreConfig: { ...coreConfig, busFee: v } })} />
-                  <span className="text-gray-500 text-xs">元</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-600">大巴费</span>
+                  <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={coreConfig.busFee} onChange={(v) => updateData({ coreConfig: { ...coreConfig, busFee: v } })} />
+                  <span className="text-gray-500">元</span>
                 </div>
               </div>
             </CardContent>
@@ -570,8 +570,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 每日费用 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b"><CardTitle className="text-sm font-semibold">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle></CardHeader>
-            <CardContent className="py-2 px-3 space-y-3">
+            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle></CardHeader>
+            <CardContent className="py-3 px-4 space-y-4">
               {coreConfig.tripDays === 0 && projectData.project.type === 'multi-day' ? (
                 <div className="text-center text-gray-400 text-sm py-4">请先设置行程天数</div>
               ) : (
@@ -619,30 +619,30 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   };
                   
                   return (
-                    <div key={day.day} className="border border-gray-200 rounded p-3 space-y-2">
-                      <div className="flex items-center justify-between border-b pb-1.5">
-                        <span className="text-sm font-medium text-gray-800">{projectData.project.type === 'half-day' ? '费用明细' : `第${day.day}天`}</span>
-                        <span className="text-sm font-semibold text-gray-900">¥{dayTotal.toFixed(0)}</span>
+                    <div key={day.day} className="border border-gray-200 rounded-lg p-4 space-y-4">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="text-base font-medium text-gray-800">{projectData.project.type === 'half-day' ? '费用明细' : `第${day.day}天`}</span>
+                        <span className="text-base font-semibold text-gray-900">¥{dayTotal.toFixed(0)}</span>
                       </div>
                       
                       {/* 住宿和工作人员薪资 */}
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                         {projectData.project.type === 'multi-day' && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-gray-500 w-10 text-xs">住宿</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 w-12">住宿</span>
                             <NumberInput 
-                              className="h-7 w-20 text-sm px-1.5 border rounded" 
+                              className="h-8 w-24 text-sm px-2 border rounded" 
                               value={accommodationValue} 
                               onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, accommodation: v }; updateData({ dailyExpenses: newDays }); }} 
                             />
-                            <span className="text-gray-500 text-xs">元</span>
+                            <span className="text-gray-500">元</span>
                           </div>
                         )}
                         {coreConfig.staffMembers.filter(m => m.count > 0).map(member => (
-                          <div key={member.id} className="flex items-center gap-1">
-                            <span className="text-gray-600 text-xs">{member.name}</span>
+                          <div key={member.id} className="flex items-center gap-2">
+                            <span className="text-gray-600">{member.name}</span>
                             <NumberInput 
-                              className="h-7 w-16 text-sm px-1.5 border rounded" 
+                              className="h-8 w-20 text-sm px-2 border rounded" 
                               value={day.staffFees[member.id] ?? member.dailyFee} 
                               onChange={(v) => { 
                                 const newDays = [...dailyExpenses]; 
@@ -650,40 +650,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 updateData({ dailyExpenses: newDays }); 
                               }} 
                             />
-                            <span className="text-gray-500 text-xs">元</span>
+                            <span className="text-gray-500">元</span>
                           </div>
                         ))}
                       </div>
 
                       {/* 活动项目 */}
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600 font-medium">活动项目</span>
-                          <Button variant="outline" size="sm" className="h-6 text-xs px-2" onClick={() => { 
+                          <span className="text-sm text-gray-600 font-medium">活动项目</span>
+                          <Button variant="outline" size="sm" className="h-7 text-sm px-3" onClick={() => { 
                             const newDays = [...dailyExpenses]; 
                             newDays[dayIdx] = { ...day, singleItems: [...day.singleItems, { id: Date.now().toString(), name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }] }; 
                             updateData({ dailyExpenses: newDays }); 
-                          }}><Plus className="w-3 h-3 mr-0.5" />添加</Button>
+                          }}><Plus className="w-4 h-4 mr-1" />添加</Button>
                         </div>
                         {day.singleItems.map((item, itemIdx) => (
-                          <div key={item.id} className="bg-gray-50 rounded p-2 space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <Input placeholder="项目名称" className="h-7 flex-1 text-sm px-2" value={item.name} onChange={(e) => { 
+                          <div key={item.id} className="bg-gray-50 rounded-lg p-3 space-y-2">
+                            <div className="flex items-center gap-3">
+                              <Input placeholder="项目名称" className="h-8 flex-1 text-sm px-3" value={item.name} onChange={(e) => { 
                                 const newDays = [...dailyExpenses]; 
                                 const items = [...day.singleItems]; 
                                 items[itemIdx] = { ...items[itemIdx], name: e.target.value }; 
                                 newDays[dayIdx] = { ...day, singleItems: items }; 
                                 updateData({ dailyExpenses: newDays }); 
                               }} />
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-red-500" onClick={() => { 
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-500" onClick={() => { 
                                 const newDays = [...dailyExpenses]; 
                                 newDays[dayIdx] = { ...day, singleItems: day.singleItems.filter((_, i) => i !== itemIdx) }; 
                                 updateData({ dailyExpenses: newDays }); 
-                              }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                              }}><Trash2 className="w-4 h-4" /></Button>
                             </div>
                             <textarea 
                               placeholder="备注说明" 
-                              className="w-full h-12 text-xs px-2 py-1.5 border rounded resize-none" 
+                              className="w-full h-16 text-sm px-3 py-2 border rounded resize-none" 
                               value={item.remark || ''} 
                               onChange={(e) => { 
                                 const newDays = [...dailyExpenses]; 
@@ -693,17 +693,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 updateData({ dailyExpenses: newDays }); 
                               }} 
                             />
-                            <div className="flex items-center gap-1.5 text-xs">
+                            <div className="flex items-center gap-2 text-sm">
                               <span className="text-gray-500">单价</span>
-                              <NumberInput className="h-6 w-16 text-xs px-1.5 border rounded" value={item.price} onChange={(v) => { 
+                              <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={item.price} onChange={(v) => { 
                                 const newDays = [...dailyExpenses]; 
                                 const items = [...day.singleItems]; 
                                 items[itemIdx] = { ...items[itemIdx], price: v, totalPrice: v * items[itemIdx].count }; 
                                 newDays[dayIdx] = { ...day, singleItems: items }; 
                                 updateData({ dailyExpenses: newDays }); 
                               }} />
-                              <span className="text-gray-400">×</span>
-                              <NumberInput className="h-6 w-14 text-xs px-1.5 border rounded" value={item.count} onChange={(v) => { 
+                              <span className="text-gray-500 whitespace-nowrap">元 ×</span>
+                              <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={item.count} onChange={(v) => { 
                                 const newDays = [...dailyExpenses]; 
                                 const items = [...day.singleItems]; 
                                 items[itemIdx] = { ...items[itemIdx], count: v || totalClients, totalPrice: items[itemIdx].price * (v || totalClients) }; 
@@ -711,7 +711,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 updateData({ dailyExpenses: newDays }); 
                               }} />
                               <select 
-                                className="h-6 text-xs px-1 border rounded bg-white"
+                                className="h-8 text-sm px-2 border rounded bg-white"
                                 value={item.unit || '人'}
                                 onChange={(e) => {
                                   const newDays = [...dailyExpenses];
@@ -727,64 +727,64 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <option value="辆">辆</option>
                                 <option value="间">间</option>
                               </select>
-                              <span className="text-gray-400">=</span>
-                              <span className="text-sm font-semibold text-gray-900">¥{(item.totalPrice || item.price * item.count).toFixed(0)}</span>
+                              <span className="text-gray-500">=</span>
+                              <span className="text-base font-semibold text-gray-900">¥{(item.totalPrice || item.price * item.count).toFixed(0)}</span>
                             </div>
                           </div>
                         ))}
                       </div>
 
                       {/* 中餐 - 餐厅名优先 */}
-                      <div className="bg-gray-50 rounded p-2 space-y-1.5">
-                        <div className="grid grid-cols-[50px_1fr_auto] gap-x-2 gap-y-1.5 items-center text-xs">
+                      <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                        <div className="grid grid-cols-[80px_1fr_auto] gap-x-4 gap-y-2 items-center text-sm">
                           <span className="text-gray-700 font-medium">中餐</span>
-                          <Input placeholder="餐厅名称（可选）" className="h-6 text-xs px-1.5" value={lunch.restaurantName || ''} onChange={(e) => updateMeal('lunch', { restaurantName: e.target.value })} />
+                          <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={lunch.restaurantName || ''} onChange={(e) => updateMeal('lunch', { restaurantName: e.target.value })} />
                           <span></span>
                           <span className="text-gray-500">客户</span>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`lunch-client-${day.day}`} checked={lunch.clientMealType === 'individual'} onChange={() => updateMeal('lunch', { clientMealType: 'individual', tableCount: 0, clientCount: lunch.clientCount || totalClients, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-3.5 h-3.5" />
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`lunch-client-${day.day}`} checked={lunch.clientMealType === 'individual'} onChange={() => updateMeal('lunch', { clientMealType: 'individual', tableCount: 0, clientCount: lunch.clientCount || totalClients, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>例餐</span>
                             </label>
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`lunch-client-${day.day}`} checked={(lunch.clientMealType || 'table') === 'table'} onChange={() => updateMeal('lunch', { clientMealType: 'table', tableCount: lunch.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-3.5 h-3.5" />
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`lunch-client-${day.day}`} checked={(lunch.clientMealType || 'table') === 'table'} onChange={() => updateMeal('lunch', { clientMealType: 'table', tableCount: lunch.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>桌餐</span>
                             </label>
-                            <div className="flex items-center gap-0.5">
-                              <NumberInput className="h-6 w-14 text-xs px-1 border rounded" value={lunch.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('lunch', { pricePerPerson: v })} />
-                              <span className="text-gray-400">元/人</span>
+                            <div className="flex items-center gap-1">
+                              <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={lunch.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('lunch', { pricePerPerson: v })} />
+                              <span className="text-gray-500 whitespace-nowrap">元/人</span>
                             </div>
-                            <span className="text-gray-300">×</span>
+                            <span className="text-gray-400">×</span>
                             {lunch.clientMealType === 'individual' ? (
-                              <div className="flex items-center gap-0.5">
-                                <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={lunch.clientCount || totalClients} onChange={(v) => updateMeal('lunch', { clientCount: v })} />
-                                <span className="text-gray-400">人</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={lunch.clientCount || totalClients} onChange={(v) => updateMeal('lunch', { clientCount: v })} />
+                                <span className="text-gray-500">人</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-0.5">
-                                <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={lunch.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('lunch', { tableCount: v })} />
-                                <span className="text-gray-400">桌</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={lunch.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('lunch', { tableCount: v })} />
+                                <span className="text-gray-500">桌</span>
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-0.5">
+                          <div className="flex items-center gap-1">
                             <span className="text-gray-400">¥</span>
-                            <NumberInput className="h-6 w-18 text-xs px-1 border rounded text-right" value={lunchAmount} onChange={(v) => updateMeal('lunch', { amount: v })} />
+                            <NumberInput className="h-8 w-24 text-sm px-2 border rounded text-right" value={lunchAmount} onChange={(v) => updateMeal('lunch', { amount: v })} />
                           </div>
                           <span className="text-gray-500">工作人员</span>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`lunch-staff-${day.day}`} checked={(lunch.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('lunch', { staffMealType: 'with-group' })} className="w-3.5 h-3.5" />
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`lunch-staff-${day.day}`} checked={(lunch.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('lunch', { staffMealType: 'with-group' })} className="w-4 h-4" />
                               <span>随团</span>
                             </label>
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`lunch-staff-${day.day}`} checked={lunch.staffMealType === 'independent'} onChange={() => updateMeal('lunch', { staffMealType: 'independent' })} className="w-3.5 h-3.5" />
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`lunch-staff-${day.day}`} checked={lunch.staffMealType === 'independent'} onChange={() => updateMeal('lunch', { staffMealType: 'independent' })} className="w-4 h-4" />
                               <span>独立</span>
                             </label>
                             {lunch.staffMealType === 'independent' && (
-                              <div className="flex items-center gap-0.5">
-                                <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
-                                <span className="text-gray-400">元/人</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
+                                <span className="text-gray-500 whitespace-nowrap">元/人</span>
                               </div>
                             )}
                           </div>
@@ -793,56 +793,56 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       </div>
 
                       {/* 晚餐 - 餐厅名优先 */}
-                      <div className="bg-gray-50 rounded p-2 space-y-1.5">
-                        <div className="grid grid-cols-[50px_1fr_auto] gap-x-2 gap-y-1.5 items-center text-xs">
+                      <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                        <div className="grid grid-cols-[80px_1fr_auto] gap-x-4 gap-y-2 items-center text-sm">
                           <span className="text-gray-700 font-medium">晚餐</span>
-                          <Input placeholder="餐厅名称（可选）" className="h-6 text-xs px-1.5" value={dinner.restaurantName || ''} onChange={(e) => updateMeal('dinner', { restaurantName: e.target.value })} />
+                          <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={dinner.restaurantName || ''} onChange={(e) => updateMeal('dinner', { restaurantName: e.target.value })} />
                           <span></span>
                           <span className="text-gray-500">客户</span>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`dinner-client-${day.day}`} checked={dinner.clientMealType === 'individual'} onChange={() => updateMeal('dinner', { clientMealType: 'individual', tableCount: 0, clientCount: dinner.clientCount || totalClients, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-3.5 h-3.5" />
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`dinner-client-${day.day}`} checked={dinner.clientMealType === 'individual'} onChange={() => updateMeal('dinner', { clientMealType: 'individual', tableCount: 0, clientCount: dinner.clientCount || totalClients, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>例餐</span>
                             </label>
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`dinner-client-${day.day}`} checked={(dinner.clientMealType || 'table') === 'table'} onChange={() => updateMeal('dinner', { clientMealType: 'table', tableCount: dinner.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-3.5 h-3.5" />
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`dinner-client-${day.day}`} checked={(dinner.clientMealType || 'table') === 'table'} onChange={() => updateMeal('dinner', { clientMealType: 'table', tableCount: dinner.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>桌餐</span>
                             </label>
-                            <div className="flex items-center gap-0.5">
-                              <NumberInput className="h-6 w-14 text-xs px-1 border rounded" value={dinner.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('dinner', { pricePerPerson: v })} />
-                              <span className="text-gray-400">元/人</span>
+                            <div className="flex items-center gap-1">
+                              <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={dinner.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('dinner', { pricePerPerson: v })} />
+                              <span className="text-gray-500 whitespace-nowrap">元/人</span>
                             </div>
-                            <span className="text-gray-300">×</span>
+                            <span className="text-gray-400">×</span>
                             {dinner.clientMealType === 'individual' ? (
-                              <div className="flex items-center gap-0.5">
-                                <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={dinner.clientCount || totalClients} onChange={(v) => updateMeal('dinner', { clientCount: v })} />
-                                <span className="text-gray-400">人</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={dinner.clientCount || totalClients} onChange={(v) => updateMeal('dinner', { clientCount: v })} />
+                                <span className="text-gray-500">人</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-0.5">
-                                <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={dinner.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('dinner', { tableCount: v })} />
-                                <span className="text-gray-400">桌</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={dinner.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('dinner', { tableCount: v })} />
+                                <span className="text-gray-500">桌</span>
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-0.5">
+                          <div className="flex items-center gap-1">
                             <span className="text-gray-400">¥</span>
-                            <NumberInput className="h-6 w-18 text-xs px-1 border rounded text-right" value={dinnerAmount} onChange={(v) => updateMeal('dinner', { amount: v })} />
+                            <NumberInput className="h-8 w-24 text-sm px-2 border rounded text-right" value={dinnerAmount} onChange={(v) => updateMeal('dinner', { amount: v })} />
                           </div>
                           <span className="text-gray-500">工作人员</span>
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`dinner-staff-${day.day}`} checked={(dinner.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('dinner', { staffMealType: 'with-group' })} className="w-3.5 h-3.5" />
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`dinner-staff-${day.day}`} checked={(dinner.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('dinner', { staffMealType: 'with-group' })} className="w-4 h-4" />
                               <span>随团</span>
                             </label>
-                            <label className="flex items-center gap-1 cursor-pointer">
-                              <input type="radio" name={`dinner-staff-${day.day}`} checked={dinner.staffMealType === 'independent'} onChange={() => updateMeal('dinner', { staffMealType: 'independent' })} className="w-3.5 h-3.5" />
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input type="radio" name={`dinner-staff-${day.day}`} checked={dinner.staffMealType === 'independent'} onChange={() => updateMeal('dinner', { staffMealType: 'independent' })} className="w-4 h-4" />
                               <span>独立</span>
                             </label>
                             {dinner.staffMealType === 'independent' && (
-                              <div className="flex items-center gap-0.5">
-                                <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
-                                <span className="text-gray-400">元/人</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
+                                <span className="text-gray-500 whitespace-nowrap">元/人</span>
                               </div>
                             )}
                           </div>
@@ -858,101 +858,101 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 其他费用 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b"><CardTitle className="text-sm font-semibold">其他费用</CardTitle></CardHeader>
-            <CardContent className="py-2 px-3 space-y-2">
+            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">其他费用</CardTitle></CardHeader>
+            <CardContent className="py-3 px-4 space-y-4">
               {/* 保险费 */}
-              <div className="bg-gray-50 rounded p-2 space-y-1">
-                <span className="text-xs font-medium text-gray-700">保险费</span>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                  <div className="flex items-center gap-0.5">
-                    <NumberInput className="h-6 w-14 text-xs px-1 border rounded" value={otherExpenses.insurance.pricePerPerson} onChange={(v) => updateInsurance({ pricePerPerson: v })} />
-                    <span className="text-gray-400">元/人/天</span>
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <span className="text-sm font-medium text-gray-700">保险费</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={otherExpenses.insurance.pricePerPerson} onChange={(v) => updateInsurance({ pricePerPerson: v })} />
+                    <span className="text-gray-500 whitespace-nowrap">元/人/天</span>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-gray-300">×</span>
-                    <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={otherExpenses.insurance.days} onChange={(v) => updateInsurance({ days: v })} />
-                    <span className="text-gray-400">天</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">×</span>
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={otherExpenses.insurance.days} onChange={(v) => updateInsurance({ days: v })} />
+                    <span className="text-gray-500">天</span>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-gray-300">×</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">×</span>
                     <span className="text-gray-500">{totalClients + totalStaff}人</span>
-                    <span className="text-gray-300 text-xs">(客户{totalClients}+工作人员{totalStaff})</span>
+                    <span className="text-gray-400 text-xs">(客户{totalClients}+工作人员{totalStaff})</span>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-gray-300">=</span>
-                    <NumberInput className="h-6 w-18 text-xs px-1 border rounded" value={otherExpenses.insurance.totalAmount} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, insurance: { ...otherExpenses.insurance, totalAmount: v } } })} />
-                    <span className="text-gray-400">元</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">=</span>
+                    <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={otherExpenses.insurance.totalAmount} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, insurance: { ...otherExpenses.insurance, totalAmount: v } } })} />
+                    <span className="text-gray-500">元</span>
                   </div>
                 </div>
               </div>
 
               {/* 服务费 */}
-              <div className="bg-gray-50 rounded p-2 space-y-1">
-                <span className="text-xs font-medium text-gray-700">服务费</span>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                  <div className="flex items-center gap-0.5">
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <span className="text-sm font-medium text-gray-700">服务费</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1">
                     <span className="text-gray-600">按成本</span>
-                    <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={otherExpenses.serviceFeePercent} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, serviceFeePercent: v } })} />
-                    <span className="text-gray-400">%</span>
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={otherExpenses.serviceFeePercent} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, serviceFeePercent: v } })} />
+                    <span className="text-gray-500">%</span>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-gray-300">=</span>
-                    <span className="text-sm font-semibold text-gray-900">{formatMoney(serviceFee)}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">=</span>
+                    <span className="text-base font-semibold text-gray-900">{formatMoney(serviceFee)}</span>
                   </div>
                 </div>
               </div>
 
               {/* 备用金 */}
-              <div className="bg-gray-50 rounded p-2 space-y-1">
-                <span className="text-xs font-medium text-gray-700">备用金</span>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                  <div className="flex items-center gap-0.5">
-                    <NumberInput className="h-6 w-18 text-xs px-1 border rounded" value={otherExpenses.reserveFund} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, reserveFund: v } })} />
-                    <span className="text-gray-400">元</span>
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <span className="text-sm font-medium text-gray-700">备用金</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={otherExpenses.reserveFund} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, reserveFund: v } })} />
+                    <span className="text-gray-500">元</span>
                   </div>
                 </div>
               </div>
 
               {/* 物料费 */}
-              <div className="bg-gray-50 rounded p-2 space-y-1">
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700">物料费</span>
-                  <Button variant="outline" size="sm" className="h-5 text-xs px-1.5" onClick={addMaterial}><Plus className="w-3 h-3 mr-0.5" />添加</Button>
+                  <span className="text-sm font-medium text-gray-700">物料费</span>
+                  <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addMaterial}><Plus className="w-4 h-4 mr-1" />添加</Button>
                 </div>
                 {otherExpenses.materials.map((material) => (
-                  <div key={material.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                    <Input placeholder="物料名称" className="h-6 w-24 text-xs px-1.5" value={material.name} onChange={(e) => updateMaterial(material.id, { name: e.target.value })} />
-                    <div className="flex items-center gap-0.5">
-                      <NumberInput className="h-6 w-14 text-xs px-1 border rounded" value={material.price} onChange={(v) => updateMaterial(material.id, { price: v })} />
-                      <span className="text-gray-400">×</span>
+                  <div key={material.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                    <Input placeholder="物料名称" className="h-8 w-32 text-sm px-2" value={material.name} onChange={(e) => updateMaterial(material.id, { name: e.target.value })} />
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={material.price} onChange={(v) => updateMaterial(material.id, { price: v })} />
+                      <span className="text-gray-500">元 ×</span>
                     </div>
-                    <div className="flex items-center gap-0.5">
-                      <NumberInput className="h-6 w-12 text-xs px-1 border rounded" value={material.quantity} onChange={(v) => updateMaterial(material.id, { quantity: v })} />
-                      <span className="text-gray-400">=</span>
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={material.quantity} onChange={(v) => updateMaterial(material.id, { quantity: v })} />
+                      <span className="text-gray-500">=</span>
                     </div>
-                    <span className="text-xs font-medium">{formatMoney(material.totalPrice || material.price * material.quantity)}</span>
-                    <Button variant="ghost" size="icon" className="h-5 w-5 text-gray-400 hover:text-red-500" onClick={() => removeMaterial(material.id)}>
-                      <Trash2 className="w-3 h-3" />
+                    <span className="text-sm font-medium">{formatMoney(material.totalPrice || material.price * material.quantity)}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeMaterial(material.id)}>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
               </div>
 
               {/* 其他费用 */}
-              <div className="bg-gray-50 rounded p-2 space-y-1">
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700">其他</span>
-                  <Button variant="outline" size="sm" className="h-5 text-xs px-1.5" onClick={addOtherExpense}><Plus className="w-3 h-3 mr-0.5" />添加</Button>
+                  <span className="text-sm font-medium text-gray-700">其他</span>
+                  <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addOtherExpense}><Plus className="w-4 h-4 mr-1" />添加</Button>
                 </div>
                 {otherExpenses.otherExpenses.map((item) => (
-                  <div key={item.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                    <Input placeholder="备注" className="h-6 w-24 text-xs px-1.5" value={item.remark} onChange={(e) => updateOtherExpense(item.id, { remark: e.target.value })} />
-                    <div className="flex items-center gap-0.5">
-                      <NumberInput className="h-6 w-16 text-xs px-1 border rounded" value={item.amount} onChange={(v) => updateOtherExpense(item.id, { amount: v })} />
-                      <span className="text-gray-400">元</span>
+                  <div key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                    <Input placeholder="备注" className="h-8 w-32 text-sm px-2" value={item.remark} onChange={(e) => updateOtherExpense(item.id, { remark: e.target.value })} />
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={item.amount} onChange={(v) => updateOtherExpense(item.id, { amount: v })} />
+                      <span className="text-gray-500">元</span>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-5 w-5 text-gray-400 hover:text-red-500" onClick={() => removeOtherExpense(item.id)}>
-                      <Trash2 className="w-3 h-3" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeOtherExpense(item.id)}>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
@@ -962,68 +962,68 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 右侧面板 */}
-        <div className="w-72 flex-shrink-0 space-y-3 sticky top-14 self-start">
+        <div className="w-80 flex-shrink-0 space-y-4 sticky top-14 self-start">
           {/* 成本表 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b">
-              <CardTitle className="text-sm font-semibold">成本核算表</CardTitle>
-              <p className="text-xs text-gray-500">内部参考</p>
+            <CardHeader className="py-3 px-4 border-b">
+              <CardTitle className="text-base font-semibold">成本核算表</CardTitle>
+              <p className="text-sm text-gray-500 mt-0.5">内部参考</p>
             </CardHeader>
-            <CardContent className="py-2 px-3">
-              <div className="space-y-0 text-xs">
-                {projectData.project.type === 'multi-day' && <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">住宿费</span><span className="font-medium">{formatMoney(summary.totalAccommodation)}</span></div>}
-                <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">用餐费</span><span className="font-medium">{formatMoney(summary.totalMeal)}</span></div>
-                <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">交通费</span><span className="font-medium">{formatMoney(summary.totalBus)}</span></div>
-                <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">工作人员</span><span className="font-medium">{formatMoney(summary.totalStaffFee)}</span></div>
-                <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">单项费用</span><span className="font-medium">{formatMoney(summary.totalSingleItems)}</span></div>
-                <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">其他费用</span><span className="font-medium">{formatMoney(summary.totalOtherExpenses)}</span></div>
-                <div className="flex justify-between py-2 bg-gray-50 rounded mt-1.5 px-2"><span className="font-semibold text-gray-800">总成本</span><span className="font-bold text-gray-900 text-base">{formatMoney(summary.totalCost)}</span></div>
-                <div className="flex justify-between py-1 text-gray-500"><span>人均成本</span><span className="font-medium text-gray-700">{formatMoney(summary.avgCostPerClient)}</span></div>
+            <CardContent className="py-3 px-4">
+              <div className="space-y-0 text-sm">
+                {projectData.project.type === 'multi-day' && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">住宿费</span><span className="font-medium">{formatMoney(summary.totalAccommodation)}</span></div>}
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">用餐费</span><span className="font-medium">{formatMoney(summary.totalMeal)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">交通费</span><span className="font-medium">{formatMoney(summary.totalBus)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">工作人员</span><span className="font-medium">{formatMoney(summary.totalStaffFee)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">单项费用</span><span className="font-medium">{formatMoney(summary.totalSingleItems)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">其他费用</span><span className="font-medium">{formatMoney(summary.totalOtherExpenses)}</span></div>
+                <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3"><span className="font-semibold text-gray-800">总成本</span><span className="font-bold text-gray-900 text-xl">{formatMoney(summary.totalCost)}</span></div>
+                <div className="flex justify-between py-2 text-gray-500"><span>人均成本</span><span className="font-medium text-gray-700">{formatMoney(summary.avgCostPerClient)}</span></div>
               </div>
             </CardContent>
           </Card>
 
           {/* 报价单 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b">
-              <CardTitle className="text-sm font-semibold">报价单</CardTitle>
-              <p className="text-xs text-gray-500">给客户展示</p>
+            <CardHeader className="py-3 px-4 border-b">
+              <CardTitle className="text-base font-semibold">报价单</CardTitle>
+              <p className="text-sm text-gray-500 mt-0.5">给客户展示</p>
             </CardHeader>
-            <CardContent className="py-2 px-3">
-              <div className="space-y-0 text-xs">
-                {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">住宿费</span><span className="font-medium">{formatMoney(summary.totalAccommodation)}</span></div>}
-                {summary.totalMeal > 0 && <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">用餐费</span><span className="font-medium">{formatMoney(summary.totalMeal)}</span></div>}
-                {summary.totalBus > 0 && <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">交通费</span><span className="font-medium">{formatMoney(summary.totalBus)}</span></div>}
+            <CardContent className="py-3 px-4">
+              <div className="space-y-0 text-sm">
+                {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">住宿费</span><span className="font-medium">{formatMoney(summary.totalAccommodation)}</span></div>}
+                {summary.totalMeal > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">用餐费</span><span className="font-medium">{formatMoney(summary.totalMeal)}</span></div>}
+                {summary.totalBus > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">交通费</span><span className="font-medium">{formatMoney(summary.totalBus)}</span></div>}
                 {dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).map((item, idx) => (
-                  <div key={idx} className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">{item.name}</span><span className="font-medium">{formatMoney(item.totalPrice || item.price * item.count)}</span></div>
+                  <div key={idx} className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">{item.name}</span><span className="font-medium">{formatMoney(item.totalPrice || item.price * item.count)}</span></div>
                 ))}
-                {otherExpenses.insurance.totalAmount > 0 && <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">保险费</span><span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span></div>}
+                {otherExpenses.insurance.totalAmount > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">保险费</span><span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span></div>}
                 {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
-                  <div key={idx} className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">{m.name || `物料${idx + 1}`}</span><span className="font-medium">{formatMoney(m.totalPrice || m.price * m.quantity)}</span></div>
+                  <div key={idx} className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">{m.name || `物料${idx + 1}`}</span><span className="font-medium">{formatMoney(m.totalPrice || m.price * m.quantity)}</span></div>
                 ))}
-                <div className="flex justify-between py-1.5 bg-gray-50 rounded px-1.5 mt-1"><span className="text-gray-600">小计</span><span className="font-medium">{formatMoney(summary.totalCost)}</span></div>
-                <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">服务费 ({otherExpenses.serviceFeePercent}%)</span><span className="font-medium">{formatMoney(serviceFee)}</span></div>
-                <div className="flex justify-between py-1.5 border-b border-gray-100"><span className="text-gray-600">税费 (6%)</span><span className="font-medium">{formatMoney(tax)}</span></div>
-                <div className="flex justify-between py-2 bg-gray-50 rounded mt-1 px-2"><span className="font-semibold text-gray-800">报价合计</span><span className="font-bold text-gray-900 text-base">{formatMoney(totalPrice)}</span></div>
-                <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                <div className="flex justify-between py-2 bg-gray-50 rounded px-2 mt-2"><span className="text-gray-600">小计</span><span className="font-medium">{formatMoney(summary.totalCost)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">服务费 ({otherExpenses.serviceFeePercent}%)</span><span className="font-medium">{formatMoney(serviceFee)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">税费 (6%)</span><span className="font-medium">{formatMoney(tax)}</span></div>
+                <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3"><span className="font-semibold text-gray-800">报价合计</span><span className="font-bold text-gray-900 text-xl">{formatMoney(totalPrice)}</span></div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-gray-600">优惠</span>
-                  <div className="flex items-center gap-0.5"><span className="text-gray-400">-</span><NumberInput className="h-6 w-16 text-xs px-1 text-right border rounded" value={discount} onChange={(v) => setDiscount(v)} /></div>
+                  <div className="flex items-center gap-1"><span className="text-gray-400">-</span><NumberInput className="h-8 w-20 text-sm px-2 text-right border rounded" value={discount} onChange={(v) => setDiscount(v)} /></div>
                 </div>
-                <div className="flex justify-between py-2 bg-gray-100 rounded mt-1 px-2"><span className="font-bold text-gray-800">应付金额</span><span className="font-bold text-gray-900 text-lg">{formatMoney(finalPrice)}</span></div>
-                <div className="flex justify-between py-1 text-gray-500"><span>人均费用</span><span className="font-medium text-gray-700">{formatMoney(pricePerClient)}</span></div>
+                <div className="flex justify-between py-2.5 bg-gray-100 rounded mt-2 px-3"><span className="font-bold text-gray-800">应付金额</span><span className="font-bold text-gray-900 text-2xl">{formatMoney(finalPrice)}</span></div>
+                <div className="flex justify-between py-2 text-gray-500"><span>人均费用</span><span className="font-medium text-gray-700">{formatMoney(pricePerClient)}</span></div>
               </div>
             </CardContent>
           </Card>
 
           {/* 人员统计 */}
           <Card>
-            <CardHeader className="py-2 px-3 border-b"><CardTitle className="text-sm font-semibold">人员统计</CardTitle></CardHeader>
-            <CardContent className="py-2 px-3">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="border rounded p-2 text-center"><div className="text-base font-bold text-gray-800">{totalClients}</div><div className="text-gray-500 mt-0.5">客户人数</div></div>
-                <div className="border rounded p-2 text-center"><div className="text-base font-bold text-gray-800">{totalStaff}</div><div className="text-gray-500 mt-0.5">工作人员</div></div>
-                <div className="border rounded p-2 text-center"><div className="text-base font-bold text-gray-800">{totalPeople}</div><div className="text-gray-500 mt-0.5">总人数</div></div>
-                <div className="border rounded p-2 text-center"><div className="text-base font-bold text-gray-800">{projectData.project.type === 'half-day' ? '半日' : projectData.project.type === 'one-day' ? '一日' : `${coreConfig.tripDays}天`}</div><div className="text-gray-500 mt-0.5">行程类型</div></div>
+            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">人员统计</CardTitle></CardHeader>
+            <CardContent className="py-3 px-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{totalClients}</div><div className="text-gray-500 mt-1">客户人数</div></div>
+                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{totalStaff}</div><div className="text-gray-500 mt-1">工作人员</div></div>
+                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{totalPeople}</div><div className="text-gray-500 mt-1">总人数</div></div>
+                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{projectData.project.type === 'half-day' ? '半日' : projectData.project.type === 'one-day' ? '一日' : `${coreConfig.tripDays}天`}</div><div className="text-gray-500 mt-1">行程类型</div></div>
               </div>
             </CardContent>
           </Card>
