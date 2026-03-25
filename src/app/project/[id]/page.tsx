@@ -237,13 +237,30 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       `应付金额：${formatMoney(finalPrice)}`, 
       `人均费用：${formatMoney(finalPrice / (summary.totalClients || 1))}`);
     
-    // 利润分析
-    const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
-    const quoteSubtotal = summary.totalCost - summary.totalSingleItems + quoteSingleItemsTotal;
-    const quoteServiceFeeVal = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
-    const quoteTaxVal = (quoteSubtotal + quoteServiceFeeVal) * 0.06;
-    const quoteTotal = quoteSubtotal + quoteServiceFeeVal + quoteTaxVal;
-    const revenue = quoteTotal - discount;
+    // 利润分析（使用报价计算）
+    const twinQP = coreConfig.twinRoom?.quotePrice ?? coreConfig.twinRoom?.price ?? 0;
+    const kingQP = coreConfig.kingRoom?.quotePrice ?? coreConfig.kingRoom?.price ?? 0;
+    const quoteAcc = (coreConfig.twinRoom?.countClient || 0) * twinQP * coreConfig.accommodationDays +
+                     (coreConfig.kingRoom?.countClient || 0) * kingQP * coreConfig.accommodationDays;
+    
+    const quoteMeal = dailyExpenses.reduce((total, day) => {
+      const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+      const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+      return total + (lunch.quoteAmount ?? lunch.amount ?? 0) + (dinner.quoteAmount ?? dinner.amount ?? 0);
+    }, 0);
+    
+    const busQ = coreConfig.busQuoteFee ?? coreConfig.busFee ?? 0;
+    const transportsQ = (coreConfig.otherTransports || []).reduce((s, t) => s + (t.quotePrice ?? t.price) * t.count, 0);
+    const quoteTrans = busQ + transportsQ;
+    
+    const quoteSingle = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
+    const quoteOther = otherExpenses.insurance.totalAmount + otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+    
+    const qSubtotal = quoteAcc + quoteMeal + quoteTrans + quoteSingle + quoteOther;
+    const qServiceFee = calculateServiceFee(qSubtotal, otherExpenses.serviceFeePercent);
+    const qTax = (qSubtotal + qServiceFee) * 0.06;
+    const qTotal = qSubtotal + qServiceFee + qTax;
+    const revenue = qTotal - discount;
     const cost = summary.totalCost;
     const profit = revenue - cost;
     const profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
@@ -1330,9 +1347,38 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="py-3 px-4">
               {(() => {
-                // 计算报价相关金额
+                // 计算住宿费报价
+                const twinQuotePrice = coreConfig.twinRoom?.quotePrice ?? coreConfig.twinRoom?.price ?? 0;
+                const kingQuotePrice = coreConfig.kingRoom?.quotePrice ?? coreConfig.kingRoom?.price ?? 0;
+                const quoteAccommodation = (coreConfig.twinRoom?.countClient || 0) * twinQuotePrice * coreConfig.accommodationDays +
+                                           (coreConfig.kingRoom?.countClient || 0) * kingQuotePrice * coreConfig.accommodationDays;
+                
+                // 计算用餐费报价
+                const quoteMealTotal = dailyExpenses.reduce((total, day) => {
+                  const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+                  const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+                  const lunchQuote = lunch.quoteAmount ?? lunch.amount ?? 0;
+                  const dinnerQuote = dinner.quoteAmount ?? dinner.amount ?? 0;
+                  return total + lunchQuote + dinnerQuote;
+                }, 0);
+                
+                // 计算交通费报价
+                const busQuote = coreConfig.busQuoteFee ?? coreConfig.busFee ?? 0;
+                const transportsQuote = (coreConfig.otherTransports || []).reduce((s, t) => {
+                  const qPrice = t.quotePrice ?? t.price;
+                  return s + qPrice * t.count;
+                }, 0);
+                const quoteBus = busQuote + transportsQuote;
+                
+                // 计算活动项目报价
                 const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
-                const quoteSubtotal = summary.totalCost - summary.totalSingleItems + quoteSingleItemsTotal;
+                
+                // 计算其他费用报价（保险、杂费等）
+                const quoteOtherExpenses = otherExpenses.insurance.totalAmount + 
+                                           otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+                
+                // 报价小计
+                const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
                 const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
                 const quoteTax = (quoteSubtotal + quoteServiceFee) * 0.06;
                 const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
@@ -1342,23 +1388,53 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 return (
                   <div className="space-y-0 text-sm">
                     {/* 住宿费明细 */}
-                    {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
+                    {projectData.project.type === 'multi-day' && quoteAccommodation > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
                           <span className="text-gray-600 font-medium">住宿费</span>
-                          <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
+                          <span className="font-medium">{formatMoney(quoteAccommodation)}</span>
                         </div>
-                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                        <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
                           {coreConfig.twinRoom && coreConfig.twinRoom.countClient > 0 && (
-                            <div className="flex justify-between">
-                              <span>双床房 {coreConfig.twinRoom.countClient}间 × {coreConfig.twinRoom.price}元/晚</span>
-                              <span>{formatMoney(coreConfig.twinRoom.countClient * (coreConfig.twinRoom.price || 0) * coreConfig.accommodationDays)}</span>
+                            <div className="flex justify-between items-center">
+                              <span>双床房 {coreConfig.twinRoom.countClient}间</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput 
+                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                  value={twinQuotePrice} 
+                                  onChange={(v) => {
+                                    updateData({ 
+                                      coreConfig: { 
+                                        ...coreConfig, 
+                                        twinRoom: { ...coreConfig.twinRoom!, quotePrice: v } 
+                                      } 
+                                    });
+                                  }}
+                                />
+                                <span>元/晚 × {coreConfig.accommodationDays}晚</span>
+                                <span className="w-14 text-right font-medium">{formatMoney(coreConfig.twinRoom.countClient * twinQuotePrice * coreConfig.accommodationDays)}</span>
+                              </div>
                             </div>
                           )}
                           {coreConfig.kingRoom && coreConfig.kingRoom.countClient > 0 && (
-                            <div className="flex justify-between">
-                              <span>大床房 {coreConfig.kingRoom.countClient}间 × {coreConfig.kingRoom.price}元/晚</span>
-                              <span>{formatMoney(coreConfig.kingRoom.countClient * (coreConfig.kingRoom.price || 0) * coreConfig.accommodationDays)}</span>
+                            <div className="flex justify-between items-center">
+                              <span>大床房 {coreConfig.kingRoom.countClient}间</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput 
+                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                  value={kingQuotePrice} 
+                                  onChange={(v) => {
+                                    updateData({ 
+                                      coreConfig: { 
+                                        ...coreConfig, 
+                                        kingRoom: { ...coreConfig.kingRoom!, quotePrice: v } 
+                                      } 
+                                    });
+                                  }}
+                                />
+                                <span>元/晚 × {coreConfig.accommodationDays}晚</span>
+                                <span className="w-14 text-right font-medium">{formatMoney(coreConfig.kingRoom.countClient * kingQuotePrice * coreConfig.accommodationDays)}</span>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1366,32 +1442,55 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     )}
                     
                     {/* 用餐费明细 */}
-                    {summary.totalMeal > 0 && (
+                    {quoteMealTotal > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
                           <span className="text-gray-600 font-medium">用餐费</span>
-                          <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
+                          <span className="font-medium">{formatMoney(quoteMealTotal)}</span>
                         </div>
-                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                        <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
                           {dailyExpenses.map((day) => {
                             const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
                             const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                            const lunchAmount = lunch.amount || 0;
-                            const dinnerAmount = dinner.amount || 0;
-                            const dayMealTotal = lunchAmount + dinnerAmount;
-                            if (dayMealTotal === 0) return null;
+                            const lunchQuote = lunch.quoteAmount ?? lunch.amount ?? 0;
+                            const dinnerQuote = dinner.quoteAmount ?? dinner.amount ?? 0;
+                            if (lunchQuote === 0 && dinnerQuote === 0) return null;
+                            
+                            const updateMealQuote = (mealType: 'lunch' | 'dinner', value: number) => {
+                              const newDays = [...dailyExpenses];
+                              const dayData = newDays.find(d => d.day === day.day);
+                              if (dayData) {
+                                dayData[mealType] = { ...dayData[mealType], quoteAmount: value };
+                                updateData({ dailyExpenses: newDays });
+                              }
+                            };
+                            
                             return (
-                              <div key={day.day} className="space-y-0.5">
-                                {lunchAmount > 0 && (
-                                  <div className="flex justify-between">
+                              <div key={day.day} className="space-y-1">
+                                {lunchQuote > 0 && (
+                                  <div className="flex justify-between items-center">
                                     <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
-                                    <span>{formatMoney(lunchAmount)}</span>
+                                    <div className="flex items-center gap-1">
+                                      <NumberInput 
+                                        className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                        value={lunchQuote} 
+                                        onChange={(v) => updateMealQuote('lunch', v)}
+                                      />
+                                      <span className="w-14 text-right font-medium">{formatMoney(lunchQuote)}</span>
+                                    </div>
                                   </div>
                                 )}
-                                {dinnerAmount > 0 && (
-                                  <div className="flex justify-between">
+                                {dinnerQuote > 0 && (
+                                  <div className="flex justify-between items-center">
                                     <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
-                                    <span>{formatMoney(dinnerAmount)}</span>
+                                    <div className="flex items-center gap-1">
+                                      <NumberInput 
+                                        className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                        value={dinnerQuote} 
+                                        onChange={(v) => updateMealQuote('dinner', v)}
+                                      />
+                                      <span className="w-14 text-right font-medium">{formatMoney(dinnerQuote)}</span>
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -1402,25 +1501,48 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     )}
                     
                     {/* 交通费明细 */}
-                    {summary.totalBus > 0 && (
+                    {quoteBus > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
                           <span className="text-gray-600 font-medium">交通费</span>
-                          <span className="font-medium">{formatMoney(summary.totalBus)}</span>
+                          <span className="font-medium">{formatMoney(quoteBus)}</span>
                         </div>
-                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                        <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
                           {coreConfig.busFee > 0 && (
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <span>大巴租赁</span>
-                              <span>{formatMoney(coreConfig.busFee)}</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput 
+                                  className="h-6 w-20 text-xs px-1 text-right border rounded" 
+                                  value={busQuote} 
+                                  onChange={(v) => updateData({ coreConfig: { ...coreConfig, busQuoteFee: v } })}
+                                />
+                                <span className="w-14 text-right font-medium">{formatMoney(busQuote)}</span>
+                              </div>
                             </div>
                           )}
-                          {(coreConfig.otherTransports || []).map((t) => (
-                            <div key={t.id} className="flex justify-between">
-                              <span>{t.type === 'flight' ? '飞机票' : '高铁票'} {t.count}张</span>
-                              <span>{formatMoney(t.price * t.count)}</span>
-                            </div>
-                          ))}
+                          {(coreConfig.otherTransports || []).map((t) => {
+                            const tQuotePrice = t.quotePrice ?? t.price;
+                            return (
+                              <div key={t.id} className="flex justify-between items-center">
+                                <span>{t.type === 'flight' ? '飞机票' : '高铁票'} {t.count}张</span>
+                                <div className="flex items-center gap-1">
+                                  <NumberInput 
+                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                    value={tQuotePrice} 
+                                    onChange={(v) => {
+                                      const newTransports = (coreConfig.otherTransports || []).map(item => 
+                                        item.id === t.id ? { ...item, quotePrice: v } : item
+                                      );
+                                      updateData({ coreConfig: { ...coreConfig, otherTransports: newTransports } });
+                                    }}
+                                  />
+                                  <span>元/张</span>
+                                  <span className="w-14 text-right font-medium">{formatMoney(tQuotePrice * t.count)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </>
                     )}
@@ -1541,16 +1663,42 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="py-3 px-4">
               {(() => {
-                // 计算报价活动项目总和（使用报价单价）
+                // 计算住宿费报价
+                const twinQuotePrice = coreConfig.twinRoom?.quotePrice ?? coreConfig.twinRoom?.price ?? 0;
+                const kingQuotePrice = coreConfig.kingRoom?.quotePrice ?? coreConfig.kingRoom?.price ?? 0;
+                const quoteAccommodation = (coreConfig.twinRoom?.countClient || 0) * twinQuotePrice * coreConfig.accommodationDays +
+                                           (coreConfig.kingRoom?.countClient || 0) * kingQuotePrice * coreConfig.accommodationDays;
+                
+                // 计算用餐费报价
+                const quoteMealTotal = dailyExpenses.reduce((total, day) => {
+                  const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+                  const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+                  const lunchQuote = lunch.quoteAmount ?? lunch.amount ?? 0;
+                  const dinnerQuote = dinner.quoteAmount ?? dinner.amount ?? 0;
+                  return total + lunchQuote + dinnerQuote;
+                }, 0);
+                
+                // 计算交通费报价
+                const busQuote = coreConfig.busQuoteFee ?? coreConfig.busFee ?? 0;
+                const transportsQuote = (coreConfig.otherTransports || []).reduce((s, t) => {
+                  const qPrice = t.quotePrice ?? t.price;
+                  return s + qPrice * t.count;
+                }, 0);
+                const quoteBus = busQuote + transportsQuote;
+                
+                // 计算活动项目报价
                 const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
-                // 报价小计 = 成本小计 - 成本活动项目 + 报价活动项目
-                const quoteSubtotal = summary.totalCost - summary.totalSingleItems + quoteSingleItemsTotal;
-                // 报价服务费
+                
+                // 计算其他费用报价
+                const quoteOtherExpenses = otherExpenses.insurance.totalAmount + 
+                                           otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+                
+                // 报价小计
+                const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
                 const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
-                // 报价税费
                 const quoteTax = (quoteSubtotal + quoteServiceFee) * 0.06;
-                // 报价合计
                 const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
+                
                 // 最终营收
                 const revenue = quoteTotal - discount;
                 // 成本
@@ -1559,6 +1707,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const profit = revenue - cost;
                 // 利润率
                 const profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
+                
+                // 计算差价
+                const accommodationDiff = quoteAccommodation - summary.totalAccommodation;
+                const mealDiff = quoteMealTotal - summary.totalMeal;
+                const busDiff = quoteBus - summary.totalBus;
+                const singleItemsDiff = quoteSingleItemsTotal - summary.totalSingleItems;
+                const totalDiff = profit;
                 
                 return (
                   <div className="space-y-0 text-sm">
@@ -1578,14 +1733,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="text-gray-600">利润率</span>
                       <span className={`font-medium ${profitRate >= 0 ? 'text-green-600' : 'text-red-500'}`}>{profitRate.toFixed(1)}%</span>
                     </div>
-                    {quoteSingleItemsTotal !== summary.totalSingleItems && (
-                      <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-500">
-                        <div className="flex justify-between">
-                          <span>活动项目差价</span>
-                          <span className={quoteSingleItemsTotal >= summary.totalSingleItems ? 'text-green-600' : 'text-red-500'}>
-                            {quoteSingleItemsTotal >= summary.totalSingleItems ? '+' : ''}{formatMoney(quoteSingleItemsTotal - summary.totalSingleItems)}
-                          </span>
-                        </div>
+                    {totalDiff !== 0 && (
+                      <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-500 space-y-1">
+                        {accommodationDiff !== 0 && (
+                          <div className="flex justify-between">
+                            <span>住宿费差价</span>
+                            <span className={accommodationDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                              {accommodationDiff >= 0 ? '+' : ''}{formatMoney(accommodationDiff)}
+                            </span>
+                          </div>
+                        )}
+                        {mealDiff !== 0 && (
+                          <div className="flex justify-between">
+                            <span>用餐费差价</span>
+                            <span className={mealDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                              {mealDiff >= 0 ? '+' : ''}{formatMoney(mealDiff)}
+                            </span>
+                          </div>
+                        )}
+                        {busDiff !== 0 && (
+                          <div className="flex justify-between">
+                            <span>交通费差价</span>
+                            <span className={busDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                              {busDiff >= 0 ? '+' : ''}{formatMoney(busDiff)}
+                            </span>
+                          </div>
+                        )}
+                        {singleItemsDiff !== 0 && (
+                          <div className="flex justify-between">
+                            <span>活动项目差价</span>
+                            <span className={singleItemsDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                              {singleItemsDiff >= 0 ? '+' : ''}{formatMoney(singleItemsDiff)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

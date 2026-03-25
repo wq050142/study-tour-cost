@@ -19,6 +19,7 @@ export interface MealConfig {
   staffMealType: StaffMealType; // 工作人员用餐方式
   amount: number; // 实际金额（可手动修改）
   restaurantName: string; // 餐厅名称备注
+  quoteAmount?: number; // 报价金额（可手动修改，默认等于 amount）
 }
 
 // 项目基础信息
@@ -36,6 +37,7 @@ export interface RoomConfig {
   price: number; // 房间单价
   countClient: number; // 客户房间数
   countStaff: number; // 工作人员房间数
+  quotePrice?: number; // 报价单价（可手动修改，默认等于 price）
 }
 
 // 工作人员配置（动态）
@@ -77,6 +79,7 @@ export interface CoreConfig {
   
   // 交通
   busFee: number; // 大巴车包车费用（含司机薪资）
+  busQuoteFee?: number; // 大巴报价（可手动修改，默认等于 busFee）
   // 其他交通方式（飞机、高铁等）
   otherTransports: TransportItem[];
 }
@@ -85,8 +88,9 @@ export interface CoreConfig {
 export interface TransportItem {
   id: string;
   type: 'flight' | 'train'; // 飞机 | 高铁
-  price: number; // 单价
+  price: number; // 成本单价
   count: number; // 数量
+  quotePrice?: number; // 报价单价（可手动修改，默认等于 price）
 }
 
 // 单项费用项目
