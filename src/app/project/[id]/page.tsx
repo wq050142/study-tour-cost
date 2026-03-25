@@ -149,7 +149,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (otherExpenses.insurance.totalAmount > 0) lines.push(`保险费用：${formatMoney(otherExpenses.insurance.totalAmount)}`);
     if (otherExpenses.materials.length > 0) {
       const materialsTotal = otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
-      lines.push(`物料费用：${formatMoney(materialsTotal)}`);
+      lines.push(`杂费（客户）：${formatMoney(materialsTotal)}`);
+    }
+    if (otherExpenses.otherExpenses.length > 0) {
+      const otherTotal = otherExpenses.otherExpenses.reduce((s, o) => s + o.amount, 0);
+      lines.push(`杂费（工作人员）：${formatMoney(otherTotal)}`);
     }
     
     lines.push('', '─'.repeat(50), `小计：${formatMoney(summary.totalCost)}`, 
@@ -998,15 +1002,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              {/* 物料费 */}
+              {/* 杂费（客户） */}
               <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">物料费</span>
+                  <span className="text-sm font-medium text-gray-700">杂费（客户）</span>
                   <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addMaterial}><Plus className="w-4 h-4 mr-1" />添加</Button>
                 </div>
                 {otherExpenses.materials.map((material) => (
                   <div key={material.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                    <Input placeholder="物料名称" className="h-8 w-32 text-sm px-2" value={material.name} onChange={(e) => updateMaterial(material.id, { name: e.target.value })} />
+                    <Input placeholder="项目名称" className="h-8 w-32 text-sm px-2" value={material.name} onChange={(e) => updateMaterial(material.id, { name: e.target.value })} />
                     <div className="flex items-center gap-1">
                       <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={material.price} onChange={(v) => updateMaterial(material.id, { price: v })} />
                       <span className="text-gray-500">元 ×</span>
@@ -1023,10 +1027,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 ))}
               </div>
 
-              {/* 其他费用 */}
+              {/* 杂费（工作人员） */}
               <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">其他</span>
+                  <span className="text-sm font-medium text-gray-700">杂费（工作人员）</span>
                   <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addOtherExpense}><Plus className="w-4 h-4 mr-1" />添加</Button>
                 </div>
                 {otherExpenses.otherExpenses.map((item) => (
