@@ -237,6 +237,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       `应付金额：${formatMoney(finalPrice)}`, 
       `人均费用：${formatMoney(finalPrice / (summary.totalClients || 1))}`);
     
+    // 利润分析
+    const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
+    const quoteSubtotal = summary.totalCost - summary.totalSingleItems + quoteSingleItemsTotal;
+    const quoteServiceFeeVal = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
+    const quoteTaxVal = (quoteSubtotal + quoteServiceFeeVal) * 0.06;
+    const quoteTotal = quoteSubtotal + quoteServiceFeeVal + quoteTaxVal;
+    const revenue = quoteTotal - discount;
+    const cost = summary.totalCost;
+    const profit = revenue - cost;
+    const profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
+    
+    lines.push('', '─'.repeat(60), '利润分析（内部参考）', '─'.repeat(60),
+      `营收：${formatMoney(revenue)}`,
+      `成本：${formatMoney(cost)}`,
+      `利润：${profit >= 0 ? '+' : ''}${formatMoney(profit)}`,
+      `利润率：${profitRate.toFixed(1)}%`);
+    
     const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1402,16 +1419,41 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <>
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600 font-medium">活动项目</span>
-                      <span className="font-medium">{formatMoney(summary.totalSingleItems)}</span>
+                      <span className="font-medium">{formatMoney(dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0))}</span>
                     </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                    <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
                       {dailyExpenses.map((day) => 
-                        day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).map((item, idx) => (
-                          <div key={`${day.day}-${idx}`} className="flex justify-between">
-                            <span>D{day.day} {item.name}</span>
-                            <span>{formatMoney(item.totalPrice || item.price * item.count)}</span>
-                          </div>
-                        ))
+                        day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).map((item, idx) => {
+                          const quotePrice = item.quotePrice ?? item.price;
+                          const quoteTotal = item.quoteTotalPrice ?? (quotePrice * item.count);
+                          return (
+                            <div key={`${day.day}-${idx}`} className="flex justify-between items-center">
+                              <span>D{day.day} {item.name}</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput 
+                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                  value={quotePrice} 
+                                  onChange={(v) => {
+                                    const newDays = [...dailyExpenses];
+                                    const dayData = newDays.find(d => d.day === day.day);
+                                    if (dayData) {
+                                      const itemData = dayData.singleItems.find(i => i.id === item.id);
+                                      if (itemData) {
+                                        itemData.quotePrice = v;
+                                        itemData.quoteTotalPrice = v * itemData.count;
+                                        updateData({ dailyExpenses: newDays });
+                                      }
+                                    }
+                                  }}
+                                />
+                                <span>×</span>
+                                <span>{item.count}{item.unit || '人'}</span>
+                                <span>=</span>
+                                <span className="font-medium w-14 text-right">{formatMoney(quoteTotal)}</span>
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </>
@@ -1443,7 +1485,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </>
                 )}
                 
-                <div className="flex justify-between py-2 bg-gray-50 rounded px-2 mt-2"><span className="text-gray-600">小计</span><span className="font-medium">{formatMoney(summary.totalCost)}</span></div>
+                {/* 报价活动项目合计 */}
+                <div className="flex justify-between py-2 bg-gray-50 rounded px-2 mt-2">
+                  <span className="text-gray-600">小计</span>
+                  <span className="font-medium">{formatMoney(
+                    summary.totalCost - summary.totalSingleItems + 
+                    dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0)
+                  )}</span>
+                </div>
                 <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">服务费 ({otherExpenses.serviceFeePercent}%)</span><span className="font-medium">{formatMoney(serviceFee)}</span></div>
                 <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">税费 (6%)</span><span className="font-medium">{formatMoney(tax)}</span></div>
                 <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3"><span className="font-semibold text-gray-800">报价合计</span><span className="font-bold text-gray-900 text-xl">{formatMoney(totalPrice)}</span></div>
@@ -1454,6 +1503,66 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex justify-between py-2.5 bg-gray-100 rounded mt-2 px-3"><span className="font-bold text-gray-800">应付金额</span><span className="font-bold text-gray-900 text-2xl">{formatMoney(finalPrice)}</span></div>
                 <div className="flex justify-between py-2 text-gray-500"><span>人均费用</span><span className="font-medium text-gray-700">{formatMoney(pricePerClient)}</span></div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* 利润分析 */}
+          <Card>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50">
+              <CardTitle className="text-lg font-bold text-gray-800">利润分析</CardTitle>
+            </CardHeader>
+            <CardContent className="py-3 px-4">
+              {(() => {
+                // 计算报价活动项目总和（使用报价单价）
+                const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
+                // 报价小计 = 成本小计 - 成本活动项目 + 报价活动项目
+                const quoteSubtotal = summary.totalCost - summary.totalSingleItems + quoteSingleItemsTotal;
+                // 报价服务费
+                const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
+                // 报价税费
+                const quoteTax = (quoteSubtotal + quoteServiceFee) * 0.06;
+                // 报价合计
+                const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
+                // 最终营收
+                const revenue = quoteTotal - discount;
+                // 成本
+                const cost = summary.totalCost;
+                // 利润
+                const profit = revenue - cost;
+                // 利润率
+                const profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
+                
+                return (
+                  <div className="space-y-0 text-sm">
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">营收</span>
+                      <span className="font-medium text-green-600">{formatMoney(revenue)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">成本</span>
+                      <span className="font-medium text-red-500">-{formatMoney(cost)}</span>
+                    </div>
+                    <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3">
+                      <span className="font-semibold text-gray-800">利润</span>
+                      <span className={`font-bold text-xl ${profit >= 0 ? 'text-green-600' : 'text-red-500'}`}>{profit >= 0 ? '+' : ''}{formatMoney(profit)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">利润率</span>
+                      <span className={`font-medium ${profitRate >= 0 ? 'text-green-600' : 'text-red-500'}`}>{profitRate.toFixed(1)}%</span>
+                    </div>
+                    {quoteSingleItemsTotal !== summary.totalSingleItems && (
+                      <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-500">
+                        <div className="flex justify-between">
+                          <span>活动项目差价</span>
+                          <span className={quoteSingleItemsTotal >= summary.totalSingleItems ? 'text-green-600' : 'text-red-500'}>
+                            {quoteSingleItemsTotal >= summary.totalSingleItems ? '+' : ''}{formatMoney(quoteSingleItemsTotal - summary.totalSingleItems)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 

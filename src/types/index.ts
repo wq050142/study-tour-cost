@@ -96,10 +96,12 @@ export interface SingleItem {
   remark: string; // 备注说明
   startTime: string; // 开始时间，格式 HH:mm
   endTime: string; // 结束时间，格式 HH:mm
-  price: number; // 单价
+  price: number; // 成本单价
   count: number; // 数量
   unit: '人' | '团' | '组' | '辆' | '间'; // 单位
   totalPrice: number; // 总价
+  quotePrice?: number; // 报价单价（可手动修改，默认等于 price）
+  quoteTotalPrice?: number; // 报价总价（可手动修改，默认等于 quotePrice * count）
 }
 
 // 每日费用
