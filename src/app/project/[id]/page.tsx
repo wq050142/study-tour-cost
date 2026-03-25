@@ -188,13 +188,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         } else if (type.value === 'one-day') {
                           newTripDays = 1;
                           newAccommodationDays = 0;
-                        } else {
-                          // 多日：默认2天，1晚住宿
-                          if (coreConfig.tripDays < 2) {
-                            newTripDays = 2;
-                            newAccommodationDays = 1;
-                          }
                         }
+                        // 多日：保持当前天数，不做强制调整
                         
                         updateData({ 
                           project: { ...projectData.project, type: type.value },
@@ -216,9 +211,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <>
                     <span className="text-gray-500 w-10 ml-2">天数</span>
                     <div className="flex items-center gap-0.5">
-                      <Input type="number" min="2" className={numInput} value={coreConfig.tripDays} onChange={(e) => {
-                        const days = Math.max(2, parseInt(e.target.value) || 2);
-                        updateData({ coreConfig: { ...coreConfig, tripDays: days, accommodationDays: days - 1 } });
+                      <Input type="number" min="0" className={numInput} value={coreConfig.tripDays || ''} onChange={(e) => {
+                        const days = parseInt(e.target.value) || 0;
+                        updateData({ coreConfig: { ...coreConfig, tripDays: days, accommodationDays: days > 0 ? Math.min(coreConfig.accommodationDays, days) : 0 } });
                       }} />
                       <span className="text-gray-400 w-4">天</span>
                     </div>
@@ -326,13 +321,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <CardTitle className="text-sm font-medium">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 pb-3 px-3 space-y-2">
-              {dailyExpenses.slice(0, coreConfig.tripDays).map((day, dayIdx) => {
-                const dayTotal = day.accommodation + day.meal + 
-                  (day.staffFees.guide * coreConfig.staffCounts.guide + day.staffFees.photographer * coreConfig.staffCounts.photographer + day.staffFees.videographer * coreConfig.staffCounts.videographer + day.staffFees.driver * coreConfig.staffCounts.driver) +
-                  day.singleItems.reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0) + day.teamExpenses;
-                
-                return (
-                  <div key={day.day} className="border rounded p-2 space-y-2">
+              {coreConfig.tripDays === 0 && projectData.project.type === 'multi-day' ? (
+                <div className="text-center text-gray-400 text-xs py-4">请先设置行程天数</div>
+              ) : (
+                dailyExpenses.slice(0, Math.max(1, coreConfig.tripDays)).map((day, dayIdx) => {
+                  const dayTotal = day.accommodation + day.meal + 
+                    (day.staffFees.guide * coreConfig.staffCounts.guide + day.staffFees.photographer * coreConfig.staffCounts.photographer + day.staffFees.videographer * coreConfig.staffCounts.videographer + day.staffFees.driver * coreConfig.staffCounts.driver) +
+                    day.singleItems.reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0) + day.teamExpenses;
+                  
+                  return (
+                    <div key={day.day} className="border rounded p-2 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <Badge variant="outline" className="text-xs h-5">{projectData.project.type === 'half-day' ? '费用' : `第${day.day}天`}</Badge>
                       <span className="font-semibold text-blue-600">¥{dayTotal.toFixed(0)}</span>
@@ -445,7 +443,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                   </div>
                 );
-              })}
+              })
+              )}
             </CardContent>
           </Card>
 
