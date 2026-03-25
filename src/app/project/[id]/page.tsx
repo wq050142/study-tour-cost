@@ -1350,7 +1350,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 )}
                 
                 <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3"><span className="font-semibold text-gray-800">总成本</span><span className="font-bold text-gray-900 text-xl">{formatMoney(summary.totalCost)}</span></div>
-                <div className="flex justify-between py-2 text-gray-500"><span>人均成本</span><span className="font-medium text-gray-700">{formatMoney(summary.avgCostPerClient)}</span></div>
+                <div className="flex justify-between items-center py-2 text-gray-500 border-b border-gray-100">
+                  <span>人均成本</span>
+                  <div className="flex items-center gap-1">
+                    <NumberInput 
+                      className="h-7 w-16 text-sm px-2 text-right border rounded" 
+                      value={coreConfig.pricingCount ?? totalClients} 
+                      onChange={(v) => updateData({ coreConfig: { ...coreConfig, pricingCount: v } })}
+                    />
+                    <span>人，</span>
+                    <span className="font-medium text-gray-700">{formatMoney(summary.totalCost / (coreConfig.pricingCount || totalClients || 1))}/人</span>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1706,9 +1717,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="font-bold text-gray-800">应付金额</span>
                       <span className="font-bold text-gray-900 text-2xl">{formatMoney(quoteFinalPrice)}</span>
                     </div>
-                    <div className="flex justify-between py-2 text-gray-500">
+                    <div className="flex justify-between items-center py-2 text-gray-500">
                       <span>人均费用</span>
-                      <span className="font-medium text-gray-700">{formatMoney(quotePricePerClient)}</span>
+                      <div className="flex items-center gap-1">
+                        <NumberInput 
+                          className="h-7 w-16 text-sm px-2 text-right border rounded" 
+                          value={coreConfig.pricingCount ?? totalClients} 
+                          onChange={(v) => updateData({ coreConfig: { ...coreConfig, pricingCount: v } })}
+                        />
+                        <span>人，</span>
+                        <span className="font-medium text-gray-700">{formatMoney(quoteFinalPrice / (coreConfig.pricingCount || totalClients || 1))}/人</span>
+                      </div>
                     </div>
                   </div>
                 );

@@ -54,6 +54,7 @@ export interface CoreConfig {
   studentCount: number;
   parentCount: number;
   teacherCount: number;
+  pricingCount?: number; // 计价人数（可手动修改，默认等于客户总人数）
   
   // 工作人员（动态数组）
   staffMembers: StaffMember[];
