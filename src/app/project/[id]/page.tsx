@@ -517,16 +517,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
               <Separator className="my-3" />
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <span className="text-gray-500 w-12">用餐</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-600">餐标</span>
-                  <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
-                  <span className="text-gray-500 whitespace-nowrap">元/人</span>
-                </div>
-              </div>
-
-              <Separator className="my-3" />
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">交通</span>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-600">大巴费</span>
