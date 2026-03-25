@@ -1329,180 +1329,208 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <p className="text-sm text-gray-500 mt-0.5">给客户展示</p>
             </CardHeader>
             <CardContent className="py-3 px-4">
-              <div className="space-y-0 text-sm">
-                {/* 住宿费明细 */}
-                {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
-                  <>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600 font-medium">住宿费</span>
-                      <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
-                    </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
-                      {coreConfig.twinRoom && coreConfig.twinRoom.countClient > 0 && (
-                        <div className="flex justify-between">
-                          <span>双床房 {coreConfig.twinRoom.countClient}间 × {coreConfig.twinRoom.price}元/晚</span>
-                          <span>{formatMoney(coreConfig.twinRoom.countClient * (coreConfig.twinRoom.price || 0) * coreConfig.accommodationDays)}</span>
-                        </div>
-                      )}
-                      {coreConfig.kingRoom && coreConfig.kingRoom.countClient > 0 && (
-                        <div className="flex justify-between">
-                          <span>大床房 {coreConfig.kingRoom.countClient}间 × {coreConfig.kingRoom.price}元/晚</span>
-                          <span>{formatMoney(coreConfig.kingRoom.countClient * (coreConfig.kingRoom.price || 0) * coreConfig.accommodationDays)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
+              {(() => {
+                // 计算报价相关金额
+                const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
+                const quoteSubtotal = summary.totalCost - summary.totalSingleItems + quoteSingleItemsTotal;
+                const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
+                const quoteTax = (quoteSubtotal + quoteServiceFee) * 0.06;
+                const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
+                const quoteFinalPrice = quoteTotal - discount;
+                const quotePricePerClient = totalClients > 0 ? quoteFinalPrice / totalClients : 0;
                 
-                {/* 用餐费明细 */}
-                {summary.totalMeal > 0 && (
-                  <>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600 font-medium">用餐费</span>
-                      <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
-                    </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
-                      {dailyExpenses.map((day) => {
-                        const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
-                        const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                        const lunchAmount = lunch.amount || 0;
-                        const dinnerAmount = dinner.amount || 0;
-                        const dayMealTotal = lunchAmount + dinnerAmount;
-                        if (dayMealTotal === 0) return null;
-                        return (
-                          <div key={day.day} className="space-y-0.5">
-                            {lunchAmount > 0 && (
-                              <div className="flex justify-between">
-                                <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
-                                <span>{formatMoney(lunchAmount)}</span>
-                              </div>
-                            )}
-                            {dinnerAmount > 0 && (
-                              <div className="flex justify-between">
-                                <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
-                                <span>{formatMoney(dinnerAmount)}</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-                
-                {/* 交通费明细 */}
-                {summary.totalBus > 0 && (
-                  <>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600 font-medium">交通费</span>
-                      <span className="font-medium">{formatMoney(summary.totalBus)}</span>
-                    </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
-                      {coreConfig.busFee > 0 && (
-                        <div className="flex justify-between">
-                          <span>大巴租赁</span>
-                          <span>{formatMoney(coreConfig.busFee)}</span>
+                return (
+                  <div className="space-y-0 text-sm">
+                    {/* 住宿费明细 */}
+                    {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
+                      <>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">住宿费</span>
+                          <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
                         </div>
-                      )}
-                      {(coreConfig.otherTransports || []).map((t) => (
-                        <div key={t.id} className="flex justify-between">
-                          <span>{t.type === 'flight' ? '飞机票' : '高铁票'} {t.count}张</span>
-                          <span>{formatMoney(t.price * t.count)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-                
-                {/* 活动项目明细 */}
-                {dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).length > 0 && (
-                  <>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600 font-medium">活动项目</span>
-                      <span className="font-medium">{formatMoney(dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0))}</span>
-                    </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
-                      {dailyExpenses.map((day) => 
-                        day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).map((item, idx) => {
-                          const quotePrice = item.quotePrice ?? item.price;
-                          const quoteTotal = item.quoteTotalPrice ?? (quotePrice * item.count);
-                          return (
-                            <div key={`${day.day}-${idx}`} className="flex justify-between items-center">
-                              <span>D{day.day} {item.name}</span>
-                              <div className="flex items-center gap-1">
-                                <NumberInput 
-                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                  value={quotePrice} 
-                                  onChange={(v) => {
-                                    const newDays = [...dailyExpenses];
-                                    const dayData = newDays.find(d => d.day === day.day);
-                                    if (dayData) {
-                                      const itemData = dayData.singleItems.find(i => i.id === item.id);
-                                      if (itemData) {
-                                        itemData.quotePrice = v;
-                                        itemData.quoteTotalPrice = v * itemData.count;
-                                        updateData({ dailyExpenses: newDays });
-                                      }
-                                    }
-                                  }}
-                                />
-                                <span>×</span>
-                                <span>{item.count}{item.unit || '人'}</span>
-                                <span>=</span>
-                                <span className="font-medium w-14 text-right">{formatMoney(quoteTotal)}</span>
-                              </div>
+                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                          {coreConfig.twinRoom && coreConfig.twinRoom.countClient > 0 && (
+                            <div className="flex justify-between">
+                              <span>双床房 {coreConfig.twinRoom.countClient}间 × {coreConfig.twinRoom.price}元/晚</span>
+                              <span>{formatMoney(coreConfig.twinRoom.countClient * (coreConfig.twinRoom.price || 0) * coreConfig.accommodationDays)}</span>
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </>
-                )}
-                
-                {/* 保险费 */}
-                {otherExpenses.insurance.totalAmount > 0 && (
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-600">保险费</span>
-                    <span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span>
-                  </div>
-                )}
-                
-                {/* 杂费（客户） */}
-                {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).length > 0 && (
-                  <>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600 font-medium">杂费</span>
-                      <span className="font-medium">{formatMoney(otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0))}</span>
-                    </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
-                      {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
-                        <div key={idx} className="flex justify-between">
-                          <span>{m.name || `项目${idx + 1}`}</span>
-                          <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
+                          )}
+                          {coreConfig.kingRoom && coreConfig.kingRoom.countClient > 0 && (
+                            <div className="flex justify-between">
+                              <span>大床房 {coreConfig.kingRoom.countClient}间 × {coreConfig.kingRoom.price}元/晚</span>
+                              <span>{formatMoney(coreConfig.kingRoom.countClient * (coreConfig.kingRoom.price || 0) * coreConfig.accommodationDays)}</span>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      </>
+                    )}
+                    
+                    {/* 用餐费明细 */}
+                    {summary.totalMeal > 0 && (
+                      <>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">用餐费</span>
+                          <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
+                        </div>
+                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                          {dailyExpenses.map((day) => {
+                            const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+                            const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+                            const lunchAmount = lunch.amount || 0;
+                            const dinnerAmount = dinner.amount || 0;
+                            const dayMealTotal = lunchAmount + dinnerAmount;
+                            if (dayMealTotal === 0) return null;
+                            return (
+                              <div key={day.day} className="space-y-0.5">
+                                {lunchAmount > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
+                                    <span>{formatMoney(lunchAmount)}</span>
+                                  </div>
+                                )}
+                                {dinnerAmount > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
+                                    <span>{formatMoney(dinnerAmount)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* 交通费明细 */}
+                    {summary.totalBus > 0 && (
+                      <>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">交通费</span>
+                          <span className="font-medium">{formatMoney(summary.totalBus)}</span>
+                        </div>
+                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                          {coreConfig.busFee > 0 && (
+                            <div className="flex justify-between">
+                              <span>大巴租赁</span>
+                              <span>{formatMoney(coreConfig.busFee)}</span>
+                            </div>
+                          )}
+                          {(coreConfig.otherTransports || []).map((t) => (
+                            <div key={t.id} className="flex justify-between">
+                              <span>{t.type === 'flight' ? '飞机票' : '高铁票'} {t.count}张</span>
+                              <span>{formatMoney(t.price * t.count)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* 活动项目明细 */}
+                    {dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).length > 0 && (
+                      <>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">活动项目</span>
+                          <span className="font-medium">{formatMoney(quoteSingleItemsTotal)}</span>
+                        </div>
+                        <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
+                          {dailyExpenses.map((day) => 
+                            day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).map((item, idx) => {
+                              const qPrice = item.quotePrice ?? item.price;
+                              const qTotal = item.quoteTotalPrice ?? (qPrice * item.count);
+                              return (
+                                <div key={`${day.day}-${idx}`} className="flex justify-between items-center">
+                                  <span>D{day.day} {item.name}</span>
+                                  <div className="flex items-center gap-1">
+                                    <NumberInput 
+                                      className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                      value={qPrice} 
+                                      onChange={(v) => {
+                                        const newDays = [...dailyExpenses];
+                                        const dayData = newDays.find(d => d.day === day.day);
+                                        if (dayData) {
+                                          const itemData = dayData.singleItems.find(i => i.id === item.id);
+                                          if (itemData) {
+                                            itemData.quotePrice = v;
+                                            itemData.quoteTotalPrice = v * itemData.count;
+                                            updateData({ dailyExpenses: newDays });
+                                          }
+                                        }
+                                      }}
+                                    />
+                                    <span>×</span>
+                                    <span>{item.count}{item.unit || '人'}</span>
+                                    <span>=</span>
+                                    <span className="font-medium w-14 text-right">{formatMoney(qTotal)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* 保险费 */}
+                    {otherExpenses.insurance.totalAmount > 0 && (
+                      <div className="flex justify-between py-2 border-b border-gray-100">
+                        <span className="text-gray-600">保险费</span>
+                        <span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span>
+                      </div>
+                    )}
+                    
+                    {/* 杂费（客户） */}
+                    {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).length > 0 && (
+                      <>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">杂费</span>
+                          <span className="font-medium">{formatMoney(otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0))}</span>
+                        </div>
+                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                          {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
+                            <div key={idx} className="flex justify-between">
+                              <span>{m.name || `项目${idx + 1}`}</span>
+                              <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* 小计 */}
+                    <div className="flex justify-between py-2 bg-gray-50 rounded px-2 mt-2">
+                      <span className="text-gray-600">小计</span>
+                      <span className="font-medium">{formatMoney(quoteSubtotal)}</span>
                     </div>
-                  </>
-                )}
-                
-                {/* 报价活动项目合计 */}
-                <div className="flex justify-between py-2 bg-gray-50 rounded px-2 mt-2">
-                  <span className="text-gray-600">小计</span>
-                  <span className="font-medium">{formatMoney(
-                    summary.totalCost - summary.totalSingleItems + 
-                    dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0)
-                  )}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">服务费 ({otherExpenses.serviceFeePercent}%)</span><span className="font-medium">{formatMoney(serviceFee)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">税费 (6%)</span><span className="font-medium">{formatMoney(tax)}</span></div>
-                <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3"><span className="font-semibold text-gray-800">报价合计</span><span className="font-bold text-gray-900 text-xl">{formatMoney(totalPrice)}</span></div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-gray-600">优惠</span>
-                  <div className="flex items-center gap-1"><span className="text-gray-400">-</span><NumberInput className="h-8 w-20 text-sm px-2 text-right border rounded" value={discount} onChange={(v) => setDiscount(v)} /></div>
-                </div>
-                <div className="flex justify-between py-2.5 bg-gray-100 rounded mt-2 px-3"><span className="font-bold text-gray-800">应付金额</span><span className="font-bold text-gray-900 text-2xl">{formatMoney(finalPrice)}</span></div>
-                <div className="flex justify-between py-2 text-gray-500"><span>人均费用</span><span className="font-medium text-gray-700">{formatMoney(pricePerClient)}</span></div>
-              </div>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">服务费 ({otherExpenses.serviceFeePercent}%)</span>
+                      <span className="font-medium">{formatMoney(quoteServiceFee)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600">税费 (6%)</span>
+                      <span className="font-medium">{formatMoney(quoteTax)}</span>
+                    </div>
+                    <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3">
+                      <span className="font-semibold text-gray-800">报价合计</span>
+                      <span className="font-bold text-gray-900 text-xl">{formatMoney(quoteTotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600">优惠</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400">-</span>
+                        <NumberInput className="h-8 w-20 text-sm px-2 text-right border rounded" value={discount} onChange={(v) => setDiscount(v)} />
+                      </div>
+                    </div>
+                    <div className="flex justify-between py-2.5 bg-gray-100 rounded mt-2 px-3">
+                      <span className="font-bold text-gray-800">应付金额</span>
+                      <span className="font-bold text-gray-900 text-2xl">{formatMoney(quoteFinalPrice)}</span>
+                    </div>
+                    <div className="flex justify-between py-2 text-gray-500">
+                      <span>人均费用</span>
+                      <span className="font-medium text-gray-700">{formatMoney(quotePricePerClient)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 
@@ -1563,19 +1591,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                 );
               })()}
-            </CardContent>
-          </Card>
-
-          {/* 人员统计 */}
-          <Card>
-            <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">人员统计</CardTitle></CardHeader>
-            <CardContent className="py-3 px-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{totalClients}</div><div className="text-gray-500 mt-1">客户人数</div></div>
-                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{totalStaff}</div><div className="text-gray-500 mt-1">工作人员</div></div>
-                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{totalPeople}</div><div className="text-gray-500 mt-1">总人数</div></div>
-                <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{projectData.project.type === 'half-day' ? '半日' : projectData.project.type === 'one-day' ? '一日' : `${coreConfig.tripDays}天`}</div><div className="text-gray-500 mt-1">行程类型</div></div>
-              </div>
             </CardContent>
           </Card>
         </div>
