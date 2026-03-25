@@ -93,7 +93,8 @@ export interface SingleItem {
   id: string;
   name: string; // 项目名称
   remark: string; // 备注说明
-  timeSlot: string; // 时间段，如 "09:00-11:00"
+  startTime: string; // 开始时间，格式 HH:mm
+  endTime: string; // 结束时间，格式 HH:mm
   price: number; // 单价
   count: number; // 数量
   totalPrice: number; // 总价
