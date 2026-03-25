@@ -13,6 +13,7 @@ import {
   ProjectType, 
   AccommodationType, 
   StaffMember, 
+  TransportItem,
   MaterialItem, 
   OtherExpenseItem,
   ACCOMMODATION_TYPE_LABELS, 
@@ -71,6 +72,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         materials: [],
         otherExpenses: old.other ? [{ id: '1', remark: '其他', amount: old.other || 0 }] : [],
       };
+    }
+    
+    // 迁移交通数据（旧格式 flightEnabled/trainEnabled 转为 otherTransports 数组）
+    if (!data.coreConfig.otherTransports) {
+      const transports: TransportItem[] = [];
+      if ((data.coreConfig as any).flightEnabled && (data.coreConfig as any).flightPrice) {
+        transports.push({
+          id: 'flight_migrated',
+          type: 'flight',
+          price: (data.coreConfig as any).flightPrice || 0,
+          count: (data.coreConfig as any).flightCount || 0,
+        });
+      }
+      if ((data.coreConfig as any).trainEnabled && (data.coreConfig as any).trainPrice) {
+        transports.push({
+          id: 'train_migrated',
+          type: 'train',
+          price: (data.coreConfig as any).trainPrice || 0,
+          count: (data.coreConfig as any).trainCount || 0,
+        });
+      }
+      data.coreConfig.otherTransports = transports;
     }
     
     // 迁移每日费用中的staffFees
@@ -251,6 +274,33 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const removeStaffMember = (id: string) => {
     updateData({
       coreConfig: { ...coreConfig, staffMembers: coreConfig.staffMembers.filter(m => m.id !== id) }
+    });
+  };
+
+  // 添加交通方式（飞机/高铁）
+  const addTransport = (type: 'flight' | 'train') => {
+    const newId = `transport_${Date.now()}`;
+    const currentTransports = coreConfig.otherTransports || [];
+    updateData({
+      coreConfig: {
+        ...coreConfig,
+        otherTransports: [...currentTransports, { id: newId, type, price: 0, count: totalClients + totalStaff }]
+      }
+    });
+  };
+
+  // 更新交通方式
+  const updateTransport = (id: string, updates: { price?: number; count?: number }) => {
+    const newTransports = (coreConfig.otherTransports || []).map(t => 
+      t.id === id ? { ...t, ...updates } : t
+    );
+    updateData({ coreConfig: { ...coreConfig, otherTransports: newTransports } });
+  };
+
+  // 删除交通方式
+  const removeTransport = (id: string) => {
+    updateData({
+      coreConfig: { ...coreConfig, otherTransports: (coreConfig.otherTransports || []).filter(t => t.id !== id) }
     });
   };
 
@@ -562,81 +612,42 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 
                 {/* 大巴 - 默认显示 */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={coreConfig.busFee > 0 || (!coreConfig.flightEnabled && !coreConfig.trainEnabled)} 
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          updateData({ coreConfig: { ...coreConfig, busFee: coreConfig.busFee || 0 } });
-                        } else {
-                          updateData({ coreConfig: { ...coreConfig, busFee: 0 } });
-                        }
-                      }} 
-                      className="w-4 h-4 accent-blue-500" 
-                    />
-                    <span>大巴</span>
-                  </label>
+                  <span className="text-gray-600 w-12">大巴</span>
                   <div className="flex items-center gap-1">
                     <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={coreConfig.busFee} onChange={(v) => updateData({ coreConfig: { ...coreConfig, busFee: v } })} />
                     <span className="text-gray-500">元</span>
                   </div>
                 </div>
                 
-                {/* 飞机 - 可选 */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={coreConfig.flightEnabled || false} 
-                      onChange={(e) => updateData({ coreConfig: { ...coreConfig, flightEnabled: e.target.checked, flightCount: e.target.checked ? (coreConfig.flightCount || totalClients + totalStaff) : 0 } })} 
-                      className="w-4 h-4 accent-blue-500" 
-                    />
-                    <span>飞机</span>
-                  </label>
-                  {(coreConfig.flightEnabled) && (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.flightPrice || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, flightPrice: v } })} />
-                        <span className="text-gray-500 whitespace-nowrap">元/张</span>
-                      </div>
-                      <span className="text-gray-400">×</span>
-                      <div className="flex items-center gap-1">
-                        <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.flightCount || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, flightCount: v } })} />
-                        <span className="text-gray-500">张</span>
-                      </div>
-                      <span className="text-gray-400">=</span>
-                      <span className="font-medium">{formatMoney((coreConfig.flightPrice || 0) * (coreConfig.flightCount || 0))}</span>
-                    </>
-                  )}
-                </div>
+                {/* 已添加的交通方式 */}
+                {(coreConfig.otherTransports || []).map((transport) => (
+                  <div key={transport.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm bg-gray-50 rounded-lg p-2">
+                    <span className="text-gray-700 w-12">{transport.type === 'flight' ? '飞机' : '高铁'}</span>
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={transport.price} onChange={(v) => updateTransport(transport.id, { price: v })} />
+                      <span className="text-gray-500 whitespace-nowrap">元/张</span>
+                    </div>
+                    <span className="text-gray-400">×</span>
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={transport.count} onChange={(v) => updateTransport(transport.id, { count: v })} />
+                      <span className="text-gray-500">张</span>
+                    </div>
+                    <span className="text-gray-400">=</span>
+                    <span className="font-medium">{formatMoney(transport.price * transport.count)}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeTransport(transport.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
                 
-                {/* 高铁 - 可选 */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={coreConfig.trainEnabled || false} 
-                      onChange={(e) => updateData({ coreConfig: { ...coreConfig, trainEnabled: e.target.checked, trainCount: e.target.checked ? (coreConfig.trainCount || totalClients + totalStaff) : 0 } })} 
-                      className="w-4 h-4 accent-blue-500" 
-                    />
-                    <span>高铁</span>
-                  </label>
-                  {(coreConfig.trainEnabled) && (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.trainPrice || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, trainPrice: v } })} />
-                        <span className="text-gray-500 whitespace-nowrap">元/张</span>
-                      </div>
-                      <span className="text-gray-400">×</span>
-                      <div className="flex items-center gap-1">
-                        <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.trainCount || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, trainCount: v } })} />
-                        <span className="text-gray-500">张</span>
-                      </div>
-                      <span className="text-gray-400">=</span>
-                      <span className="font-medium">{formatMoney((coreConfig.trainPrice || 0) * (coreConfig.trainCount || 0))}</span>
-                    </>
-                  )}
+                {/* 添加按钮 */}
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="h-7 text-sm" onClick={() => addTransport('flight')}>
+                    <Plus className="w-4 h-4 mr-1" />添加飞机
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-sm" onClick={() => addTransport('train')}>
+                    <Plus className="w-4 h-4 mr-1" />添加高铁
+                  </Button>
                 </div>
               </div>
             </CardContent>

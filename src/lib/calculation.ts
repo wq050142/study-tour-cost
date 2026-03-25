@@ -82,11 +82,10 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalMeal += calculateMealAmount(dinner, coreConfig, totalClients, totalStaff);
   });
   
-  // 计算交通费用（大巴 + 飞机 + 高铁）
+  // 计算交通费用（大巴 + 其他交通方式）
   const totalBus = coreConfig.busFee || 0;
-  const totalFlight = (coreConfig.flightEnabled ? (coreConfig.flightPrice || 0) * (coreConfig.flightCount || 0) : 0);
-  const totalTrain = (coreConfig.trainEnabled ? (coreConfig.trainPrice || 0) * (coreConfig.trainCount || 0) : 0);
-  const totalTransport = totalBus + totalFlight + totalTrain;
+  const otherTransportsTotal = (coreConfig.otherTransports || []).reduce((sum, t) => sum + t.price * t.count, 0);
+  const totalTransport = totalBus + otherTransportsTotal;
   
   // 计算工作人员费用
   let totalStaffFee = 0;
