@@ -75,8 +75,8 @@ export interface CoreConfig {
   mealStandardClient: number; // 客户每正餐人均餐费
   mealStandardStaff: number; // 工作人员每正餐人均餐费（独立用餐时使用）
   
-  // 交通
-  busFee: number; // 大巴车包车费用（含司机薪资）
+  // 交通（动态数组）
+  transportation: TransportationItem[];
 }
 
 // 单项费用项目
@@ -89,6 +89,15 @@ export interface SingleItem {
   price: number; // 单价
   count: number; // 数量
   unit: '人' | '团' | '组' | '辆' | '间'; // 单位
+  totalPrice: number; // 总价
+}
+
+// 交通费用项目
+export interface TransportationItem {
+  id: string;
+  name: string; // 交通类型：大巴、飞机、高铁等
+  price: number; // 单价
+  count: number; // 数量
   totalPrice: number; // 总价
 }
 
@@ -228,7 +237,9 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
   staffRoomPrice: 0,
   mealStandardClient: 0,
   mealStandardStaff: 0,
-  busFee: 0,
+  transportation: [
+    { id: 'bus_1', name: '大巴', price: 0, count: 1, totalPrice: 0 }
+  ],
 };
 
 export const DEFAULT_INSURANCE_CONFIG: InsuranceConfig = {
