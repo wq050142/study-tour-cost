@@ -351,7 +351,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex-1 min-w-0 space-y-4">
           {/* 项目设置 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">项目设置</CardTitle></CardHeader>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">项目设置</CardTitle></CardHeader>
             <CardContent className="py-3 px-4">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">类型</span>
@@ -394,7 +394,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 客户配置 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">客户配置 <span className="text-blue-600 font-normal text-sm">共{totalClients}人</span></CardTitle></CardHeader>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">客户配置 <span className="text-blue-600 font-normal text-sm">共{totalClients}人</span></CardTitle></CardHeader>
             <CardContent className="py-3 px-4 space-y-3">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">人员</span>
@@ -475,8 +475,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 人员及大交通 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b">
-              <CardTitle className="text-base font-semibold">人员及大交通 <span className="text-green-600 font-normal text-sm">共{totalStaff}人</span></CardTitle>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50">
+              <CardTitle className="text-lg font-bold text-gray-800">人员及大交通 <span className="text-green-600 font-normal text-sm">共{totalStaff}人</span></CardTitle>
             </CardHeader>
             <CardContent className="py-3 px-4 space-y-2">
               {coreConfig.staffMembers.map((member, index) => (
@@ -570,7 +570,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 每日费用 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle></CardHeader>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle></CardHeader>
             <CardContent className="py-3 px-4 space-y-4">
               {coreConfig.tripDays === 0 && projectData.project.type === 'multi-day' ? (
                 <div className="text-center text-gray-400 text-sm py-4">请先设置行程天数</div>
@@ -621,8 +621,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   return (
                     <div key={day.day} className="border border-gray-200 rounded-lg p-4 space-y-4">
                       <div className="flex items-center justify-between border-b pb-2">
-                        <span className="text-base font-medium text-gray-800">{projectData.project.type === 'half-day' ? '费用明细' : `第${day.day}天`}</span>
-                        <span className="text-base font-semibold text-gray-900">¥{dayTotal.toFixed(0)}</span>
+                        <span className="text-lg font-bold text-gray-900">{projectData.project.type === 'half-day' ? '费用明细' : `第${day.day}天`}</span>
+                        <span className="text-lg font-bold text-gray-900">¥{dayTotal.toFixed(0)}</span>
                       </div>
                       
                       {/* 住宿和工作人员薪资 */}
@@ -751,7 +751,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <span>桌餐</span>
                             </label>
                             <div className="flex items-center gap-1">
-                              <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={lunch.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('lunch', { pricePerPerson: v })} />
+                              <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={lunch.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('lunch', { pricePerPerson: v })} />
                               <span className="text-gray-500 whitespace-nowrap">元/人</span>
                             </div>
                             <span className="text-gray-400">×</span>
@@ -809,7 +809,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <span>桌餐</span>
                             </label>
                             <div className="flex items-center gap-1">
-                              <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={dinner.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('dinner', { pricePerPerson: v })} />
+                              <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={dinner.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('dinner', { pricePerPerson: v })} />
                               <span className="text-gray-500 whitespace-nowrap">元/人</span>
                             </div>
                             <span className="text-gray-400">×</span>
@@ -858,7 +858,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 其他费用 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">其他费用</CardTitle></CardHeader>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">其他费用</CardTitle></CardHeader>
             <CardContent className="py-3 px-4 space-y-4">
               {/* 保险费 */}
               <div className="bg-gray-50 rounded-lg p-3 space-y-2">
@@ -965,8 +965,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="w-80 flex-shrink-0 space-y-4 sticky top-14 self-start">
           {/* 成本表 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b">
-              <CardTitle className="text-base font-semibold">成本核算表</CardTitle>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50">
+              <CardTitle className="text-lg font-bold text-gray-800">成本核算表</CardTitle>
               <p className="text-sm text-gray-500 mt-0.5">内部参考</p>
             </CardHeader>
             <CardContent className="py-3 px-4">
@@ -985,8 +985,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 报价单 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b">
-              <CardTitle className="text-base font-semibold">报价单</CardTitle>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50">
+              <CardTitle className="text-lg font-bold text-gray-800">报价单</CardTitle>
               <p className="text-sm text-gray-500 mt-0.5">给客户展示</p>
             </CardHeader>
             <CardContent className="py-3 px-4">
@@ -1017,7 +1017,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 人员统计 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">人员统计</CardTitle></CardHeader>
+            <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">人员统计</CardTitle></CardHeader>
             <CardContent className="py-3 px-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="border rounded-lg p-3 text-center"><div className="text-xl font-bold text-gray-800">{totalClients}</div><div className="text-gray-500 mt-1">客户人数</div></div>
