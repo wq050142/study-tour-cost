@@ -1081,29 +1081,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 /* 按项目模式 - 带明细 */
                 <div className="space-y-3 text-sm">
                   {/* 住宿费明细 */}
-                  {projectData.project.type === 'multi-day' && (summary.totalAccommodation > 0 || coreConfig.twinRoom.price > 0 || coreConfig.kingRoom.price > 0) && (
+                  {projectData.project.type === 'multi-day' && (summary.totalAccommodation > 0 || (coreConfig.twinRoom?.price || 0) > 0 || (coreConfig.kingRoom?.price || 0) > 0) && (
                     <div className="border rounded-lg overflow-hidden">
                       <div className="bg-gray-50 px-3 py-2 font-medium flex justify-between items-center">
                         <span>住宿费</span>
                         <span className="font-bold">{formatMoney(summary.totalAccommodation)}</span>
                       </div>
                       <div className="divide-y text-xs">
-                        {coreConfig.twinRoom.price > 0 && (
+                        {(coreConfig.twinRoom?.price || 0) > 0 && (
                           <div className="px-3 py-1.5 flex justify-between">
-                            <span className="text-gray-600">双床房 {coreConfig.twinRoom.price}元 × {coreConfig.twinRoom.countClient + coreConfig.twinRoom.countStaff}间</span>
-                            <span>{formatMoney(coreConfig.twinRoom.price * (coreConfig.twinRoom.countClient + coreConfig.twinRoom.countStaff))}</span>
+                            <span className="text-gray-600">双床房 {coreConfig.twinRoom?.price}元 × {(coreConfig.twinRoom?.countClient || 0) + (coreConfig.twinRoom?.countStaff || 0)}间</span>
+                            <span>{formatMoney((coreConfig.twinRoom?.price || 0) * ((coreConfig.twinRoom?.countClient || 0) + (coreConfig.twinRoom?.countStaff || 0)))}</span>
                           </div>
                         )}
-                        {coreConfig.kingRoom.price > 0 && (
+                        {(coreConfig.kingRoom?.price || 0) > 0 && (
                           <div className="px-3 py-1.5 flex justify-between">
-                            <span className="text-gray-600">大床房 {coreConfig.kingRoom.price}元 × {coreConfig.kingRoom.countClient + coreConfig.kingRoom.countStaff}间</span>
-                            <span>{formatMoney(coreConfig.kingRoom.price * (coreConfig.kingRoom.countClient + coreConfig.kingRoom.countStaff))}</span>
+                            <span className="text-gray-600">大床房 {coreConfig.kingRoom?.price}元 × {(coreConfig.kingRoom?.countClient || 0) + (coreConfig.kingRoom?.countStaff || 0)}间</span>
+                            <span>{formatMoney((coreConfig.kingRoom?.price || 0) * ((coreConfig.kingRoom?.countClient || 0) + (coreConfig.kingRoom?.countStaff || 0)))}</span>
                           </div>
                         )}
-                        {coreConfig.staffAccommodation && coreConfig.staffRoomPrice > 0 && (
+                        {coreConfig.staffAccommodation && (coreConfig.staffRoomPrice || 0) > 0 && (
                           <div className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">工作人员 {coreConfig.staffRoomType === 'twin' ? '双床' : '大床'} {coreConfig.staffRoomPrice}元 × {coreConfig.staffAccommodationNights}晚</span>
-                            <span>{formatMoney(coreConfig.staffRoomPrice * coreConfig.staffAccommodationNights)}</span>
+                            <span>{formatMoney((coreConfig.staffRoomPrice || 0) * (coreConfig.staffAccommodationNights || 0))}</span>
                           </div>
                         )}
                       </div>
