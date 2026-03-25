@@ -2,7 +2,7 @@ import { ProjectData, CostSummary, DailyCostBreakdown, DEFAULT_MEAL_CONFIG, Othe
 
 // 计算单餐费用
 function calculateMealAmount(
-  mealConfig: { clientMealType?: string; tableCount?: number; staffMealType?: string; amount?: number },
+  mealConfig: { clientMealType?: string; tableCount?: number; pricePerPerson?: number; staffMealType?: string; amount?: number },
   coreConfig: ProjectData['coreConfig'],
   totalClients: number,
   totalStaff: number
@@ -12,11 +12,14 @@ function calculateMealAmount(
     return mealConfig.amount;
   }
   
+  // 使用单价（优先使用每餐配置的单价，否则使用客户配置的餐标）
+  const pricePerPerson = mealConfig.pricePerPerson || coreConfig.mealStandardClient || 0;
+  
   // 客户餐费
   const clientMealType = mealConfig.clientMealType || 'individual';
   const clientAmount = clientMealType === 'table'
-    ? (coreConfig.mealStandardClient || 0) * 10 * (mealConfig.tableCount || Math.ceil(totalClients / 10))
-    : (coreConfig.mealStandardClient || 0) * totalClients;
+    ? pricePerPerson * 10 * (mealConfig.tableCount || Math.ceil(totalClients / 10))
+    : pricePerPerson * totalClients;
   
   // 工作人员餐费
   const staffAmount = mealConfig.staffMealType === 'independent'
@@ -27,7 +30,7 @@ function calculateMealAmount(
 }
 
 // 计算其他费用总额
-function calculateOtherExpenses(otherExpenses: OtherExpenses, totalClients: number): number {
+function calculateOtherExpenses(otherExpenses: OtherExpenses, totalClients: number, totalStaff: number): number {
   // 保险费
   const insuranceTotal = otherExpenses.insurance.totalAmount || 0;
   
@@ -100,7 +103,7 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   });
   
   // 计算其他费用（不含服务费，服务费在报价时计算）
-  const totalOtherExpenses = calculateOtherExpenses(otherExpenses, totalClients);
+  const totalOtherExpenses = calculateOtherExpenses(otherExpenses, totalClients, totalStaff);
   
   // 计算总成本
   const totalCost = 

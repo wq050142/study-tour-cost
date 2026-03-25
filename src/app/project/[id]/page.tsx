@@ -179,7 +179,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         if (!existingDay.singleItems || existingDay.singleItems.length === 0) {
           return {
             ...existingDay,
-            singleItems: [{ id: Date.now().toString() + i, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, totalPrice: 0 }]
+            singleItems: [{ id: Date.now().toString() + i, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }]
+          };
+        }
+        // 确保 unit 字段存在
+        if (existingDay.singleItems.some(item => !item.unit)) {
+          return {
+            ...existingDay,
+            singleItems: existingDay.singleItems.map(item => ({ ...item, unit: item.unit || '人' as const }))
           };
         }
         return existingDay;
@@ -191,7 +198,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         lunch: { ...DEFAULT_MEAL_CONFIG }, 
         dinner: { ...DEFAULT_MEAL_CONFIG },
         staffFees: { ...staffFeesBase }, 
-        singleItems: [{ id: Date.now().toString() + i, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, totalPrice: 0 }] 
+        singleItems: [{ id: Date.now().toString() + i, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }] 
       };
     });
     updateData({ dailyExpenses: newData });
@@ -203,7 +210,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         needsUpdate = true;
         return {
           ...day,
-          singleItems: [{ id: Date.now().toString() + idx, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, totalPrice: 0 }]
+          singleItems: [{ id: Date.now().toString() + idx, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }]
+        };
+      }
+      // 确保 unit 字段存在
+      if (day.singleItems.some(item => !item.unit)) {
+        needsUpdate = true;
+        return {
+          ...day,
+          singleItems: day.singleItems.map(item => ({ ...item, unit: item.unit || '人' as const }))
         };
       }
       return day;
@@ -242,9 +257,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   // 更新保险费用
   const updateInsurance = (updates: Partial<typeof otherExpenses.insurance>) => {
     const newInsurance = { ...otherExpenses.insurance, ...updates };
-    // 自动计算总价
+    // 自动计算总价（包含客户和工作人员）
     if ('pricePerPerson' in updates || 'days' in updates) {
-      newInsurance.totalAmount = newInsurance.pricePerPerson * newInsurance.days * totalClients;
+      newInsurance.totalAmount = newInsurance.pricePerPerson * newInsurance.days * (totalClients + totalStaff);
     }
     updateData({ otherExpenses: { ...otherExpenses, insurance: newInsurance } });
   };
@@ -645,7 +660,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <span className="text-sm text-gray-600 font-medium">活动项目</span>
                           <Button variant="outline" size="sm" className="h-7 text-sm px-3" onClick={() => { 
                             const newDays = [...dailyExpenses]; 
-                            newDays[dayIdx] = { ...day, singleItems: [...day.singleItems, { id: Date.now().toString(), name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, totalPrice: 0 }] }; 
+                            newDays[dayIdx] = { ...day, singleItems: [...day.singleItems, { id: Date.now().toString(), name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }] }; 
                             updateData({ dailyExpenses: newDays }); 
                           }}><Plus className="w-4 h-4 mr-1" />添加</Button>
                         </div>
@@ -694,7 +709,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 newDays[dayIdx] = { ...day, singleItems: items }; 
                                 updateData({ dailyExpenses: newDays }); 
                               }} />
-                              <span className="text-gray-500">人 =</span>
+                              <select 
+                                className="h-8 text-sm px-2 border rounded bg-white"
+                                value={item.unit || '人'}
+                                onChange={(e) => {
+                                  const newDays = [...dailyExpenses];
+                                  const items = [...day.singleItems];
+                                  items[itemIdx] = { ...items[itemIdx], unit: e.target.value as '人' | '团' | '组' | '辆' | '间' };
+                                  newDays[dayIdx] = { ...day, singleItems: items };
+                                  updateData({ dailyExpenses: newDays });
+                                }}
+                              >
+                                <option value="人">人</option>
+                                <option value="团">团</option>
+                                <option value="组">组</option>
+                                <option value="辆">辆</option>
+                                <option value="间">间</option>
+                              </select>
+                              <span className="text-gray-500">=</span>
                               <span className="text-base font-semibold text-gray-900">¥{(item.totalPrice || item.price * item.count).toFixed(0)}</span>
                             </div>
                           </div>
@@ -710,15 +742,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <span className="text-gray-500">客户</span>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input type="radio" name={`lunch-client-${day.day}`} checked={lunch.clientMealType === 'individual'} onChange={() => updateMeal('lunch', { clientMealType: 'individual', tableCount: 0 })} className="w-4 h-4" />
+                              <input type="radio" name={`lunch-client-${day.day}`} checked={lunch.clientMealType === 'individual'} onChange={() => updateMeal('lunch', { clientMealType: 'individual', tableCount: 0, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>例餐</span>
                             </label>
                             <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input type="radio" name={`lunch-client-${day.day}`} checked={(lunch.clientMealType || 'table') === 'table'} onChange={() => updateMeal('lunch', { clientMealType: 'table', tableCount: lunch.tableCount || Math.ceil(totalClients / 10) })} className="w-4 h-4" />
+                              <input type="radio" name={`lunch-client-${day.day}`} checked={(lunch.clientMealType || 'table') === 'table'} onChange={() => updateMeal('lunch', { clientMealType: 'table', tableCount: lunch.tableCount || Math.ceil(totalClients / 10), pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>桌餐</span>
                             </label>
+                            <div className="flex items-center gap-1">
+                              <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={lunch.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('lunch', { pricePerPerson: v })} />
+                              <span className="text-gray-500 whitespace-nowrap">元/人</span>
+                            </div>
                             {(lunch.clientMealType || 'table') === 'table' && (
                               <div className="flex items-center gap-1">
+                                <span className="text-gray-400">×</span>
                                 <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={lunch.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('lunch', { tableCount: v })} />
                                 <span className="text-gray-500">桌</span>
                               </div>
@@ -758,15 +795,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <span className="text-gray-500">客户</span>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input type="radio" name={`dinner-client-${day.day}`} checked={dinner.clientMealType === 'individual'} onChange={() => updateMeal('dinner', { clientMealType: 'individual', tableCount: 0 })} className="w-4 h-4" />
+                              <input type="radio" name={`dinner-client-${day.day}`} checked={dinner.clientMealType === 'individual'} onChange={() => updateMeal('dinner', { clientMealType: 'individual', tableCount: 0, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>例餐</span>
                             </label>
                             <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input type="radio" name={`dinner-client-${day.day}`} checked={(dinner.clientMealType || 'table') === 'table'} onChange={() => updateMeal('dinner', { clientMealType: 'table', tableCount: dinner.tableCount || Math.ceil(totalClients / 10) })} className="w-4 h-4" />
+                              <input type="radio" name={`dinner-client-${day.day}`} checked={(dinner.clientMealType || 'table') === 'table'} onChange={() => updateMeal('dinner', { clientMealType: 'table', tableCount: dinner.tableCount || Math.ceil(totalClients / 10), pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
                               <span>桌餐</span>
                             </label>
+                            <div className="flex items-center gap-1">
+                              <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={dinner.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('dinner', { pricePerPerson: v })} />
+                              <span className="text-gray-500 whitespace-nowrap">元/人</span>
+                            </div>
                             {(dinner.clientMealType || 'table') === 'table' && (
                               <div className="flex items-center gap-1">
+                                <span className="text-gray-400">×</span>
                                 <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={dinner.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('dinner', { tableCount: v })} />
                                 <span className="text-gray-500">桌</span>
                               </div>
@@ -822,7 +864,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-400">×</span>
-                    <span className="text-gray-500">{totalClients}人</span>
+                    <span className="text-gray-500">{totalClients + totalStaff}人</span>
+                    <span className="text-gray-400 text-xs">(客户{totalClients}+工作人员{totalStaff})</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-400">=</span>

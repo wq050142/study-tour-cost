@@ -14,6 +14,7 @@ export type ClientMealType = 'table' | 'individual'; // 桌餐 | 例餐
 export interface MealConfig {
   clientMealType: ClientMealType; // 客户用餐方式：桌餐或例餐
   tableCount: number; // 桌餐桌数（仅桌餐时使用）
+  pricePerPerson: number; // 单价（元/人），参考客户配置，可修改
   staffMealType: StaffMealType; // 工作人员用餐方式
   amount: number; // 实际金额（可手动修改）
   restaurantName: string; // 餐厅名称备注
@@ -86,6 +87,7 @@ export interface SingleItem {
   endTime: string; // 结束时间，格式 HH:mm
   price: number; // 单价
   count: number; // 数量
+  unit: '人' | '团' | '组' | '辆' | '间'; // 单位
   totalPrice: number; // 总价
 }
 
@@ -185,6 +187,7 @@ export interface DailyCostBreakdown {
 export const DEFAULT_MEAL_CONFIG: MealConfig = {
   clientMealType: 'table', // 客户默认桌餐
   tableCount: 0,
+  pricePerPerson: 0, // 单价
   staffMealType: 'with-group', // 工作人员默认随团用餐
   amount: 0,
   restaurantName: '', // 餐厅名称
