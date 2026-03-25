@@ -23,13 +23,20 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalMeal += day.meal;
   });
   
-  // 如果没有每日用餐费用，使用餐标计算（客户 + 工作人员分开计算）
+  // 如果没有每日用餐费用，使用餐标计算
   if (totalMeal === 0) {
-    const mealStandardClient = coreConfig.mealStandardClient || 0;
-    const mealStandardStaff = coreConfig.mealStandardStaff || 0;
-    const clientMeal = mealStandardClient * coreConfig.mealCountPerDay * coreConfig.tripDays * totalClients;
-    const staffMeal = mealStandardStaff * coreConfig.mealCountPerDay * coreConfig.tripDays * totalStaff;
-    totalMeal = clientMeal + staffMeal;
+    // 客户餐费：例餐按人数×餐标，桌餐按桌数×餐标×10
+    const clientMealType = coreConfig.clientMealType || 'individual';
+    const clientMealPerMeal = clientMealType === 'table'
+      ? (coreConfig.mealStandardClient || 0) * 10 * (coreConfig.tableCount || Math.ceil(totalClients / 10))
+      : (coreConfig.mealStandardClient || 0) * totalClients;
+    
+    // 工作人员餐费：随团用餐不计，独立用餐按人数×餐标
+    const staffMealPerMeal = coreConfig.staffMealType === 'independent'
+      ? (coreConfig.mealStandardStaff || 0) * totalStaff
+      : 0;
+    
+    totalMeal = (clientMealPerMeal + staffMealPerMeal) * coreConfig.mealCountPerDay * coreConfig.tripDays;
   }
   
   // 计算交通费用（大巴全程费用，含司机薪资，不乘天数）

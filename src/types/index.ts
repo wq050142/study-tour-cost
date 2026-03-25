@@ -7,6 +7,12 @@ export type AccommodationType = '3-diamond' | '4-diamond' | '5-diamond' | 'camp'
 // 工作人员类型
 export type StaffType = 'guide' | 'photographer' | 'videographer' | 'driver';
 
+// 工作人员用餐方式
+export type StaffMealType = 'with-group' | 'independent'; // 随团用餐 | 独立用餐
+
+// 客户用餐方式
+export type ClientMealType = 'table' | 'individual'; // 桌餐 | 例餐
+
 // 项目基础信息
 export interface Project {
   id: string;
@@ -53,7 +59,10 @@ export interface CoreConfig {
   
   // 用餐 - 分开计算客户和工作人员
   mealStandardClient: number; // 客户每正餐人均餐费
-  mealStandardStaff: number; // 工作人员每正餐人均餐费
+  clientMealType: ClientMealType; // 客户用餐方式：桌餐或例餐
+  tableCount: number; // 桌餐桌数（仅桌餐时使用）
+  staffMealType: StaffMealType; // 工作人员用餐方式
+  mealStandardStaff: number; // 工作人员每正餐人均餐费（仅独立用餐时使用）
   mealCountPerDay: number; // 每日用餐次数
   
   // 交通
@@ -181,6 +190,9 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
     countStaff: 0,
   },
   mealStandardClient: 0,
+  clientMealType: 'individual',
+  tableCount: 0,
+  staffMealType: 'with-group',
   mealStandardStaff: 0,
   mealCountPerDay: 2,
   busFee: 0,
