@@ -292,21 +292,38 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         </label>
                       ))}
                     </div>
-                    <span className="text-gray-400 ml-1">房单价</span>
-                    <div className="flex items-center gap-0.5">
-                      <NumberInput className={numInputMid} value={coreConfig.roomPrice} onChange={(v) => updateData({ coreConfig: { ...coreConfig, roomPrice: v } })} />
-                      <span className="text-gray-400 w-6">元</span>
-                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs pl-[4.5rem]">
-                    <span className="text-gray-400">客户</span>
+                    <span className="text-gray-400">双床房</span>
                     <div className="flex items-center gap-0.5">
-                      <NumberInput className={numInput} value={coreConfig.roomCountClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, roomCountClient: v } })} />
+                      <NumberInput className={numInputMid} value={coreConfig.twinRoom?.price || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, price: v, countClient: coreConfig.twinRoom?.countClient || 0, countStaff: coreConfig.twinRoom?.countStaff || 0 } } })} />
+                      <span className="text-gray-400 w-6">元</span>
+                    </div>
+                    <span className="text-gray-400 text-xs">客户</span>
+                    <div className="flex items-center gap-0.5">
+                      <NumberInput className={numInput} value={coreConfig.twinRoom?.countClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, countClient: v, price: coreConfig.twinRoom?.price || 0, countStaff: coreConfig.twinRoom?.countStaff || 0 } } })} />
                       <span className="text-gray-400 w-4">间</span>
                     </div>
                     <span className="text-gray-400 text-xs">工作人员</span>
                     <div className="flex items-center gap-0.5">
-                      <NumberInput className={numInput} value={coreConfig.roomCountStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, roomCountStaff: v } })} />
+                      <NumberInput className={numInput} value={coreConfig.twinRoom?.countStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, twinRoom: { ...coreConfig.twinRoom, countStaff: v, price: coreConfig.twinRoom?.price || 0, countClient: coreConfig.twinRoom?.countClient || 0 } } })} />
+                      <span className="text-gray-400 w-4">间</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs pl-[4.5rem]">
+                    <span className="text-gray-400">大床房</span>
+                    <div className="flex items-center gap-0.5">
+                      <NumberInput className={numInputMid} value={coreConfig.kingRoom?.price || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, price: v, countClient: coreConfig.kingRoom?.countClient || 0, countStaff: coreConfig.kingRoom?.countStaff || 0 } } })} />
+                      <span className="text-gray-400 w-6">元</span>
+                    </div>
+                    <span className="text-gray-400 text-xs">客户</span>
+                    <div className="flex items-center gap-0.5">
+                      <NumberInput className={numInput} value={coreConfig.kingRoom?.countClient || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, countClient: v, price: coreConfig.kingRoom?.price || 0, countStaff: coreConfig.kingRoom?.countStaff || 0 } } })} />
+                      <span className="text-gray-400 w-4">间</span>
+                    </div>
+                    <span className="text-gray-400 text-xs">工作人员</span>
+                    <div className="flex items-center gap-0.5">
+                      <NumberInput className={numInput} value={coreConfig.kingRoom?.countStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, kingRoom: { ...coreConfig.kingRoom, countStaff: v, price: coreConfig.kingRoom?.price || 0, countClient: coreConfig.kingRoom?.countClient || 0 } } })} />
                       <span className="text-gray-400 w-4">间</span>
                     </div>
                   </div>
@@ -345,43 +362,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 每日费用 */}
           <Card className="shadow-sm">
-            <CardHeader className="py-2 px-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle>
-              <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-blue-600" onClick={() => {
-                // 自动填充所有每日费用
-                const newDays = dailyExpenses.slice(0, Math.max(1, coreConfig.tripDays)).map((day, idx) => {
-                  // 计算住宿建议值：房单价 * (客户房间数 + 工作人员房间数)，仅在有住宿天数时计算
-                  const suggestedAccommodation = (projectData.project.type === 'multi-day' && idx < coreConfig.accommodationDays) 
-                    ? coreConfig.roomPrice * ((coreConfig.roomCountClient || 0) + (coreConfig.roomCountStaff || 0))
-                    : 0;
-                  
-                  // 计算餐费建议值：(客户餐标 * 客户人数 + 工作人员餐标 * 工作人员人数) * 日餐数
-                  const suggestedMeal = ((coreConfig.mealStandardClient || 0) * totalClients + (coreConfig.mealStandardStaff || 0) * totalStaff) * coreConfig.mealCountPerDay;
-                  
-                  return {
-                    ...day,
-                    accommodation: suggestedAccommodation,
-                    meal: suggestedMeal,
-                  };
-                });
-                updateData({ dailyExpenses: newDays });
-              }}>自动填充</Button>
-            </CardHeader>
+            <CardHeader className="py-2 px-3"><CardTitle className="text-sm font-medium">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle></CardHeader>
             <CardContent className="pt-0 pb-3 px-3 space-y-2">
               {coreConfig.tripDays === 0 && projectData.project.type === 'multi-day' ? (
                 <div className="text-center text-gray-400 text-xs py-4">请先设置行程天数</div>
               ) : (
                 dailyExpenses.slice(0, Math.max(1, coreConfig.tripDays)).map((day, dayIdx) => {
-                  // 计算每日总计（不含司机薪资，司机薪资已包含在大巴费中）
-                  const dayTotal = day.accommodation + day.meal + 
+                  // 计算住宿费用：双床房 + 大床房
+                  const calculatedAccommodation = (projectData.project.type === 'multi-day' && dayIdx < coreConfig.accommodationDays)
+                    ? (coreConfig.twinRoom?.price || 0) * ((coreConfig.twinRoom?.countClient || 0) + (coreConfig.twinRoom?.countStaff || 0)) +
+                      (coreConfig.kingRoom?.price || 0) * ((coreConfig.kingRoom?.countClient || 0) + (coreConfig.kingRoom?.countStaff || 0))
+                    : 0;
+                  
+                  // 计算餐费：(客户餐标 * 客户人数 + 工作人员餐标 * 工作人员人数) * 日餐数
+                  const calculatedMeal = ((coreConfig.mealStandardClient || 0) * totalClients + (coreConfig.mealStandardStaff || 0) * totalStaff) * coreConfig.mealCountPerDay;
+                  
+                  // 使用实际值或计算值
+                  const accommodationValue = day.accommodation || calculatedAccommodation;
+                  const mealValue = day.meal || calculatedMeal;
+                  
+                  // 计算每日总计
+                  const dayTotal = accommodationValue + mealValue + 
                     (day.staffFees.guide * coreConfig.staffCounts.guide + day.staffFees.photographer * coreConfig.staffCounts.photographer + day.staffFees.videographer * coreConfig.staffCounts.videographer) +
                     day.singleItems.reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0) + day.teamExpenses;
-                  
-                  // 计算建议值
-                  const suggestedAccommodation = (projectData.project.type === 'multi-day' && dayIdx < coreConfig.accommodationDays) 
-                    ? coreConfig.roomPrice * ((coreConfig.roomCountClient || 0) + (coreConfig.roomCountStaff || 0))
-                    : 0;
-                  const suggestedMeal = ((coreConfig.mealStandardClient || 0) * totalClients + (coreConfig.mealStandardStaff || 0) * totalStaff) * coreConfig.mealCountPerDay;
                   
                   return (
                     <div key={day.day} className="border rounded p-2 space-y-2">
@@ -395,21 +398,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <>
                             <span className="text-gray-400">住宿</span>
                             <div className="flex items-center gap-0.5">
-                              <NumberInput className={numInput} value={day.accommodation} onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, accommodation: v }; updateData({ dailyExpenses: newDays }); }} />
+                              <NumberInput 
+                                className={numInput} 
+                                value={accommodationValue} 
+                                onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, accommodation: v }; updateData({ dailyExpenses: newDays }); }} 
+                              />
                               <span className="text-gray-400">元</span>
-                              {suggestedAccommodation > 0 && day.accommodation !== suggestedAccommodation && (
-                                <button onClick={() => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, accommodation: suggestedAccommodation }; updateData({ dailyExpenses: newDays }); }} className="text-blue-400 hover:text-blue-600 text-[10px]">({suggestedAccommodation})</button>
-                              )}
                             </div>
                           </>
                         )}
                         <span className="text-gray-400">用餐</span>
                         <div className="flex items-center gap-0.5">
-                          <NumberInput className={numInput} value={day.meal} onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, meal: v }; updateData({ dailyExpenses: newDays }); }} />
+                          <NumberInput 
+                            className={numInput} 
+                            value={mealValue} 
+                            onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, meal: v }; updateData({ dailyExpenses: newDays }); }} 
+                          />
                           <span className="text-gray-400">元</span>
-                          {suggestedMeal > 0 && day.meal !== suggestedMeal && (
-                            <button onClick={() => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, meal: suggestedMeal }; updateData({ dailyExpenses: newDays }); }} className="text-blue-400 hover:text-blue-600 text-[10px]">({suggestedMeal})</button>
-                          )}
                         </div>
                         <span className="text-gray-400">团队</span>
                         <div className="flex items-center gap-0.5">

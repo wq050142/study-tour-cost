@@ -12,10 +12,10 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     coreConfig.staffCounts.videographer + 
     coreConfig.staffCounts.driver;
   
-  // 计算住宿费用（客户房间 + 工作人员房间）
-  const roomCountClient = coreConfig.roomCountClient || 0;
-  const roomCountStaff = coreConfig.roomCountStaff || 0;
-  const totalAccommodation = coreConfig.roomPrice * (roomCountClient + roomCountStaff) * coreConfig.accommodationDays;
+  // 计算住宿费用（双床房 + 大床房）
+  const twinRoomTotal = (coreConfig.twinRoom?.price || 0) * ((coreConfig.twinRoom?.countClient || 0) + (coreConfig.twinRoom?.countStaff || 0)) * coreConfig.accommodationDays;
+  const kingRoomTotal = (coreConfig.kingRoom?.price || 0) * ((coreConfig.kingRoom?.countClient || 0) + (coreConfig.kingRoom?.countStaff || 0)) * coreConfig.accommodationDays;
+  const totalAccommodation = twinRoomTotal + kingRoomTotal;
   
   // 计算用餐费用
   let totalMeal = 0;

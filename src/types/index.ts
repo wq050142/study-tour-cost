@@ -17,6 +17,13 @@ export interface Project {
   updatedAt: string;
 }
 
+// 房型配置
+export interface RoomConfig {
+  price: number; // 房间单价
+  countClient: number; // 客户房间数
+  countStaff: number; // 工作人员房间数
+}
+
 // 核心信息配置
 export interface CoreConfig {
   // 客户人员
@@ -39,11 +46,10 @@ export interface CoreConfig {
   tripDays: number;
   accommodationDays: number;
   
-  // 住宿信息 - 分开计算客户和工作人员
+  // 住宿信息 - 按房型分开
   accommodationType: AccommodationType; // 住宿标准：3钻、4钻、5钻、营地
-  roomPrice: number; // 房间单价（统一价格）
-  roomCountClient: number; // 客户房间数
-  roomCountStaff: number; // 工作人员房间数
+  twinRoom: RoomConfig; // 双床房
+  kingRoom: RoomConfig; // 大床房
   
   // 用餐 - 分开计算客户和工作人员
   mealStandardClient: number; // 客户每正餐人均餐费
@@ -164,9 +170,16 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
   tripDays: 1,
   accommodationDays: 0,
   accommodationType: '3-diamond',
-  roomPrice: 0,
-  roomCountClient: 0,
-  roomCountStaff: 0,
+  twinRoom: {
+    price: 0,
+    countClient: 0,
+    countStaff: 0,
+  },
+  kingRoom: {
+    price: 0,
+    countClient: 0,
+    countStaff: 0,
+  },
   mealStandardClient: 0,
   mealStandardStaff: 0,
   mealCountPerDay: 2,
