@@ -52,20 +52,31 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const totalPrice = summary.totalCost + serviceFee + tax;
     const finalPrice = totalPrice - discount;
     
+    const projectTypeLabel = projectData.project.type === 'half-day' ? '半日' : projectData.project.type === 'one-day' ? '一日' : `${coreConfig.tripDays}天`;
+    
     const lines = [
       '═'.repeat(50), '研学旅行报价单', '═'.repeat(50),
       `项目名称：${projectData.project.name}`,
-      `行程天数：${coreConfig.tripDays}天`,
+      `行程类型：${projectTypeLabel}`,
       `客户人数：${summary.totalClients}人`,
       `核算日期：${new Date().toLocaleDateString()}`,
       '', '─'.repeat(50), '费用明细', '─'.repeat(50),
-      `住宿费用：${formatMoney(summary.totalAccommodation)}`,
-      `用餐费用：${formatMoney(summary.totalMeal)}`,
-      `交通费用：${formatMoney(summary.totalBus)}`,
-      `活动费用：${formatMoney(summary.totalSingleItems + summary.totalTeamExpenses)}`,
-      `保险费用：${formatMoney(projectData.otherExpenses.insurance)}`,
-      `物料费用：${formatMoney(projectData.otherExpenses.materialFee)}`,
-      `礼品费用：${formatMoney(projectData.otherExpenses.giftFee)}`,
+    ];
+    
+    // 根据类型添加住宿费
+    if (projectData.project.type === 'multi-day' && summary.totalAccommodation > 0) {
+      lines.push(`住宿费用：${formatMoney(summary.totalAccommodation)}`);
+    }
+    if (summary.totalMeal > 0) lines.push(`用餐费用：${formatMoney(summary.totalMeal)}`);
+    if (summary.totalBus > 0) lines.push(`交通费用：${formatMoney(summary.totalBus)}`);
+    if (summary.totalSingleItems + summary.totalTeamExpenses > 0) {
+      lines.push(`活动费用：${formatMoney(summary.totalSingleItems + summary.totalTeamExpenses)}`);
+    }
+    if (projectData.otherExpenses.insurance > 0) lines.push(`保险费用：${formatMoney(projectData.otherExpenses.insurance)}`);
+    if (projectData.otherExpenses.materialFee > 0) lines.push(`物料费用：${formatMoney(projectData.otherExpenses.materialFee)}`);
+    if (projectData.otherExpenses.giftFee > 0) lines.push(`礼品费用：${formatMoney(projectData.otherExpenses.giftFee)}`);
+    
+    lines.push(
       '', '─'.repeat(50),
       `小计：${formatMoney(summary.totalCost)}`,
       `服务费(10%)：${formatMoney(serviceFee)}`,
@@ -75,7 +86,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       '', '═'.repeat(50),
       `应付金额：${formatMoney(finalPrice)}`,
       `人均费用：${formatMoney(finalPrice / (summary.totalClients || 1))}`,
-    ];
+    );
     const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -166,7 +177,30 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   {PROJECT_TYPES.map(type => (
                     <button
                       key={type.value}
-                      onClick={() => updateData({ project: { ...projectData.project, type: type.value } })}
+                      onClick={() => {
+                        // 切换类型时自动设置天数和住宿
+                        let newTripDays = coreConfig.tripDays;
+                        let newAccommodationDays = coreConfig.accommodationDays;
+                        
+                        if (type.value === 'half-day') {
+                          newTripDays = 1;
+                          newAccommodationDays = 0;
+                        } else if (type.value === 'one-day') {
+                          newTripDays = 1;
+                          newAccommodationDays = 0;
+                        } else {
+                          // 多日：默认2天，1晚住宿
+                          if (coreConfig.tripDays < 2) {
+                            newTripDays = 2;
+                            newAccommodationDays = 1;
+                          }
+                        }
+                        
+                        updateData({ 
+                          project: { ...projectData.project, type: type.value },
+                          coreConfig: { ...coreConfig, tripDays: newTripDays, accommodationDays: newAccommodationDays }
+                        });
+                      }}
                       className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                         projectData.project.type === type.value
                           ? 'bg-blue-500 text-white'
@@ -177,19 +211,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </button>
                   ))}
                 </div>
-                <span className="text-gray-500 w-10 ml-2">天数</span>
-                <div className="flex items-center gap-0.5">
-                  <Input type="number" min="1" className={numInput} value={coreConfig.tripDays} onChange={(e) => {
-                    const days = parseInt(e.target.value) || 1;
-                    updateData({ coreConfig: { ...coreConfig, tripDays: days, accommodationDays: days > 1 ? days - 1 : 0 } });
-                  }} />
-                  <span className="text-gray-400 w-4">天</span>
-                </div>
-                <span className="text-gray-500 w-10">住宿</span>
-                <div className="flex items-center gap-0.5">
-                  <Input type="number" min="0" className={numInput} value={coreConfig.accommodationDays} onChange={(e) => updateData({ coreConfig: { ...coreConfig, accommodationDays: parseInt(e.target.value) || 0 } })} />
-                  <span className="text-gray-400 w-4">晚</span>
-                </div>
+                {/* 多日时才显示天数输入 */}
+                {projectData.project.type === 'multi-day' && (
+                  <>
+                    <span className="text-gray-500 w-10 ml-2">天数</span>
+                    <div className="flex items-center gap-0.5">
+                      <Input type="number" min="2" className={numInput} value={coreConfig.tripDays} onChange={(e) => {
+                        const days = Math.max(2, parseInt(e.target.value) || 2);
+                        updateData({ coreConfig: { ...coreConfig, tripDays: days, accommodationDays: days - 1 } });
+                      }} />
+                      <span className="text-gray-400 w-4">天</span>
+                    </div>
+                    <span className="text-gray-500 w-10">住宿</span>
+                    <div className="flex items-center gap-0.5">
+                      <Input type="number" min="0" className={numInput} value={coreConfig.accommodationDays} onChange={(e) => updateData({ coreConfig: { ...coreConfig, accommodationDays: parseInt(e.target.value) || 0 } })} />
+                      <span className="text-gray-400 w-4">晚</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <Separator className="my-1" />
@@ -243,20 +282,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
               <Separator className="my-1" />
 
-              {/* 费用配置 */}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                <span className="text-gray-500 w-16">住宿:</span>
-                <span className="text-gray-400">房单价</span>
-                <div className="flex items-center gap-0.5">
-                  <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.roomPrice} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomPrice: parseFloat(e.target.value) || 0 } })} />
-                  <span className="text-gray-400 w-6">元</span>
+              {/* 费用配置 - 住宿仅多日时显示 */}
+              {projectData.project.type === 'multi-day' && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                  <span className="text-gray-500 w-16">住宿:</span>
+                  <span className="text-gray-400">房单价</span>
+                  <div className="flex items-center gap-0.5">
+                    <Input type="number" min="0" step="0.01" className={numInputMid} value={coreConfig.roomPrice} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomPrice: parseFloat(e.target.value) || 0 } })} />
+                    <span className="text-gray-400 w-6">元</span>
+                  </div>
+                  <span className="text-gray-400">房间数</span>
+                  <div className="flex items-center gap-0.5">
+                    <Input type="number" min="0" className={numInput} value={coreConfig.roomCount} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomCount: parseInt(e.target.value) || 0 } })} />
+                    <span className="text-gray-400 w-6">间</span>
+                  </div>
                 </div>
-                <span className="text-gray-400">房间数</span>
-                <div className="flex items-center gap-0.5">
-                  <Input type="number" min="0" className={numInput} value={coreConfig.roomCount} onChange={(e) => updateData({ coreConfig: { ...coreConfig, roomCount: parseInt(e.target.value) || 0 } })} />
-                  <span className="text-gray-400 w-6">间</span>
-                </div>
-              </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                 <span className="text-gray-500 w-16">用餐:</span>
@@ -282,7 +323,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           {/* 每日费用 */}
           <Card className="shadow-sm">
             <CardHeader className="py-2 px-3">
-              <CardTitle className="text-sm font-medium">每日费用</CardTitle>
+              <CardTitle className="text-sm font-medium">{projectData.project.type === 'half-day' ? '费用明细' : '每日费用'}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 pb-3 px-3 space-y-2">
               {dailyExpenses.slice(0, coreConfig.tripDays).map((day, dayIdx) => {
@@ -293,18 +334,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 return (
                   <div key={day.day} className="border rounded p-2 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <Badge variant="outline" className="text-xs h-5">第{day.day}天</Badge>
+                      <Badge variant="outline" className="text-xs h-5">{projectData.project.type === 'half-day' ? '费用' : `第${day.day}天`}</Badge>
                       <span className="font-semibold text-blue-600">¥{dayTotal.toFixed(0)}</span>
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
-                      <span className="text-gray-400">住宿</span>
-                      <div className="flex items-center gap-0.5">
-                        <Input type="number" min="0" step="0.01" className={numInput} value={day.accommodation} onChange={(e) => {
-                          const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, accommodation: parseFloat(e.target.value) || 0 }; updateData({ dailyExpenses: newDays });
-                        }} />
-                        <span className="text-gray-400">元</span>
-                      </div>
+                      {/* 住宿仅多日时显示 */}
+                      {projectData.project.type === 'multi-day' && (
+                        <>
+                          <span className="text-gray-400">住宿</span>
+                          <div className="flex items-center gap-0.5">
+                            <Input type="number" min="0" step="0.01" className={numInput} value={day.accommodation} onChange={(e) => {
+                              const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, accommodation: parseFloat(e.target.value) || 0 }; updateData({ dailyExpenses: newDays });
+                            }} />
+                            <span className="text-gray-400">元</span>
+                          </div>
+                        </>
+                      )}
                       <span className="text-gray-400">用餐</span>
                       <div className="flex items-center gap-0.5">
                         <Input type="number" min="0" step="0.01" className={numInput} value={day.meal} onChange={(e) => {
@@ -440,10 +486,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="pt-2 pb-3 px-3">
               <div className="space-y-1 text-xs">
-                <div className="flex justify-between py-0.5 border-b border-slate-100">
-                  <span className="text-gray-600">住宿费</span>
-                  <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
-                </div>
+                {/* 住宿费仅多日时显示 */}
+                {projectData.project.type === 'multi-day' && (
+                  <div className="flex justify-between py-0.5 border-b border-slate-100">
+                    <span className="text-gray-600">住宿费</span>
+                    <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">用餐费</span>
                   <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
@@ -489,7 +538,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <CardContent className="pt-2 pb-3 px-3">
               <div className="space-y-1 text-xs">
                 {/* 费用明细 */}
-                {summary.totalAccommodation > 0 && (
+                {/* 住宿费仅多日时显示 */}
+                {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
                   <div className="flex justify-between py-0.5 border-b border-green-100">
                     <span className="text-gray-600">住宿费</span>
                     <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
@@ -623,8 +673,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <div className="text-gray-500">总人数</div>
                 </div>
                 <div className="bg-orange-50 rounded p-2 text-center">
-                  <div className="text-lg font-bold text-orange-600">{coreConfig.tripDays}</div>
-                  <div className="text-gray-500">行程天数</div>
+                  <div className="text-lg font-bold text-orange-600">
+                    {projectData.project.type === 'half-day' ? '半日' : 
+                     projectData.project.type === 'one-day' ? '一日' : 
+                     `${coreConfig.tripDays}天`}
+                  </div>
+                  <div className="text-gray-500">行程类型</div>
                 </div>
               </div>
             </CardContent>
