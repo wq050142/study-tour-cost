@@ -12,8 +12,10 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     coreConfig.staffCounts.videographer + 
     coreConfig.staffCounts.driver;
   
-  // 计算住宿费用
-  const totalAccommodation = coreConfig.roomPrice * coreConfig.roomCount * coreConfig.accommodationDays;
+  // 计算住宿费用（客户房间 + 工作人员房间）
+  const roomCountClient = coreConfig.roomCountClient || 0;
+  const roomCountStaff = coreConfig.roomCountStaff || 0;
+  const totalAccommodation = coreConfig.roomPrice * (roomCountClient + roomCountStaff) * coreConfig.accommodationDays;
   
   // 计算用餐费用
   let totalMeal = 0;
@@ -21,22 +23,26 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     totalMeal += day.meal;
   });
   
-  // 如果没有每日用餐费用，使用餐标计算
-  if (totalMeal === 0 && coreConfig.mealStandard > 0) {
-    totalMeal = coreConfig.mealStandard * coreConfig.mealCountPerDay * coreConfig.tripDays * (totalClients + totalStaff);
+  // 如果没有每日用餐费用，使用餐标计算（客户 + 工作人员分开计算）
+  if (totalMeal === 0) {
+    const mealStandardClient = coreConfig.mealStandardClient || 0;
+    const mealStandardStaff = coreConfig.mealStandardStaff || 0;
+    const clientMeal = mealStandardClient * coreConfig.mealCountPerDay * coreConfig.tripDays * totalClients;
+    const staffMeal = mealStandardStaff * coreConfig.mealCountPerDay * coreConfig.tripDays * totalStaff;
+    totalMeal = clientMeal + staffMeal;
   }
   
-  // 计算交通费用（大巴全程费用，不乘天数）
+  // 计算交通费用（大巴全程费用，含司机薪资，不乘天数）
   const totalBus = coreConfig.busFee;
   
-  // 计算工作人员费用
+  // 计算工作人员费用（不含司机，司机薪资已包含在大巴费用中）
   let totalStaffFee = 0;
   dailyExpenses.forEach(day => {
     totalStaffFee += 
       day.staffFees.guide * coreConfig.staffCounts.guide +
       day.staffFees.photographer * coreConfig.staffCounts.photographer +
-      day.staffFees.videographer * coreConfig.staffCounts.videographer +
-      day.staffFees.driver * coreConfig.staffCounts.driver;
+      day.staffFees.videographer * coreConfig.staffCounts.videographer;
+    // 司机薪资不单独计算，已包含在大巴费中
   });
   
   // 计算单项费用
@@ -80,8 +86,8 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     const dayStaffFee = 
       day.staffFees.guide * coreConfig.staffCounts.guide +
       day.staffFees.photographer * coreConfig.staffCounts.photographer +
-      day.staffFees.videographer * coreConfig.staffCounts.videographer +
-      day.staffFees.driver * coreConfig.staffCounts.driver;
+      day.staffFees.videographer * coreConfig.staffCounts.videographer;
+    // 司机薪资不单独计算
     
     const daySingleItems = day.singleItems.reduce((sum, item) => 
       sum + (item.totalPrice || item.price * item.count), 0);

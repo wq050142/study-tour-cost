@@ -36,17 +36,19 @@ export interface CoreConfig {
   tripDays: number;
   accommodationDays: number;
   
-  // 住宿信息
+  // 住宿信息 - 分开计算客户和工作人员
   hotelStar: number; // 1-5星
-  roomPrice: number; // 房间单价
-  roomCount: number;
+  roomPrice: number; // 房间单价（统一价格）
+  roomCountClient: number; // 客户房间数
+  roomCountStaff: number; // 工作人员房间数
   
-  // 用餐
-  mealStandard: number; // 每正餐人均餐费
+  // 用餐 - 分开计算客户和工作人员
+  mealStandardClient: number; // 客户每正餐人均餐费
+  mealStandardStaff: number; // 工作人员每正餐人均餐费
   mealCountPerDay: number; // 每日用餐次数
   
   // 交通
-  busFee: number; // 大巴车包车费用
+  busFee: number; // 大巴车包车费用（含司机薪资）
 }
 
 // 工作人员费用配置
@@ -160,8 +162,10 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
   accommodationDays: 0,
   hotelStar: 3,
   roomPrice: 0,
-  roomCount: 0,
-  mealStandard: 0,
+  roomCountClient: 0,
+  roomCountStaff: 0,
+  mealStandardClient: 0,
+  mealStandardStaff: 0,
   mealCountPerDay: 3,
   busFee: 0,
 };
