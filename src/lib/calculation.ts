@@ -1,4 +1,4 @@
-import { ProjectData, CostSummary, DailyCostBreakdown, DEFAULT_MEAL_CONFIG } from '@/types';
+import { ProjectData, CostSummary, DailyCostBreakdown, DEFAULT_MEAL_CONFIG, OtherExpenses } from '@/types';
 
 // 计算单餐费用
 function calculateMealAmount(
@@ -26,17 +26,37 @@ function calculateMealAmount(
   return clientAmount + staffAmount;
 }
 
+// 计算其他费用总额
+function calculateOtherExpenses(otherExpenses: OtherExpenses, totalClients: number): number {
+  // 保险费
+  const insuranceTotal = otherExpenses.insurance.totalAmount || 0;
+  
+  // 备用金
+  const reserveFund = otherExpenses.reserveFund || 0;
+  
+  // 物料费
+  const materialsTotal = otherExpenses.materials.reduce((sum, item) => 
+    sum + (item.totalPrice || item.price * item.quantity), 0);
+  
+  // 其他费用
+  const otherTotal = otherExpenses.otherExpenses.reduce((sum, item) => 
+    sum + item.amount, 0);
+  
+  return insuranceTotal + reserveFund + materialsTotal + otherTotal;
+}
+
+// 计算服务费（基于总成本）
+export function calculateServiceFee(totalCost: number, serviceFeePercent: number): number {
+  return totalCost * (serviceFeePercent / 100);
+}
+
 // 计算成本汇总
 export function calculateCostSummary(data: ProjectData): CostSummary {
   const { coreConfig, dailyExpenses, otherExpenses } = data;
   
   // 计算总人数
   const totalClients = coreConfig.studentCount + coreConfig.parentCount + coreConfig.teacherCount;
-  const totalStaff = 
-    coreConfig.staffCounts.guide + 
-    coreConfig.staffCounts.photographer + 
-    coreConfig.staffCounts.videographer + 
-    coreConfig.staffCounts.driver;
+  const totalStaff = coreConfig.staffMembers.reduce((sum, member) => sum + member.count, 0);
   
   // 计算住宿费用
   // 客户住宿费用（双床房 + 大床房）
@@ -62,14 +82,13 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   // 计算交通费用（大巴全程费用，含司机薪资，不乘天数）
   const totalBus = coreConfig.busFee;
   
-  // 计算工作人员费用（不含司机，司机薪资已包含在大巴费用中）
+  // 计算工作人员费用
   let totalStaffFee = 0;
   dailyExpenses.forEach(day => {
-    totalStaffFee += 
-      day.staffFees.guide * coreConfig.staffCounts.guide +
-      day.staffFees.photographer * coreConfig.staffCounts.photographer +
-      day.staffFees.videographer * coreConfig.staffCounts.videographer;
-    // 司机薪资不单独计算，已包含在大巴费中
+    coreConfig.staffMembers.forEach(member => {
+      const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+      totalStaffFee += dailyFee * member.count;
+    });
   });
   
   // 计算单项费用
@@ -80,14 +99,8 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
     });
   });
   
-  // 计算其他费用
-  const totalOtherExpenses = 
-    otherExpenses.insurance +
-    otherExpenses.serviceFee +
-    otherExpenses.reserveFund +
-    otherExpenses.materialFee +
-    otherExpenses.giftFee +
-    otherExpenses.other;
+  // 计算其他费用（不含服务费，服务费在报价时计算）
+  const totalOtherExpenses = calculateOtherExpenses(otherExpenses, totalClients);
   
   // 计算总成本
   const totalCost = 
@@ -103,10 +116,11 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   
   // 计算每日明细
   const dailyBreakdown: DailyCostBreakdown[] = dailyExpenses.map(day => {
-    const dayStaffFee = 
-      day.staffFees.guide * coreConfig.staffCounts.guide +
-      day.staffFees.photographer * coreConfig.staffCounts.photographer +
-      day.staffFees.videographer * coreConfig.staffCounts.videographer;
+    let dayStaffFee = 0;
+    coreConfig.staffMembers.forEach(member => {
+      const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+      dayStaffFee += dailyFee * member.count;
+    });
     
     const daySingleItems = day.singleItems.reduce((sum, item) => 
       sum + (item.totalPrice || item.price * item.count), 0);
@@ -155,18 +169,18 @@ export function formatMoney(amount: number): string {
 }
 
 // 生成初始每日费用数据
-export function generateInitialDailyExpenses(tripDays: number, accommodationDays: number) {
+export function generateInitialDailyExpenses(tripDays: number, staffMembers: { id: string; dailyFee: number }[]) {
+  const staffFees: Record<string, number> = {};
+  staffMembers.forEach(member => {
+    staffFees[member.id] = member.dailyFee;
+  });
+  
   return Array.from({ length: tripDays }, (_, index) => ({
     day: index + 1,
-    accommodation: index < accommodationDays ? 0 : 0,
+    accommodation: 0,
     lunch: { ...DEFAULT_MEAL_CONFIG, restaurantName: '' },
     dinner: { ...DEFAULT_MEAL_CONFIG, restaurantName: '' },
-    staffFees: {
-      guide: 0,
-      photographer: 0,
-      videographer: 0,
-      driver: 0,
-    },
+    staffFees: { ...staffFees },
     singleItems: [],
   }));
 }

@@ -4,9 +4,6 @@ export type ProjectType = 'half-day' | 'one-day' | 'multi-day';
 // 住宿标准类型
 export type AccommodationType = '3-diamond' | '4-diamond' | '5-diamond' | 'camp';
 
-// 工作人员类型
-export type StaffType = 'guide' | 'photographer' | 'videographer' | 'driver';
-
 // 工作人员用餐方式
 export type StaffMealType = 'with-group' | 'independent'; // 随团用餐 | 独立用餐
 
@@ -39,6 +36,14 @@ export interface RoomConfig {
   countStaff: number; // 工作人员房间数
 }
 
+// 工作人员配置（动态）
+export interface StaffMember {
+  id: string;
+  name: string; // 角色名称，如：导游、摄影、摄像等
+  count: number; // 人数
+  dailyFee: number; // 日薪
+}
+
 // 核心信息配置
 export interface CoreConfig {
   // 客户人员
@@ -46,16 +51,8 @@ export interface CoreConfig {
   parentCount: number;
   teacherCount: number;
   
-  // 工作人员
-  staffCounts: {
-    guide: number;
-    photographer: number;
-    videographer: number;
-    driver: number;
-  };
-  
-  // 工作人员日薪资参考
-  staffDailyFees: StaffFeeConfig;
+  // 工作人员（动态数组）
+  staffMembers: StaffMember[];
   
   // 行程信息
   tripDays: number;
@@ -80,14 +77,6 @@ export interface CoreConfig {
   busFee: number; // 大巴车包车费用（含司机薪资）
 }
 
-// 工作人员费用配置
-export interface StaffFeeConfig {
-  guide: number; // 导游领队日薪
-  photographer: number; // 摄影师日薪
-  videographer: number; // 摄像师日薪
-  driver: number; // 司机日薪
-}
-
 // 单项费用项目
 export interface SingleItem {
   id: string;
@@ -110,21 +99,43 @@ export interface DailyExpense {
   lunch: MealConfig; // 中餐
   dinner: MealConfig; // 晚餐
   
-  // 工作人员费用
-  staffFees: StaffFeeConfig;
+  // 工作人员费用（按角色ID存储日薪）
+  staffFees: Record<string, number>;
   
   // 单项费用（门票、活动等）
   singleItems: SingleItem[];
 }
 
+// 保险费用配置
+export interface InsuranceConfig {
+  pricePerPerson: number; // 元/人/天
+  days: number; // 天数
+  totalAmount: number; // 总价（可手动修改）
+}
+
+// 物料费用项
+export interface MaterialItem {
+  id: string;
+  name: string; // 物料名称
+  price: number; // 单价
+  quantity: number; // 数量
+  totalPrice: number; // 总价
+}
+
+// 其他费用项
+export interface OtherExpenseItem {
+  id: string;
+  remark: string; // 备注
+  amount: number; // 金额
+}
+
 // 其他费用
-export interface OtherExpense {
-  insurance: number; // 保险费（总额）
-  serviceFee: number; // 服务费
+export interface OtherExpenses {
+  insurance: InsuranceConfig; // 保险费
+  serviceFeePercent: number; // 服务费百分比
   reserveFund: number; // 备用金
-  materialFee: number; // 物料费
-  giftFee: number; // 礼品费
-  other: number; // 其他费用
+  materials: MaterialItem[]; // 物料费列表
+  otherExpenses: OtherExpenseItem[]; // 其他费用列表
 }
 
 // 项目完整数据
@@ -132,7 +143,7 @@ export interface ProjectData {
   project: Project;
   coreConfig: CoreConfig;
   dailyExpenses: DailyExpense[];
-  otherExpenses: OtherExpense;
+  otherExpenses: OtherExpenses;
 }
 
 // 成本汇总
@@ -179,23 +190,20 @@ export const DEFAULT_MEAL_CONFIG: MealConfig = {
   restaurantName: '', // 餐厅名称
 };
 
+// 默认工作人员配置
+export const DEFAULT_STAFF_MEMBERS: StaffMember[] = [
+  { id: 'guide', name: '导游', count: 0, dailyFee: 0 },
+  { id: 'photographer', name: '摄影', count: 0, dailyFee: 0 },
+  { id: 'videographer', name: '摄像', count: 0, dailyFee: 0 },
+  { id: 'driver', name: '司机', count: 0, dailyFee: 0 },
+];
+
 // 默认值
 export const DEFAULT_CORE_CONFIG: CoreConfig = {
   studentCount: 0,
   parentCount: 0,
   teacherCount: 0,
-  staffCounts: {
-    guide: 0,
-    photographer: 0,
-    videographer: 0,
-    driver: 0,
-  },
-  staffDailyFees: {
-    guide: 0,
-    photographer: 0,
-    videographer: 0,
-    driver: 0,
-  },
+  staffMembers: [...DEFAULT_STAFF_MEMBERS],
   tripDays: 1,
   accommodationDays: 0,
   accommodationType: '3-diamond',
@@ -218,20 +226,18 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
   busFee: 0,
 };
 
-export const DEFAULT_STAFF_FEES: StaffFeeConfig = {
-  guide: 0,
-  photographer: 0,
-  videographer: 0,
-  driver: 0,
+export const DEFAULT_INSURANCE_CONFIG: InsuranceConfig = {
+  pricePerPerson: 0,
+  days: 1,
+  totalAmount: 0,
 };
 
-export const DEFAULT_OTHER_EXPENSES: OtherExpense = {
-  insurance: 0,
-  serviceFee: 0,
+export const DEFAULT_OTHER_EXPENSES: OtherExpenses = {
+  insurance: { ...DEFAULT_INSURANCE_CONFIG },
+  serviceFeePercent: 10, // 默认10%
   reserveFund: 0,
-  materialFee: 0,
-  giftFee: 0,
-  other: 0,
+  materials: [],
+  otherExpenses: [],
 };
 
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
@@ -245,4 +251,12 @@ export const ACCOMMODATION_TYPE_LABELS: Record<AccommodationType, string> = {
   '4-diamond': '4钻',
   '5-diamond': '5钻',
   'camp': '营地',
+};
+
+// 兼容旧数据迁移
+export const DEFAULT_STAFF_FEES = {
+  guide: 0,
+  photographer: 0,
+  videographer: 0,
+  driver: 0,
 };

@@ -6,12 +6,23 @@ import { ArrowLeft, Save, Download, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { NumberInput } from '@/components/number-input';
-import { ProjectData, ProjectType, AccommodationType, ClientMealType, StaffMealType, DEFAULT_STAFF_FEES, ACCOMMODATION_TYPE_LABELS, DEFAULT_MEAL_CONFIG } from '@/types';
+import { 
+  ProjectData, 
+  ProjectType, 
+  AccommodationType, 
+  StaffMember, 
+  MaterialItem, 
+  OtherExpenseItem,
+  ACCOMMODATION_TYPE_LABELS, 
+  DEFAULT_MEAL_CONFIG,
+  DEFAULT_STAFF_MEMBERS,
+  DEFAULT_OTHER_EXPENSES,
+  DEFAULT_INSURANCE_CONFIG
+} from '@/types';
 import { getProjectData, updateProjectData } from '@/lib/storage';
-import { calculateCostSummary, formatMoney } from '@/lib/calculation';
+import { calculateCostSummary, calculateServiceFee, formatMoney } from '@/lib/calculation';
 
 const PROJECT_TYPES: { value: ProjectType; label: string }[] = [
   { value: 'half-day', label: '半日' },
@@ -28,9 +39,55 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     const data = getProjectData(id);
-    if (data) setProjectData(data);
+    if (data) {
+      // 迁移旧数据格式
+      migrateOldData(data);
+      setProjectData(data);
+    }
     else { alert('项目不存在'); router.push('/'); }
   }, [id, router]);
+
+  // 迁移旧数据格式到新格式
+  const migrateOldData = (data: ProjectData) => {
+    // 迁移工作人员数据
+    if (!data.coreConfig.staffMembers && (data.coreConfig as any).staffCounts) {
+      const oldStaff = (data.coreConfig as any).staffCounts;
+      const oldFees = (data.coreConfig as any).staffDailyFees || {};
+      data.coreConfig.staffMembers = [
+        { id: 'guide', name: '导游', count: oldStaff.guide || 0, dailyFee: oldFees.guide || 0 },
+        { id: 'photographer', name: '摄影', count: oldStaff.photographer || 0, dailyFee: oldFees.photographer || 0 },
+        { id: 'videographer', name: '摄像', count: oldStaff.videographer || 0, dailyFee: oldFees.videographer || 0 },
+        { id: 'driver', name: '司机', count: oldStaff.driver || 0, dailyFee: oldFees.driver || 0 },
+      ];
+    }
+    
+    // 迁移其他费用数据
+    if ((data.otherExpenses as any).insurance !== undefined && typeof (data.otherExpenses as any).insurance === 'number') {
+      const old = data.otherExpenses as any;
+      data.otherExpenses = {
+        insurance: { pricePerPerson: 0, days: data.coreConfig.tripDays || 1, totalAmount: old.insurance || 0 },
+        serviceFeePercent: 10,
+        reserveFund: old.reserveFund || 0,
+        materials: [],
+        otherExpenses: old.other ? [{ id: '1', remark: '其他', amount: old.other || 0 }] : [],
+      };
+    }
+    
+    // 迁移每日费用中的staffFees
+    data.dailyExpenses?.forEach(day => {
+      if (day.staffFees && typeof day.staffFees === 'object') {
+        const oldFees = day.staffFees as any;
+        if (oldFees.guide !== undefined) {
+          day.staffFees = {
+            guide: oldFees.guide || 0,
+            photographer: oldFees.photographer || 0,
+            videographer: oldFees.videographer || 0,
+            driver: oldFees.driver || 0,
+          };
+        }
+      }
+    });
+  };
 
   const updateData = (updates: Partial<ProjectData>) => {
     if (!projectData) return;
@@ -47,8 +104,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const handleExport = () => {
     if (!projectData) return;
     const summary = calculateCostSummary(projectData);
-    const serviceFee = summary.totalCost * 0.1;
-    const tax = summary.totalCost * 0.06;
+    const serviceFee = calculateServiceFee(summary.totalCost, otherExpenses.serviceFeePercent);
+    const tax = (summary.totalCost + serviceFee) * 0.06;
     const totalPrice = summary.totalCost + serviceFee + tax;
     const finalPrice = totalPrice - discount;
     
@@ -62,16 +119,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       '', '─'.repeat(50), '费用明细', '─'.repeat(50),
     ];
     
-    if (projectData.project.type === 'multi-day' && summary.totalAccommodation > 0) lines.push(`住宿费用：${formatMoney(summary.totalAccommodation)}`);
+    if (summary.totalAccommodation > 0) lines.push(`住宿费用：${formatMoney(summary.totalAccommodation)}`);
     if (summary.totalMeal > 0) lines.push(`用餐费用：${formatMoney(summary.totalMeal)}`);
     if (summary.totalBus > 0) lines.push(`交通费用：${formatMoney(summary.totalBus)}`);
     if (summary.totalSingleItems > 0) lines.push(`活动费用：${formatMoney(summary.totalSingleItems)}`);
-    if (projectData.otherExpenses.insurance > 0) lines.push(`保险费用：${formatMoney(projectData.otherExpenses.insurance)}`);
-    if (projectData.otherExpenses.materialFee > 0) lines.push(`物料费用：${formatMoney(projectData.otherExpenses.materialFee)}`);
-    if (projectData.otherExpenses.giftFee > 0) lines.push(`礼品费用：${formatMoney(projectData.otherExpenses.giftFee)}`);
+    if (otherExpenses.insurance.totalAmount > 0) lines.push(`保险费用：${formatMoney(otherExpenses.insurance.totalAmount)}`);
+    if (otherExpenses.materials.length > 0) {
+      const materialsTotal = otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+      lines.push(`物料费用：${formatMoney(materialsTotal)}`);
+    }
     
-    lines.push('', '─'.repeat(50), `小计：${formatMoney(summary.totalCost)}`, `服务费(10%)：${formatMoney(serviceFee)}`, `税费(6%)：${formatMoney(tax)}`,
-      `报价合计：${formatMoney(totalPrice)}`, `优惠：-${formatMoney(discount)}`, '', '═'.repeat(50), `应付金额：${formatMoney(finalPrice)}`, `人均费用：${formatMoney(finalPrice / (summary.totalClients || 1))}`);
+    lines.push('', '─'.repeat(50), `小计：${formatMoney(summary.totalCost)}`, 
+      `服务费(${otherExpenses.serviceFeePercent}%)：${formatMoney(serviceFee)}`, 
+      `税费(6%)：${formatMoney(tax)}`,
+      `报价合计：${formatMoney(totalPrice)}`, 
+      `优惠：-${formatMoney(discount)}`, 
+      '', '═'.repeat(50), 
+      `应付金额：${formatMoney(finalPrice)}`, 
+      `人均费用：${formatMoney(finalPrice / (summary.totalClients || 1))}`);
     
     const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -87,35 +152,137 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { coreConfig, dailyExpenses, otherExpenses } = projectData;
   const summary = calculateCostSummary(projectData);
   const totalClients = coreConfig.studentCount + coreConfig.parentCount + coreConfig.teacherCount;
-  const totalStaff = coreConfig.staffCounts.guide + coreConfig.staffCounts.photographer + coreConfig.staffCounts.videographer + coreConfig.staffCounts.driver;
+  const totalStaff = coreConfig.staffMembers.reduce((sum, m) => sum + m.count, 0);
   const totalPeople = totalClients + totalStaff;
 
-  // 确保每日数据长度正确，新增天数使用参考薪资
-  const defaultStaffFees = coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 };
+  // 确保工作人员列表存在
+  if (!coreConfig.staffMembers || coreConfig.staffMembers.length === 0) {
+    coreConfig.staffMembers = [...DEFAULT_STAFF_MEMBERS];
+  }
+  
+  // 确保其他费用格式正确
+  if (!otherExpenses.insurance || typeof otherExpenses.insurance !== 'object') {
+    otherExpenses.insurance = { ...DEFAULT_INSURANCE_CONFIG, days: coreConfig.tripDays };
+  }
+  if (!otherExpenses.materials) otherExpenses.materials = [];
+  if (!otherExpenses.otherExpenses) otherExpenses.otherExpenses = [];
+
+  // 确保每日数据长度正确
   if (dailyExpenses.length !== coreConfig.tripDays) {
+    const staffFeesBase: Record<string, number> = {};
+    coreConfig.staffMembers.forEach(m => { staffFeesBase[m.id] = m.dailyFee; });
+    
     const newData = Array.from({ length: coreConfig.tripDays }, (_, i) => 
-      dailyExpenses[i] || { day: i + 1, accommodation: 0, meal: 0, staffFees: { ...defaultStaffFees }, singleItems: [], teamExpenses: 0 }
+      dailyExpenses[i] || { 
+        day: i + 1, 
+        accommodation: 0, 
+        lunch: { ...DEFAULT_MEAL_CONFIG }, 
+        dinner: { ...DEFAULT_MEAL_CONFIG },
+        staffFees: { ...staffFeesBase }, 
+        singleItems: [] 
+      }
     );
     updateData({ dailyExpenses: newData });
   }
 
-  const numInput = "h-7 w-14 text-xs px-1.5";
-  const numInputMid = "h-7 w-20 text-xs px-1.5";
+  // 添加工作人员
+  const addStaffMember = () => {
+    const newId = `staff_${Date.now()}`;
+    updateData({
+      coreConfig: {
+        ...coreConfig,
+        staffMembers: [...coreConfig.staffMembers, { id: newId, name: '', count: 0, dailyFee: 0 }]
+      }
+    });
+  };
 
-  const serviceFee = summary.totalCost * 0.1;
-  const tax = summary.totalCost * 0.06;
+  // 更新工作人员
+  const updateStaffMember = (id: string, updates: Partial<StaffMember>) => {
+    const newMembers = coreConfig.staffMembers.map(m => 
+      m.id === id ? { ...m, ...updates } : m
+    );
+    updateData({ coreConfig: { ...coreConfig, staffMembers: newMembers } });
+  };
+
+  // 删除工作人员
+  const removeStaffMember = (id: string) => {
+    updateData({
+      coreConfig: { ...coreConfig, staffMembers: coreConfig.staffMembers.filter(m => m.id !== id) }
+    });
+  };
+
+  // 更新保险费用
+  const updateInsurance = (updates: Partial<typeof otherExpenses.insurance>) => {
+    const newInsurance = { ...otherExpenses.insurance, ...updates };
+    // 自动计算总价
+    if ('pricePerPerson' in updates || 'days' in updates) {
+      newInsurance.totalAmount = newInsurance.pricePerPerson * newInsurance.days * totalClients;
+    }
+    updateData({ otherExpenses: { ...otherExpenses, insurance: newInsurance } });
+  };
+
+  // 添加物料
+  const addMaterial = () => {
+    updateData({
+      otherExpenses: {
+        ...otherExpenses,
+        materials: [...otherExpenses.materials, { id: `mat_${Date.now()}`, name: '', price: 0, quantity: 0, totalPrice: 0 }]
+      }
+    });
+  };
+
+  // 更新物料
+  const updateMaterial = (id: string, updates: Partial<MaterialItem>) => {
+    const newMaterials = otherExpenses.materials.map(m => {
+      if (m.id === id) {
+        const updated = { ...m, ...updates };
+        if ('price' in updates || 'quantity' in updates) {
+          updated.totalPrice = updated.price * updated.quantity;
+        }
+        return updated;
+      }
+      return m;
+    });
+    updateData({ otherExpenses: { ...otherExpenses, materials: newMaterials } });
+  };
+
+  // 删除物料
+  const removeMaterial = (id: string) => {
+    updateData({
+      otherExpenses: { ...otherExpenses, materials: otherExpenses.materials.filter(m => m.id !== id) }
+    });
+  };
+
+  // 添加其他费用
+  const addOtherExpense = () => {
+    updateData({
+      otherExpenses: {
+        ...otherExpenses,
+        otherExpenses: [...otherExpenses.otherExpenses, { id: `other_${Date.now()}`, remark: '', amount: 0 }]
+      }
+    });
+  };
+
+  // 更新其他费用
+  const updateOtherExpense = (id: string, updates: Partial<OtherExpenseItem>) => {
+    const newOthers = otherExpenses.otherExpenses.map(o => 
+      o.id === id ? { ...o, ...updates } : o
+    );
+    updateData({ otherExpenses: { ...otherExpenses, otherExpenses: newOthers } });
+  };
+
+  // 删除其他费用
+  const removeOtherExpense = (id: string) => {
+    updateData({
+      otherExpenses: { ...otherExpenses, otherExpenses: otherExpenses.otherExpenses.filter(o => o.id !== id) }
+    });
+  };
+
+  const serviceFee = calculateServiceFee(summary.totalCost, otherExpenses.serviceFeePercent);
+  const tax = (summary.totalCost + serviceFee) * 0.06;
   const totalPrice = summary.totalCost + serviceFee + tax;
   const finalPrice = totalPrice - discount;
   const pricePerClient = totalClients > 0 ? finalPrice / totalClients : 0;
-
-  const allSingleItems: { name: string; totalPrice: number }[] = [];
-  dailyExpenses.forEach(day => {
-    day.singleItems.forEach(item => {
-      if (item.name && (item.totalPrice || item.price * item.count) > 0) {
-        allSingleItems.push({ name: item.name, totalPrice: item.totalPrice || item.price * item.count });
-      }
-    });
-  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -265,78 +432,49 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 工作人员配置 */}
           <Card>
-            <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">工作人员配置 <span className="text-green-600 font-normal text-sm">共{totalStaff}人</span></CardTitle></CardHeader>
-            <CardContent className="py-3 px-4 space-y-3">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <span className="text-gray-500 w-12">人员</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-600">导游</span>
-                  <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.staffCounts.guide} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, guide: v } } })} />
-                  <span className="text-gray-500">人</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-600">摄影</span>
-                  <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.staffCounts.photographer} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, photographer: v } } })} />
-                  <span className="text-gray-500">人</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-600">摄像</span>
-                  <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.staffCounts.videographer} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, videographer: v } } })} />
-                  <span className="text-gray-500">人</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-600">司机</span>
-                  <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.staffCounts.driver} onChange={(v) => updateData({ coreConfig: { ...coreConfig, staffCounts: { ...coreConfig.staffCounts, driver: v } } })} />
-                  <span className="text-gray-500">人</span>
-                </div>
+            <CardHeader className="py-3 px-4 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold">工作人员配置 <span className="text-green-600 font-normal text-sm">共{totalStaff}人</span></CardTitle>
+                <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addStaffMember}><Plus className="w-4 h-4 mr-1" />添加</Button>
               </div>
-              
-              {/* 工作人员日薪资参考 - 不包含司机 */}
-              {(coreConfig.staffCounts.guide > 0 || coreConfig.staffCounts.photographer > 0 || coreConfig.staffCounts.videographer > 0) && (
-                <>
-                  <Separator />
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                    <span className="text-gray-500 w-12">日薪资</span>
-                    {coreConfig.staffCounts.guide > 0 && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">导游</span>
-                        <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.staffDailyFees?.guide || 0} onChange={(v) => {
-                          const newDailyFees = { ...(coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 }), guide: v };
-                          const newDailyExpenses = dailyExpenses.map(day => ({ ...day, staffFees: { ...day.staffFees, guide: v } }));
-                          updateData({ coreConfig: { ...coreConfig, staffDailyFees: newDailyFees }, dailyExpenses: newDailyExpenses });
-                        }} />
-                        <span className="text-gray-500">元</span>
-                      </div>
-                    )}
-                    {coreConfig.staffCounts.photographer > 0 && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">摄影</span>
-                        <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.staffDailyFees?.photographer || 0} onChange={(v) => {
-                          const newDailyFees = { ...(coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 }), photographer: v };
-                          const newDailyExpenses = dailyExpenses.map(day => ({ ...day, staffFees: { ...day.staffFees, photographer: v } }));
-                          updateData({ coreConfig: { ...coreConfig, staffDailyFees: newDailyFees }, dailyExpenses: newDailyExpenses });
-                        }} />
-                        <span className="text-gray-500">元</span>
-                      </div>
-                    )}
-                    {coreConfig.staffCounts.videographer > 0 && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-600">摄像</span>
-                        <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.staffDailyFees?.videographer || 0} onChange={(v) => {
-                          const newDailyFees = { ...(coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 }), videographer: v };
-                          const newDailyExpenses = dailyExpenses.map(day => ({ ...day, staffFees: { ...day.staffFees, videographer: v } }));
-                          updateData({ coreConfig: { ...coreConfig, staffDailyFees: newDailyFees }, dailyExpenses: newDailyExpenses });
-                        }} />
-                        <span className="text-gray-500">元</span>
-                      </div>
-                    )}
+            </CardHeader>
+            <CardContent className="py-3 px-4 space-y-2">
+              {coreConfig.staffMembers.map((member, index) => (
+                <div key={member.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm bg-gray-50 rounded-lg p-2">
+                  <Input 
+                    placeholder="角色名称" 
+                    className="h-8 w-24 text-sm px-2" 
+                    value={member.name} 
+                    onChange={(e) => updateStaffMember(member.id, { name: e.target.value })} 
+                  />
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={member.count} onChange={(v) => updateStaffMember(member.id, { count: v })} />
+                    <span className="text-gray-500">人</span>
                   </div>
-                </>
-              )}
-
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">日薪</span>
+                    <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={member.dailyFee} onChange={(v) => {
+                      updateStaffMember(member.id, { dailyFee: v });
+                      // 同步更新每日费用中的参考薪资
+                      const newDailyExpenses = dailyExpenses.map(day => ({
+                        ...day,
+                        staffFees: { ...day.staffFees, [member.id]: v }
+                      }));
+                      updateData({ dailyExpenses: newDailyExpenses });
+                    }} />
+                    <span className="text-gray-500">元</span>
+                  </div>
+                  {coreConfig.staffMembers.length > 1 && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeStaffMember(member.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              
               {projectData.project.type === 'multi-day' && (
                 <>
-                  <Separator />
+                  <Separator className="my-3" />
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                       <span className="text-gray-500 w-12">住宿</span>
@@ -377,7 +515,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </>
               )}
 
-              <Separator />
+              <Separator className="my-3" />
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">用餐</span>
                 <div className="flex items-center gap-1">
@@ -387,7 +525,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="my-3" />
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <span className="text-gray-500 w-12">交通</span>
                 <div className="flex items-center gap-1">
@@ -407,7 +545,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="text-center text-gray-400 text-sm py-4">请先设置行程天数</div>
               ) : (
                 dailyExpenses.slice(0, Math.max(1, coreConfig.tripDays)).map((day, dayIdx) => {
-                  // 计算住宿费用：双床房 + 大床房
+                  // 计算住宿费用
                   const calculatedAccommodation = (projectData.project.type === 'multi-day' && dayIdx < coreConfig.accommodationDays)
                     ? (coreConfig.twinRoom?.price || 0) * ((coreConfig.twinRoom?.countClient || 0) + (coreConfig.twinRoom?.countStaff || 0)) +
                       (coreConfig.kingRoom?.price || 0) * ((coreConfig.kingRoom?.countClient || 0) + (coreConfig.kingRoom?.countStaff || 0))
@@ -415,6 +553,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   
                   // 计算单餐费用
                   const calculateMealAmount = (mealConfig: typeof day.lunch) => {
+                    if (mealConfig.amount && mealConfig.amount > 0) return mealConfig.amount;
                     const clientMealType = mealConfig.clientMealType || 'individual';
                     const clientAmount = clientMealType === 'table'
                       ? (coreConfig.mealStandardClient || 0) * 10 * (mealConfig.tableCount || Math.ceil(totalClients / 10))
@@ -431,9 +570,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   const dinnerAmount = dinner.amount || calculateMealAmount(dinner);
                   const accommodationValue = day.accommodation || calculatedAccommodation;
                   
-                  const dayTotal = accommodationValue + lunchAmount + dinnerAmount + 
-                    (day.staffFees.guide * coreConfig.staffCounts.guide + day.staffFees.photographer * coreConfig.staffCounts.photographer + day.staffFees.videographer * coreConfig.staffCounts.videographer) +
-                    day.singleItems.reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0);
+                  // 计算工作人员费用
+                  let dayStaffFee = 0;
+                  coreConfig.staffMembers.forEach(member => {
+                    const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+                    dayStaffFee += dailyFee * member.count;
+                  });
+                  
+                  const daySingleItems = day.singleItems.reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0);
+                  const dayTotal = accommodationValue + lunchAmount + dinnerAmount + dayStaffFee + daySingleItems;
                   
                   const updateMeal = (mealType: 'lunch' | 'dinner', updates: Partial<typeof day.lunch>) => {
                     const newDays = [...dailyExpenses];
@@ -461,60 +606,100 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span className="text-gray-500">元</span>
                           </div>
                         )}
-                        {coreConfig.staffCounts.guide > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">导游</span>
-                            <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={day.staffFees.guide} onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, guide: v } }; updateData({ dailyExpenses: newDays }); }} />
+                        {coreConfig.staffMembers.filter(m => m.count > 0).map(member => (
+                          <div key={member.id} className="flex items-center gap-2">
+                            <span className="text-gray-600">{member.name}</span>
+                            <NumberInput 
+                              className="h-8 w-20 text-sm px-2 border rounded" 
+                              value={day.staffFees[member.id] ?? member.dailyFee} 
+                              onChange={(v) => { 
+                                const newDays = [...dailyExpenses]; 
+                                newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, [member.id]: v } }; 
+                                updateData({ dailyExpenses: newDays }); 
+                              }} 
+                            />
                             <span className="text-gray-500">元</span>
                           </div>
-                        )}
-                        {coreConfig.staffCounts.photographer > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">摄影</span>
-                            <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={day.staffFees.photographer} onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, photographer: v } }; updateData({ dailyExpenses: newDays }); }} />
-                            <span className="text-gray-500">元</span>
-                          </div>
-                        )}
-                        {coreConfig.staffCounts.videographer > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">摄像</span>
-                            <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={day.staffFees.videographer} onChange={(v) => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, videographer: v } }; updateData({ dailyExpenses: newDays }); }} />
-                            <span className="text-gray-500">元</span>
-                          </div>
-                        )}
+                        ))}
                       </div>
 
                       {/* 单项费用 */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600 font-medium">单项费用</span>
-                          <Button variant="outline" size="sm" className="h-7 text-sm px-3" onClick={() => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, singleItems: [...day.singleItems, { id: Date.now().toString(), name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, totalPrice: 0 }] }; updateData({ dailyExpenses: newDays }); }}><Plus className="w-4 h-4 mr-1" />添加</Button>
+                          <Button variant="outline" size="sm" className="h-7 text-sm px-3" onClick={() => { 
+                            const newDays = [...dailyExpenses]; 
+                            newDays[dayIdx] = { ...day, singleItems: [...day.singleItems, { id: Date.now().toString(), name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, totalPrice: 0 }] }; 
+                            updateData({ dailyExpenses: newDays }); 
+                          }}><Plus className="w-4 h-4 mr-1" />添加</Button>
                         </div>
                         {day.singleItems.map((item, itemIdx) => (
                           <div key={item.id} className="bg-gray-50 rounded-lg p-3 space-y-2">
                             <div className="flex items-center gap-3">
-                              <input 
-                                type="time" 
-                                className="h-8 w-[80px] text-sm px-2 border rounded bg-white" 
-                                value={item.startTime || ''} 
-                                onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], startTime: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} 
-                              />
-                              <span className="text-gray-400">-</span>
-                              <input 
-                                type="time" 
-                                className="h-8 w-[80px] text-sm px-2 border rounded bg-white" 
-                                value={item.endTime || ''} 
-                                onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], endTime: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} 
-                              />
-                              <Input placeholder="项目名称" className="h-8 flex-1 text-sm px-3" value={item.name} onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], name: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
-                              <Input placeholder="备注" className="h-8 w-28 text-sm px-3" value={item.remark || ''} onChange={(e) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], remark: e.target.value }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-500" onClick={() => { const newDays = [...dailyExpenses]; newDays[dayIdx] = { ...day, singleItems: day.singleItems.filter((_, i) => i !== itemIdx) }; updateData({ dailyExpenses: newDays }); }}><Trash2 className="w-4 h-4" /></Button>
+                              <div className="flex items-center gap-1">
+                                <input 
+                                  type="time" 
+                                  className="h-8 w-[80px] text-sm px-2 border rounded bg-white cursor-pointer" 
+                                  value={item.startTime || ''} 
+                                  onChange={(e) => { 
+                                    const newDays = [...dailyExpenses]; 
+                                    const items = [...day.singleItems]; 
+                                    items[itemIdx] = { ...items[itemIdx], startTime: e.target.value }; 
+                                    newDays[dayIdx] = { ...day, singleItems: items }; 
+                                    updateData({ dailyExpenses: newDays }); 
+                                  }} 
+                                />
+                                <span className="text-gray-400">-</span>
+                                <input 
+                                  type="time" 
+                                  className="h-8 w-[80px] text-sm px-2 border rounded bg-white cursor-pointer" 
+                                  value={item.endTime || ''} 
+                                  onChange={(e) => { 
+                                    const newDays = [...dailyExpenses]; 
+                                    const items = [...day.singleItems]; 
+                                    items[itemIdx] = { ...items[itemIdx], endTime: e.target.value }; 
+                                    newDays[dayIdx] = { ...day, singleItems: items }; 
+                                    updateData({ dailyExpenses: newDays }); 
+                                  }} 
+                                />
+                              </div>
+                              <Input placeholder="项目名称" className="h-8 flex-1 text-sm px-3" value={item.name} onChange={(e) => { 
+                                const newDays = [...dailyExpenses]; 
+                                const items = [...day.singleItems]; 
+                                items[itemIdx] = { ...items[itemIdx], name: e.target.value }; 
+                                newDays[dayIdx] = { ...day, singleItems: items }; 
+                                updateData({ dailyExpenses: newDays }); 
+                              }} />
+                              <Input placeholder="备注" className="h-8 w-28 text-sm px-3" value={item.remark || ''} onChange={(e) => { 
+                                const newDays = [...dailyExpenses]; 
+                                const items = [...day.singleItems]; 
+                                items[itemIdx] = { ...items[itemIdx], remark: e.target.value }; 
+                                newDays[dayIdx] = { ...day, singleItems: items }; 
+                                updateData({ dailyExpenses: newDays }); 
+                              }} />
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-500" onClick={() => { 
+                                const newDays = [...dailyExpenses]; 
+                                newDays[dayIdx] = { ...day, singleItems: day.singleItems.filter((_, i) => i !== itemIdx) }; 
+                                updateData({ dailyExpenses: newDays }); 
+                              }}><Trash2 className="w-4 h-4" /></Button>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               <span className="text-gray-500">单价</span>
-                              <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={item.price} onChange={(v) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], price: v, totalPrice: v * items[itemIdx].count }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
+                              <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={item.price} onChange={(v) => { 
+                                const newDays = [...dailyExpenses]; 
+                                const items = [...day.singleItems]; 
+                                items[itemIdx] = { ...items[itemIdx], price: v, totalPrice: v * items[itemIdx].count }; 
+                                newDays[dayIdx] = { ...day, singleItems: items }; 
+                                updateData({ dailyExpenses: newDays }); 
+                              }} />
                               <span className="text-gray-500 whitespace-nowrap">元 ×</span>
-                              <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={item.count} onChange={(v) => { const newDays = [...dailyExpenses]; const items = [...day.singleItems]; items[itemIdx] = { ...items[itemIdx], count: v || totalClients, totalPrice: items[itemIdx].price * (v || totalClients) }; newDays[dayIdx] = { ...day, singleItems: items }; updateData({ dailyExpenses: newDays }); }} />
+                              <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={item.count} onChange={(v) => { 
+                                const newDays = [...dailyExpenses]; 
+                                const items = [...day.singleItems]; 
+                                items[itemIdx] = { ...items[itemIdx], count: v || totalClients, totalPrice: items[itemIdx].price * (v || totalClients) }; 
+                                newDays[dayIdx] = { ...day, singleItems: items }; 
+                                updateData({ dailyExpenses: newDays }); 
+                              }} />
                               <span className="text-gray-500">人 =</span>
                               <span className="text-base font-semibold text-gray-900">¥{(item.totalPrice || item.price * item.count).toFixed(0)}</span>
                             </div>
@@ -522,12 +707,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         ))}
                       </div>
 
-                      {/* 中餐 */}
+                      {/* 中餐 - 餐厅名优先 */}
                       <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                         <div className="grid grid-cols-[80px_1fr_auto] gap-x-4 gap-y-2 items-center text-sm">
                           <span className="text-gray-700 font-medium">中餐</span>
+                          <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={lunch.restaurantName || ''} onChange={(e) => updateMeal('lunch', { restaurantName: e.target.value })} />
+                          <span></span>
+                          <span className="text-gray-500">客户</span>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                            <span className="text-gray-500">客户</span>
                             <label className="flex items-center gap-1.5 cursor-pointer">
                               <input type="radio" name={`lunch-client-${day.day}`} checked={lunch.clientMealType === 'individual'} onChange={() => updateMeal('lunch', { clientMealType: 'individual', tableCount: 0 })} className="w-4 h-4" />
                               <span>例餐</span>
@@ -547,9 +734,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span className="text-gray-400">¥</span>
                             <NumberInput className="h-8 w-24 text-sm px-2 border rounded text-right" value={lunchAmount} onChange={(v) => updateMeal('lunch', { amount: v })} />
                           </div>
-                          <span className="text-gray-500">餐厅</span>
-                          <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={lunch.restaurantName || ''} onChange={(e) => updateMeal('lunch', { restaurantName: e.target.value })} />
-                          <span></span>
                           <span className="text-gray-500">工作人员</span>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -571,12 +755,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                       </div>
 
-                      {/* 晚餐 */}
+                      {/* 晚餐 - 餐厅名优先 */}
                       <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                         <div className="grid grid-cols-[80px_1fr_auto] gap-x-4 gap-y-2 items-center text-sm">
                           <span className="text-gray-700 font-medium">晚餐</span>
+                          <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={dinner.restaurantName || ''} onChange={(e) => updateMeal('dinner', { restaurantName: e.target.value })} />
+                          <span></span>
+                          <span className="text-gray-500">客户</span>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                            <span className="text-gray-500">客户</span>
                             <label className="flex items-center gap-1.5 cursor-pointer">
                               <input type="radio" name={`dinner-client-${day.day}`} checked={dinner.clientMealType === 'individual'} onChange={() => updateMeal('dinner', { clientMealType: 'individual', tableCount: 0 })} className="w-4 h-4" />
                               <span>例餐</span>
@@ -596,9 +782,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span className="text-gray-400">¥</span>
                             <NumberInput className="h-8 w-24 text-sm px-2 border rounded text-right" value={dinnerAmount} onChange={(v) => updateMeal('dinner', { amount: v })} />
                           </div>
-                          <span className="text-gray-500">餐厅</span>
-                          <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={dinner.restaurantName || ''} onChange={(e) => updateMeal('dinner', { restaurantName: e.target.value })} />
-                          <span></span>
                           <span className="text-gray-500">工作人员</span>
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -629,13 +812,100 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           {/* 其他费用 */}
           <Card>
             <CardHeader className="py-3 px-4 border-b"><CardTitle className="text-base font-semibold">其他费用</CardTitle></CardHeader>
-            <CardContent className="py-3 px-4">
-              <div className="grid grid-cols-3 gap-x-6 gap-y-3 text-sm">
-                {[{ key: 'insurance', label: '保险' }, { key: 'serviceFee', label: '服务费' }, { key: 'reserveFund', label: '备用金' }, { key: 'materialFee', label: '物料' }, { key: 'giftFee', label: '礼品' }, { key: 'other', label: '其他' }].map(({ key, label }) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <span className="text-gray-600 w-12">{label}</span>
-                    <NumberInput className="h-8 flex-1 text-sm px-2 border rounded" value={otherExpenses[key as keyof typeof otherExpenses]} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, [key]: v } })} />
+            <CardContent className="py-3 px-4 space-y-4">
+              {/* 保险费 */}
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <span className="text-sm font-medium text-gray-700">保险费</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={otherExpenses.insurance.pricePerPerson} onChange={(v) => updateInsurance({ pricePerPerson: v })} />
+                    <span className="text-gray-500 whitespace-nowrap">元/人/天</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">×</span>
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={otherExpenses.insurance.days} onChange={(v) => updateInsurance({ days: v })} />
+                    <span className="text-gray-500">天</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">×</span>
+                    <span className="text-gray-500">{totalClients}人</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">=</span>
+                    <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={otherExpenses.insurance.totalAmount} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, insurance: { ...otherExpenses.insurance, totalAmount: v } } })} />
                     <span className="text-gray-500">元</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 服务费 */}
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <span className="text-sm font-medium text-gray-700">服务费</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-600">按成本</span>
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={otherExpenses.serviceFeePercent} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, serviceFeePercent: v } })} />
+                    <span className="text-gray-500">%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">=</span>
+                    <span className="text-base font-semibold text-gray-900">{formatMoney(serviceFee)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 备用金 */}
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <span className="text-sm font-medium text-gray-700">备用金</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={otherExpenses.reserveFund} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, reserveFund: v } })} />
+                    <span className="text-gray-500">元</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 物料费 */}
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">物料费</span>
+                  <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addMaterial}><Plus className="w-4 h-4 mr-1" />添加</Button>
+                </div>
+                {otherExpenses.materials.map((material) => (
+                  <div key={material.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                    <Input placeholder="物料名称" className="h-8 w-32 text-sm px-2" value={material.name} onChange={(e) => updateMaterial(material.id, { name: e.target.value })} />
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={material.price} onChange={(v) => updateMaterial(material.id, { price: v })} />
+                      <span className="text-gray-500">元 ×</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={material.quantity} onChange={(v) => updateMaterial(material.id, { quantity: v })} />
+                      <span className="text-gray-500">=</span>
+                    </div>
+                    <span className="text-sm font-medium">{formatMoney(material.totalPrice || material.price * material.quantity)}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeMaterial(material.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* 其他费用 */}
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">其他</span>
+                  <Button variant="outline" size="sm" className="h-7 text-sm" onClick={addOtherExpense}><Plus className="w-4 h-4 mr-1" />添加</Button>
+                </div>
+                {otherExpenses.otherExpenses.map((item) => (
+                  <div key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                    <Input placeholder="备注" className="h-8 w-32 text-sm px-2" value={item.remark} onChange={(e) => updateOtherExpense(item.id, { remark: e.target.value })} />
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={item.amount} onChange={(v) => updateOtherExpense(item.id, { amount: v })} />
+                      <span className="text-gray-500">元</span>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeOtherExpense(item.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -676,12 +946,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">住宿费</span><span className="font-medium">{formatMoney(summary.totalAccommodation)}</span></div>}
                 {summary.totalMeal > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">用餐费</span><span className="font-medium">{formatMoney(summary.totalMeal)}</span></div>}
                 {summary.totalBus > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">交通费</span><span className="font-medium">{formatMoney(summary.totalBus)}</span></div>}
-                {allSingleItems.map((item, idx) => <div key={idx} className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">{item.name || `项目${idx + 1}`}</span><span className="font-medium">{formatMoney(item.totalPrice)}</span></div>)}
-                {otherExpenses.insurance > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">保险费</span><span className="font-medium">{formatMoney(otherExpenses.insurance)}</span></div>}
-                {otherExpenses.materialFee > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">物料费</span><span className="font-medium">{formatMoney(otherExpenses.materialFee)}</span></div>}
-                {otherExpenses.giftFee > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">礼品费</span><span className="font-medium">{formatMoney(otherExpenses.giftFee)}</span></div>}
+                {dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).map((item, idx) => (
+                  <div key={idx} className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">{item.name}</span><span className="font-medium">{formatMoney(item.totalPrice || item.price * item.count)}</span></div>
+                ))}
+                {otherExpenses.insurance.totalAmount > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">保险费</span><span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span></div>}
+                {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
+                  <div key={idx} className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">{m.name || `物料${idx + 1}`}</span><span className="font-medium">{formatMoney(m.totalPrice || m.price * m.quantity)}</span></div>
+                ))}
                 <div className="flex justify-between py-2 bg-gray-50 rounded px-2 mt-2"><span className="text-gray-600">小计</span><span className="font-medium">{formatMoney(summary.totalCost)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">服务费 (10%)</span><span className="font-medium">{formatMoney(serviceFee)}</span></div>
+                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">服务费 ({otherExpenses.serviceFeePercent}%)</span><span className="font-medium">{formatMoney(serviceFee)}</span></div>
                 <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">税费 (6%)</span><span className="font-medium">{formatMoney(tax)}</span></div>
                 <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3"><span className="font-semibold text-gray-800">报价合计</span><span className="font-bold text-gray-900 text-xl">{formatMoney(totalPrice)}</span></div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
