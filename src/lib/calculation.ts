@@ -2,7 +2,7 @@ import { ProjectData, CostSummary, DailyCostBreakdown, DEFAULT_MEAL_CONFIG, Othe
 
 // 计算单餐费用
 function calculateMealAmount(
-  mealConfig: { clientMealType?: string; tableCount?: number; pricePerPerson?: number; staffMealType?: string; amount?: number },
+  mealConfig: { clientMealType?: string; tableCount?: number; clientCount?: number; pricePerPerson?: number; staffMealType?: string; amount?: number },
   coreConfig: ProjectData['coreConfig'],
   totalClients: number,
   totalStaff: number
@@ -19,7 +19,7 @@ function calculateMealAmount(
   const clientMealType = mealConfig.clientMealType || 'individual';
   const clientAmount = clientMealType === 'table'
     ? pricePerPerson * 10 * (mealConfig.tableCount || Math.ceil(totalClients / 10))
-    : pricePerPerson * totalClients;
+    : pricePerPerson * (mealConfig.clientCount || totalClients);
   
   // 工作人员餐费
   const staffAmount = mealConfig.staffMealType === 'independent'
