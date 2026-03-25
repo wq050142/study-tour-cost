@@ -1,6 +1,9 @@
 // 项目类型
 export type ProjectType = 'half-day' | 'one-day' | 'multi-day';
 
+// 住宿标准类型
+export type AccommodationType = '3-diamond' | '4-diamond' | '5-diamond' | 'camp';
+
 // 工作人员类型
 export type StaffType = 'guide' | 'photographer' | 'videographer' | 'driver';
 
@@ -37,7 +40,7 @@ export interface CoreConfig {
   accommodationDays: number;
   
   // 住宿信息 - 分开计算客户和工作人员
-  hotelStar: number; // 1-5星
+  accommodationType: AccommodationType; // 住宿标准：3钻、4钻、5钻、营地
   roomPrice: number; // 房间单价（统一价格）
   roomCountClient: number; // 客户房间数
   roomCountStaff: number; // 工作人员房间数
@@ -160,13 +163,13 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
   },
   tripDays: 1,
   accommodationDays: 0,
-  hotelStar: 3,
+  accommodationType: '3-diamond',
   roomPrice: 0,
   roomCountClient: 0,
   roomCountStaff: 0,
   mealStandardClient: 0,
   mealStandardStaff: 0,
-  mealCountPerDay: 3,
+  mealCountPerDay: 2,
   busFee: 0,
 };
 
@@ -190,4 +193,11 @@ export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   'half-day': '半日',
   'one-day': '一日',
   'multi-day': '多日',
+};
+
+export const ACCOMMODATION_TYPE_LABELS: Record<AccommodationType, string> = {
+  '3-diamond': '3钻',
+  '4-diamond': '4钻',
+  '5-diamond': '5钻',
+  'camp': '营地',
 };
