@@ -29,6 +29,9 @@ export interface CoreConfig {
     driver: number;
   };
   
+  // 工作人员日薪资参考
+  staffDailyFees: StaffFeeConfig;
+  
   // 行程信息
   tripDays: number;
   accommodationDays: number;
@@ -142,6 +145,12 @@ export const DEFAULT_CORE_CONFIG: CoreConfig = {
   parentCount: 0,
   teacherCount: 0,
   staffCounts: {
+    guide: 0,
+    photographer: 0,
+    videographer: 0,
+    driver: 0,
+  },
+  staffDailyFees: {
     guide: 0,
     photographer: 0,
     videographer: 0,

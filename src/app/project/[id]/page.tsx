@@ -90,9 +90,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const totalStaff = coreConfig.staffCounts.guide + coreConfig.staffCounts.photographer + coreConfig.staffCounts.videographer + coreConfig.staffCounts.driver;
   const totalPeople = totalClients + totalStaff;
 
+  // 确保每日数据长度正确，新增天数使用参考薪资
+  const defaultStaffFees = coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 };
   if (dailyExpenses.length !== coreConfig.tripDays) {
     const newData = Array.from({ length: coreConfig.tripDays }, (_, i) => 
-      dailyExpenses[i] || { day: i + 1, accommodation: 0, meal: 0, staffFees: { ...DEFAULT_STAFF_FEES }, singleItems: [], teamExpenses: 0 }
+      dailyExpenses[i] || { day: i + 1, accommodation: 0, meal: 0, staffFees: { ...defaultStaffFees }, singleItems: [], teamExpenses: 0 }
     );
     updateData({ dailyExpenses: newData });
   }
@@ -216,6 +218,66 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
                 <span className="text-green-600 font-medium">共{totalStaff}人</span>
               </div>
+              
+              {/* 工作人员日薪资参考 */}
+              {totalStaff > 0 && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                  <span className="text-gray-500 w-16">日薪资:</span>
+                  {coreConfig.staffCounts.guide > 0 && (
+                    <>
+                      <span className="text-gray-400">导游</span>
+                      <div className="flex items-center gap-0.5">
+                        <NumberInput className={numInputMid} value={coreConfig.staffDailyFees?.guide || 0} onChange={(v) => {
+                          const newDailyFees = { ...(coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 }), guide: v };
+                          // 同步更新所有每日费用的导游薪资
+                          const newDailyExpenses = dailyExpenses.map(day => ({ ...day, staffFees: { ...day.staffFees, guide: v } }));
+                          updateData({ coreConfig: { ...coreConfig, staffDailyFees: newDailyFees }, dailyExpenses: newDailyExpenses });
+                        }} />
+                        <span className="text-gray-400 w-6">元</span>
+                      </div>
+                    </>
+                  )}
+                  {coreConfig.staffCounts.photographer > 0 && (
+                    <>
+                      <span className="text-gray-400">摄影</span>
+                      <div className="flex items-center gap-0.5">
+                        <NumberInput className={numInputMid} value={coreConfig.staffDailyFees?.photographer || 0} onChange={(v) => {
+                          const newDailyFees = { ...(coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 }), photographer: v };
+                          const newDailyExpenses = dailyExpenses.map(day => ({ ...day, staffFees: { ...day.staffFees, photographer: v } }));
+                          updateData({ coreConfig: { ...coreConfig, staffDailyFees: newDailyFees }, dailyExpenses: newDailyExpenses });
+                        }} />
+                        <span className="text-gray-400 w-6">元</span>
+                      </div>
+                    </>
+                  )}
+                  {coreConfig.staffCounts.videographer > 0 && (
+                    <>
+                      <span className="text-gray-400">摄像</span>
+                      <div className="flex items-center gap-0.5">
+                        <NumberInput className={numInputMid} value={coreConfig.staffDailyFees?.videographer || 0} onChange={(v) => {
+                          const newDailyFees = { ...(coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 }), videographer: v };
+                          const newDailyExpenses = dailyExpenses.map(day => ({ ...day, staffFees: { ...day.staffFees, videographer: v } }));
+                          updateData({ coreConfig: { ...coreConfig, staffDailyFees: newDailyFees }, dailyExpenses: newDailyExpenses });
+                        }} />
+                        <span className="text-gray-400 w-6">元</span>
+                      </div>
+                    </>
+                  )}
+                  {coreConfig.staffCounts.driver > 0 && (
+                    <>
+                      <span className="text-gray-400">司机</span>
+                      <div className="flex items-center gap-0.5">
+                        <NumberInput className={numInputMid} value={coreConfig.staffDailyFees?.driver || 0} onChange={(v) => {
+                          const newDailyFees = { ...(coreConfig.staffDailyFees || { guide: 0, photographer: 0, videographer: 0, driver: 0 }), driver: v };
+                          const newDailyExpenses = dailyExpenses.map(day => ({ ...day, staffFees: { ...day.staffFees, driver: v } }));
+                          updateData({ coreConfig: { ...coreConfig, staffDailyFees: newDailyFees }, dailyExpenses: newDailyExpenses });
+                        }} />
+                        <span className="text-gray-400 w-6">元</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               <Separator className="my-1" />
 
               {projectData.project.type === 'multi-day' && (
