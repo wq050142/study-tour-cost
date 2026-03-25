@@ -134,34 +134,106 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     
     const projectTypeLabel = projectData.project.type === 'half-day' ? '半日' : projectData.project.type === 'one-day' ? '一日' : `${coreConfig.tripDays}天`;
     
-    const lines = ['═'.repeat(50), '研学旅行报价单', '═'.repeat(50),
+    const lines = ['═'.repeat(60), '研学旅行报价单', '═'.repeat(60),
       `项目名称：${projectData.project.name}`,
       `行程类型：${projectTypeLabel}`,
       `客户人数：${summary.totalClients}人`,
+      `工作人员：${totalStaff}人`,
       `核算日期：${new Date().toLocaleDateString()}`,
-      '', '─'.repeat(50), '费用明细', '─'.repeat(50),
+      '', '─'.repeat(60), '费用明细', '─'.repeat(60),
     ];
     
-    if (summary.totalAccommodation > 0) lines.push(`住宿费用：${formatMoney(summary.totalAccommodation)}`);
-    if (summary.totalMeal > 0) lines.push(`用餐费用：${formatMoney(summary.totalMeal)}`);
-    if (summary.totalBus > 0) lines.push(`交通费用：${formatMoney(summary.totalBus)}`);
-    if (summary.totalSingleItems > 0) lines.push(`活动费用：${formatMoney(summary.totalSingleItems)}`);
-    if (otherExpenses.insurance.totalAmount > 0) lines.push(`保险费用：${formatMoney(otherExpenses.insurance.totalAmount)}`);
-    if (otherExpenses.materials.length > 0) {
-      const materialsTotal = otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
-      lines.push(`杂费（客户）：${formatMoney(materialsTotal)}`);
-    }
-    if (otherExpenses.otherExpenses.length > 0) {
-      const otherTotal = otherExpenses.otherExpenses.reduce((s, o) => s + o.amount, 0);
-      lines.push(`杂费（工作人员）：${formatMoney(otherTotal)}`);
+    // 住宿费明细
+    if (summary.totalAccommodation > 0) {
+      lines.push(``, `【住宿费】 ${formatMoney(summary.totalAccommodation)}`);
+      if (coreConfig.twinRoom && (coreConfig.twinRoom.countClient > 0 || coreConfig.twinRoom.countStaff > 0)) {
+        const totalRooms = (coreConfig.twinRoom.countClient || 0) + (coreConfig.twinRoom.countStaff || 0);
+        lines.push(`  双床房：${totalRooms}间 × ${coreConfig.twinRoom.price}元/晚 × ${coreConfig.accommodationDays}晚 = ${formatMoney(totalRooms * (coreConfig.twinRoom.price || 0) * coreConfig.accommodationDays)}`);
+      }
+      if (coreConfig.kingRoom && (coreConfig.kingRoom.countClient > 0 || coreConfig.kingRoom.countStaff > 0)) {
+        const totalRooms = (coreConfig.kingRoom.countClient || 0) + (coreConfig.kingRoom.countStaff || 0);
+        lines.push(`  大床房：${totalRooms}间 × ${coreConfig.kingRoom.price}元/晚 × ${coreConfig.accommodationDays}晚 = ${formatMoney(totalRooms * (coreConfig.kingRoom.price || 0) * coreConfig.accommodationDays)}`);
+      }
+      if (coreConfig.staffAccommodation) {
+        lines.push(`  工作人员住宿：${Math.ceil(totalStaff / 2)}间 × ${coreConfig.staffRoomPrice || 0}元/晚 × ${coreConfig.staffAccommodationNights || 0}晚 = ${formatMoney(Math.ceil(totalStaff / 2) * (coreConfig.staffRoomPrice || 0) * (coreConfig.staffAccommodationNights || 0))}`);
+      }
     }
     
-    lines.push('', '─'.repeat(50), `小计：${formatMoney(summary.totalCost)}`, 
+    // 用餐费明细
+    if (summary.totalMeal > 0) {
+      lines.push(``, `【用餐费】 ${formatMoney(summary.totalMeal)}`);
+      dailyExpenses.forEach((day) => {
+        const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+        const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+        const lunchAmount = lunch.amount || 0;
+        const dinnerAmount = dinner.amount || 0;
+        if (lunchAmount > 0) {
+          const restaurant = lunch.restaurantName ? `(${lunch.restaurantName})` : '';
+          lines.push(`  D${day.day}中餐${restaurant}：${formatMoney(lunchAmount)}`);
+        }
+        if (dinnerAmount > 0) {
+          const restaurant = dinner.restaurantName ? `(${dinner.restaurantName})` : '';
+          lines.push(`  D${day.day}晚餐${restaurant}：${formatMoney(dinnerAmount)}`);
+        }
+      });
+    }
+    
+    // 交通费明细
+    if (summary.totalBus > 0) {
+      lines.push(``, `【交通费】 ${formatMoney(summary.totalBus)}`);
+      if (coreConfig.busFee > 0) {
+        lines.push(`  大巴租赁：${formatMoney(coreConfig.busFee)}`);
+      }
+      (coreConfig.otherTransports || []).forEach((t) => {
+        const typeName = t.type === 'flight' ? '飞机票' : '高铁票';
+        lines.push(`  ${typeName}：${t.count}张 × ${t.price}元/张 = ${formatMoney(t.price * t.count)}`);
+      });
+    }
+    
+    // 活动项目明细
+    if (summary.totalSingleItems > 0) {
+      lines.push(``, `【活动项目】 ${formatMoney(summary.totalSingleItems)}`);
+      dailyExpenses.forEach((day) => {
+        day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).forEach((item) => {
+          const remark = item.remark ? `（${item.remark}）` : '';
+          lines.push(`  D${day.day} ${item.name}：${item.price}元 × ${item.count}${item.unit || '人'}${remark} = ${formatMoney(item.totalPrice || item.price * item.count)}`);
+        });
+      });
+    }
+    
+    // 工作人员费用明细
+    if (summary.totalStaffFee > 0) {
+      lines.push(``, `【工作人员】 ${formatMoney(summary.totalStaffFee)}`);
+      coreConfig.staffMembers.filter(m => m.count > 0).forEach((member) => {
+        const totalFee = member.count * member.dailyFee * coreConfig.tripDays;
+        lines.push(`  ${member.name}：${member.count}人 × ${member.dailyFee}元/天 × ${coreConfig.tripDays}天 = ${formatMoney(totalFee)}`);
+      });
+    }
+    
+    // 其他费用明细
+    if (summary.totalOtherExpenses > 0) {
+      lines.push(``, `【其他费用】 ${formatMoney(summary.totalOtherExpenses)}`);
+      if (otherExpenses.insurance.totalAmount > 0) {
+        lines.push(`  保险费：${otherExpenses.insurance.pricePerPerson}元/人/天 × ${otherExpenses.insurance.days}天 × ${totalClients + totalStaff}人 = ${formatMoney(otherExpenses.insurance.totalAmount)}`);
+      }
+      if (otherExpenses.reserveFund > 0) {
+        lines.push(`  备用金：${formatMoney(otherExpenses.reserveFund)}`);
+      }
+      otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).forEach((m) => {
+        lines.push(`  杂费(客户)-${m.name}：${m.price}元 × ${m.quantity} = ${formatMoney(m.totalPrice || m.price * m.quantity)}`);
+      });
+      otherExpenses.otherExpenses.filter(o => o.amount > 0).forEach((o) => {
+        lines.push(`  杂费(工作人员)-${o.remark || '其他'}：${formatMoney(o.amount)}`);
+      });
+    }
+    
+    lines.push('', '─'.repeat(60), 
+      `成本小计：${formatMoney(summary.totalCost)}`, 
       `服务费(${otherExpenses.serviceFeePercent}%)：${formatMoney(serviceFee)}`, 
       `税费(6%)：${formatMoney(tax)}`,
       `报价合计：${formatMoney(totalPrice)}`, 
       `优惠：-${formatMoney(discount)}`, 
-      '', '═'.repeat(50), 
+      '', '═'.repeat(60), 
       `应付金额：${formatMoney(finalPrice)}`, 
       `人均费用：${formatMoney(finalPrice / (summary.totalClients || 1))}`);
     
@@ -1060,12 +1132,173 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="py-3 px-4">
               <div className="space-y-0 text-sm">
-                {projectData.project.type === 'multi-day' && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">住宿费</span><span className="font-medium">{formatMoney(summary.totalAccommodation)}</span></div>}
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">用餐费</span><span className="font-medium">{formatMoney(summary.totalMeal)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">交通费</span><span className="font-medium">{formatMoney(summary.totalBus)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">工作人员</span><span className="font-medium">{formatMoney(summary.totalStaffFee)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">单项费用</span><span className="font-medium">{formatMoney(summary.totalSingleItems)}</span></div>
-                <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">其他费用</span><span className="font-medium">{formatMoney(summary.totalOtherExpenses)}</span></div>
+                {/* 住宿费明细 */}
+                {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">住宿费</span>
+                      <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {coreConfig.twinRoom && (coreConfig.twinRoom.countClient > 0 || coreConfig.twinRoom.countStaff > 0) && (
+                        <div className="flex justify-between">
+                          <span>双床房 {(coreConfig.twinRoom.countClient || 0) + (coreConfig.twinRoom.countStaff || 0)}间 × {coreConfig.twinRoom.price}元/间 × {coreConfig.accommodationDays}晚</span>
+                          <span>{formatMoney(((coreConfig.twinRoom.countClient || 0) + (coreConfig.twinRoom.countStaff || 0)) * (coreConfig.twinRoom.price || 0) * coreConfig.accommodationDays)}</span>
+                        </div>
+                      )}
+                      {coreConfig.kingRoom && (coreConfig.kingRoom.countClient > 0 || coreConfig.kingRoom.countStaff > 0) && (
+                        <div className="flex justify-between">
+                          <span>大床房 {(coreConfig.kingRoom.countClient || 0) + (coreConfig.kingRoom.countStaff || 0)}间 × {coreConfig.kingRoom.price}元/间 × {coreConfig.accommodationDays}晚</span>
+                          <span>{formatMoney(((coreConfig.kingRoom.countClient || 0) + (coreConfig.kingRoom.countStaff || 0)) * (coreConfig.kingRoom.price || 0) * coreConfig.accommodationDays)}</span>
+                        </div>
+                      )}
+                      {coreConfig.staffAccommodation && (
+                        <div className="flex justify-between">
+                          <span>工作人员住宿 {Math.ceil(totalStaff / 2)}间 × {coreConfig.staffRoomPrice || 0}元/间 × {coreConfig.staffAccommodationNights || 0}晚</span>
+                          <span>{formatMoney(Math.ceil(totalStaff / 2) * (coreConfig.staffRoomPrice || 0) * (coreConfig.staffAccommodationNights || 0))}</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                {/* 用餐费明细 */}
+                {summary.totalMeal > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">用餐费</span>
+                      <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {dailyExpenses.map((day, idx) => {
+                        const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+                        const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+                        const lunchAmount = lunch.amount || 0;
+                        const dinnerAmount = dinner.amount || 0;
+                        const dayMealTotal = lunchAmount + dinnerAmount;
+                        if (dayMealTotal === 0) return null;
+                        return (
+                          <div key={idx} className="space-y-0.5">
+                            {lunchAmount > 0 && (
+                              <div className="flex justify-between">
+                                <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
+                                <span>{formatMoney(lunchAmount)}</span>
+                              </div>
+                            )}
+                            {dinnerAmount > 0 && (
+                              <div className="flex justify-between">
+                                <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
+                                <span>{formatMoney(dinnerAmount)}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                
+                {/* 交通费明细 */}
+                {summary.totalBus > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">交通费</span>
+                      <span className="font-medium">{formatMoney(summary.totalBus)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {coreConfig.busFee > 0 && (
+                        <div className="flex justify-between">
+                          <span>大巴</span>
+                          <span>{formatMoney(coreConfig.busFee)}</span>
+                        </div>
+                      )}
+                      {(coreConfig.otherTransports || []).map((t) => (
+                        <div key={t.id} className="flex justify-between">
+                          <span>{t.type === 'flight' ? '飞机' : '高铁'} {t.count}张 × {t.price}元/张</span>
+                          <span>{formatMoney(t.price * t.count)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
+                {/* 工作人员明细 */}
+                {summary.totalStaffFee > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">工作人员</span>
+                      <span className="font-medium">{formatMoney(summary.totalStaffFee)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {coreConfig.staffMembers.filter(m => m.count > 0).map((member) => {
+                        const totalFee = member.count * member.dailyFee * coreConfig.tripDays;
+                        return (
+                          <div key={member.id} className="flex justify-between">
+                            <span>{member.name} {member.count}人 × {member.dailyFee}元/天 × {coreConfig.tripDays}天</span>
+                            <span>{formatMoney(totalFee)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                
+                {/* 活动项目明细 */}
+                {summary.totalSingleItems > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">活动项目</span>
+                      <span className="font-medium">{formatMoney(summary.totalSingleItems)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {dailyExpenses.map((day) => 
+                        day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).map((item, idx) => (
+                          <div key={`${day.day}-${idx}`} className="flex justify-between">
+                            <span>D{day.day} {item.name} {item.price}元 × {item.count}{item.unit || '人'}</span>
+                            <span>{formatMoney(item.totalPrice || item.price * item.count)}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                {/* 其他费用明细 */}
+                {summary.totalOtherExpenses > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">其他费用</span>
+                      <span className="font-medium">{formatMoney(summary.totalOtherExpenses)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {otherExpenses.insurance.totalAmount > 0 && (
+                        <div className="flex justify-between">
+                          <span>保险 {otherExpenses.insurance.pricePerPerson}元/人/天 × {otherExpenses.insurance.days}天 × {totalClients + totalStaff}人</span>
+                          <span>{formatMoney(otherExpenses.insurance.totalAmount)}</span>
+                        </div>
+                      )}
+                      {otherExpenses.reserveFund > 0 && (
+                        <div className="flex justify-between">
+                          <span>备用金</span>
+                          <span>{formatMoney(otherExpenses.reserveFund)}</span>
+                        </div>
+                      )}
+                      {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>杂费(客户)-{m.name} {m.price}元 × {m.quantity}</span>
+                          <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
+                        </div>
+                      ))}
+                      {otherExpenses.otherExpenses.filter(o => o.amount > 0).map((o, idx) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>杂费(工作人员)-{o.remark || '其他'}</span>
+                          <span>{formatMoney(o.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
                 <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3"><span className="font-semibold text-gray-800">总成本</span><span className="font-bold text-gray-900 text-xl">{formatMoney(summary.totalCost)}</span></div>
                 <div className="flex justify-between py-2 text-gray-500"><span>人均成本</span><span className="font-medium text-gray-700">{formatMoney(summary.avgCostPerClient)}</span></div>
               </div>
@@ -1080,16 +1313,136 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="py-3 px-4">
               <div className="space-y-0 text-sm">
-                {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">住宿费</span><span className="font-medium">{formatMoney(summary.totalAccommodation)}</span></div>}
-                {summary.totalMeal > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">用餐费</span><span className="font-medium">{formatMoney(summary.totalMeal)}</span></div>}
-                {summary.totalBus > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">交通费</span><span className="font-medium">{formatMoney(summary.totalBus)}</span></div>}
-                {dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).map((item, idx) => (
-                  <div key={idx} className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">{item.name}</span><span className="font-medium">{formatMoney(item.totalPrice || item.price * item.count)}</span></div>
-                ))}
-                {otherExpenses.insurance.totalAmount > 0 && <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">保险费</span><span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span></div>}
-                {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
-                  <div key={idx} className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">{m.name || `物料${idx + 1}`}</span><span className="font-medium">{formatMoney(m.totalPrice || m.price * m.quantity)}</span></div>
-                ))}
+                {/* 住宿费明细 */}
+                {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">住宿费</span>
+                      <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {coreConfig.twinRoom && coreConfig.twinRoom.countClient > 0 && (
+                        <div className="flex justify-between">
+                          <span>双床房 {coreConfig.twinRoom.countClient}间 × {coreConfig.twinRoom.price}元/晚</span>
+                          <span>{formatMoney(coreConfig.twinRoom.countClient * (coreConfig.twinRoom.price || 0) * coreConfig.accommodationDays)}</span>
+                        </div>
+                      )}
+                      {coreConfig.kingRoom && coreConfig.kingRoom.countClient > 0 && (
+                        <div className="flex justify-between">
+                          <span>大床房 {coreConfig.kingRoom.countClient}间 × {coreConfig.kingRoom.price}元/晚</span>
+                          <span>{formatMoney(coreConfig.kingRoom.countClient * (coreConfig.kingRoom.price || 0) * coreConfig.accommodationDays)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                {/* 用餐费明细 */}
+                {summary.totalMeal > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">用餐费</span>
+                      <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {dailyExpenses.map((day) => {
+                        const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+                        const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+                        const lunchAmount = lunch.amount || 0;
+                        const dinnerAmount = dinner.amount || 0;
+                        const dayMealTotal = lunchAmount + dinnerAmount;
+                        if (dayMealTotal === 0) return null;
+                        return (
+                          <div key={day.day} className="space-y-0.5">
+                            {lunchAmount > 0 && (
+                              <div className="flex justify-between">
+                                <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
+                                <span>{formatMoney(lunchAmount)}</span>
+                              </div>
+                            )}
+                            {dinnerAmount > 0 && (
+                              <div className="flex justify-between">
+                                <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
+                                <span>{formatMoney(dinnerAmount)}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                
+                {/* 交通费明细 */}
+                {summary.totalBus > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">交通费</span>
+                      <span className="font-medium">{formatMoney(summary.totalBus)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {coreConfig.busFee > 0 && (
+                        <div className="flex justify-between">
+                          <span>大巴租赁</span>
+                          <span>{formatMoney(coreConfig.busFee)}</span>
+                        </div>
+                      )}
+                      {(coreConfig.otherTransports || []).map((t) => (
+                        <div key={t.id} className="flex justify-between">
+                          <span>{t.type === 'flight' ? '飞机票' : '高铁票'} {t.count}张</span>
+                          <span>{formatMoney(t.price * t.count)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
+                {/* 活动项目明细 */}
+                {dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).length > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">活动项目</span>
+                      <span className="font-medium">{formatMoney(summary.totalSingleItems)}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {dailyExpenses.map((day) => 
+                        day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).map((item, idx) => (
+                          <div key={`${day.day}-${idx}`} className="flex justify-between">
+                            <span>D{day.day} {item.name}</span>
+                            <span>{formatMoney(item.totalPrice || item.price * item.count)}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+                
+                {/* 保险费 */}
+                {otherExpenses.insurance.totalAmount > 0 && (
+                  <div className="flex justify-between py-2 border-b border-gray-100">
+                    <span className="text-gray-600">保险费</span>
+                    <span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span>
+                  </div>
+                )}
+                
+                {/* 杂费（客户） */}
+                {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).length > 0 && (
+                  <>
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-600 font-medium">杂费</span>
+                      <span className="font-medium">{formatMoney(otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0))}</span>
+                    </div>
+                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                      {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>{m.name || `项目${idx + 1}`}</span>
+                          <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
                 <div className="flex justify-between py-2 bg-gray-50 rounded px-2 mt-2"><span className="text-gray-600">小计</span><span className="font-medium">{formatMoney(summary.totalCost)}</span></div>
                 <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">服务费 ({otherExpenses.serviceFeePercent}%)</span><span className="font-medium">{formatMoney(serviceFee)}</span></div>
                 <div className="flex justify-between py-2 border-b border-gray-100"><span className="text-gray-600">税费 (6%)</span><span className="font-medium">{formatMoney(tax)}</span></div>
