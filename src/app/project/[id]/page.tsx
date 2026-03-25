@@ -7,17 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { ProjectData, ProjectType, PROJECT_TYPE_LABELS, DEFAULT_STAFF_FEES } from '@/types';
+import { ProjectData, ProjectType, DEFAULT_STAFF_FEES } from '@/types';
 import { getProjectData, updateProjectData } from '@/lib/storage';
 import { calculateCostSummary, formatMoney } from '@/lib/calculation';
+
+const PROJECT_TYPES: { value: ProjectType; label: string }[] = [
+  { value: 'half-day', label: '半日' },
+  { value: 'one-day', label: '一日' },
+  { value: 'multi-day', label: '多日' },
+];
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [discount, setDiscount] = useState(0); // 优惠金额
 
   useEffect(() => {
     const data = getProjectData(id);
@@ -40,30 +46,41 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const handleExport = () => {
     if (!projectData) return;
     const summary = calculateCostSummary(projectData);
+    const serviceFee = summary.totalCost * 0.1;
+    const taxRate = 0.06;
+    const tax = summary.totalCost * taxRate;
+    const totalPrice = summary.totalCost + serviceFee + tax;
+    const finalPrice = totalPrice - discount;
+    
     const lines = [
-      '═'.repeat(50), '研学旅行成本核算报告', '═'.repeat(50),
+      '═'.repeat(50), '研学旅行报价单', '═'.repeat(50),
       `项目名称：${projectData.project.name}`,
-      `项目类型：${PROJECT_TYPE_LABELS[projectData.project.type]}`,
+      `行程天数：${coreConfig.tripDays}天`,
+      `客户人数：${summary.totalClients}人`,
       `核算日期：${new Date().toLocaleDateString()}`,
-      '', '─'.repeat(50), '人员统计', '─'.repeat(50),
-      `客户：${summary.totalClients}人`, `工作人员：${summary.totalStaff}人`,
       '', '─'.repeat(50), '费用明细', '─'.repeat(50),
       `住宿费用：${formatMoney(summary.totalAccommodation)}`,
       `用餐费用：${formatMoney(summary.totalMeal)}`,
       `交通费用：${formatMoney(summary.totalBus)}`,
-      `工作人员费用：${formatMoney(summary.totalStaffFee)}`,
-      `单项费用：${formatMoney(summary.totalSingleItems)}`,
-      `团队费用：${formatMoney(summary.totalTeamExpenses)}`,
-      `其他费用：${formatMoney(summary.totalOtherExpenses)}`,
+      `活动费用：${formatMoney(summary.totalSingleItems + summary.totalTeamExpenses)}`,
+      `保险费用：${formatMoney(projectData.otherExpenses.insurance)}`,
+      `物料费用：${formatMoney(projectData.otherExpenses.materialFee)}`,
+      `礼品费用：${formatMoney(projectData.otherExpenses.giftFee)}`,
+      '', '─'.repeat(50),
+      `小计：${formatMoney(summary.totalCost)}`,
+      `服务费(10%)：${formatMoney(serviceFee)}`,
+      `税费(6%)：${formatMoney(tax)}`,
+      `报价合计：${formatMoney(totalPrice)}`,
+      `优惠：-${formatMoney(discount)}`,
       '', '═'.repeat(50),
-      `总成本：${formatMoney(summary.totalCost)}`,
-      `人均成本：${formatMoney(summary.avgCostPerClient)}`,
+      `应付金额：${formatMoney(finalPrice)}`,
+      `人均费用：${formatMoney(finalPrice / (summary.totalClients || 1))}`,
     ];
     const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${projectData.project.name}-成本核算报告.txt`;
+    a.download = `${projectData.project.name}-报价单.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -88,10 +105,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const numInput = "h-7 w-14 text-xs px-1.5";
   const numInputMid = "h-7 w-20 text-xs px-1.5";
 
-  // 报价计算（成本 + 利润率）
-  const profitRate = 0.15; // 15%利润率
-  const totalPrice = summary.totalCost * (1 + profitRate);
-  const pricePerClient = totalClients > 0 ? totalPrice / totalClients : 0;
+  // 报价计算
+  const serviceFeeRate = 0.1; // 10%服务费
+  const taxRate = 0.06; // 6%税费
+  const serviceFee = summary.totalCost * serviceFeeRate;
+  const tax = summary.totalCost * taxRate;
+  const totalPrice = summary.totalCost + serviceFee + tax;
+  const finalPrice = totalPrice - discount;
+  const pricePerClient = totalClients > 0 ? finalPrice / totalClients : 0;
+
+  // 收集所有单项费用（用于报价单展示）
+  const allSingleItems: { name: string; price: number; count: number; totalPrice: number }[] = [];
+  dailyExpenses.forEach(day => {
+    day.singleItems.forEach(item => {
+      if (item.name && (item.totalPrice || item.price * item.count) > 0) {
+        allSingleItems.push({
+          name: item.name,
+          price: item.price,
+          count: item.count,
+          totalPrice: item.totalPrice || item.price * item.count
+        });
+      }
+    });
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -105,7 +141,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </Button>
               <Input value={projectData.project.name} onChange={(e) => updateData({ project: { ...projectData.project, name: e.target.value } })}
                 className="text-base font-semibold border-0 p-0 h-auto w-40 focus-visible:ring-0" />
-              <Badge className="text-xs">{PROJECT_TYPE_LABELS[projectData.project.type]}</Badge>
             </div>
             <div className="flex gap-1">
               <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleExport}><Download className="w-3 h-3 mr-1" />导出</Button>
@@ -124,18 +159,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <CardTitle className="text-sm font-medium">基础信息</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 pb-3 px-3 space-y-2">
-              {/* 行程设置 */}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              {/* 类型选择 - 点选按钮 */}
+              <div className="flex items-center gap-x-2 gap-y-1 text-xs">
                 <span className="text-gray-500 w-10">类型</span>
-                <Select value={projectData.project.type} onValueChange={(v: ProjectType) => updateData({ project: { ...projectData.project, type: v } })}>
-                  <SelectTrigger className="h-7 w-16 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="half-day">半日</SelectItem>
-                    <SelectItem value="one-day">一日</SelectItem>
-                    <SelectItem value="multi-day">多日</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span className="text-gray-500 w-10">天数</span>
+                <div className="flex gap-1">
+                  {PROJECT_TYPES.map(type => (
+                    <button
+                      key={type.value}
+                      onClick={() => updateData({ project: { ...projectData.project, type: type.value } })}
+                      className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        projectData.project.type === type.value
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-gray-500 w-10 ml-2">天数</span>
                 <div className="flex items-center gap-0.5">
                   <Input type="number" min="1" className={numInput} value={coreConfig.tripDays} onChange={(e) => {
                     const days = parseInt(e.target.value) || 1;
@@ -390,44 +432,45 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         {/* 右侧：成本表和报价单 */}
         <div className="w-80 flex-shrink-0 space-y-3 sticky top-14 self-start">
-          {/* 成本表 */}
-          <Card className="shadow-sm border-blue-200 bg-blue-50/50">
-            <CardHeader className="py-2 px-3 bg-blue-100/50">
-              <CardTitle className="text-sm font-medium text-blue-700">成本核算表</CardTitle>
+          {/* 成本表 - 自己看的 */}
+          <Card className="shadow-sm border-slate-200 bg-slate-50/50">
+            <CardHeader className="py-2 px-3 bg-slate-100/50">
+              <CardTitle className="text-sm font-medium text-slate-700">成本核算表</CardTitle>
+              <p className="text-xs text-slate-500">内部参考</p>
             </CardHeader>
             <CardContent className="pt-2 pb-3 px-3">
               <div className="space-y-1 text-xs">
-                <div className="flex justify-between py-0.5 border-b border-blue-100">
+                <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">住宿费</span>
                   <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-blue-100">
+                <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">用餐费</span>
                   <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-blue-100">
+                <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">交通费</span>
                   <span className="font-medium">{formatMoney(summary.totalBus)}</span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-blue-100">
+                <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">工作人员</span>
                   <span className="font-medium">{formatMoney(summary.totalStaffFee)}</span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-blue-100">
+                <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">单项费用</span>
                   <span className="font-medium">{formatMoney(summary.totalSingleItems)}</span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-blue-100">
+                <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">团队费用</span>
                   <span className="font-medium">{formatMoney(summary.totalTeamExpenses)}</span>
                 </div>
-                <div className="flex justify-between py-0.5 border-b border-blue-100">
+                <div className="flex justify-between py-0.5 border-b border-slate-100">
                   <span className="text-gray-600">其他费用</span>
                   <span className="font-medium">{formatMoney(summary.totalOtherExpenses)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 bg-blue-100/50 rounded mt-1 px-1">
-                  <span className="font-semibold text-blue-700">总成本</span>
-                  <span className="font-bold text-blue-700 text-base">{formatMoney(summary.totalCost)}</span>
+                <div className="flex justify-between py-1.5 bg-slate-100/50 rounded mt-1 px-1">
+                  <span className="font-semibold text-slate-700">总成本</span>
+                  <span className="font-bold text-slate-700 text-base">{formatMoney(summary.totalCost)}</span>
                 </div>
                 <div className="flex justify-between py-1 text-gray-500">
                   <span>人均成本</span>
@@ -437,31 +480,123 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardContent>
           </Card>
 
-          {/* 报价单 */}
+          {/* 报价单 - 给客户看的 */}
           <Card className="shadow-sm border-green-200 bg-green-50/50">
             <CardHeader className="py-2 px-3 bg-green-100/50">
               <CardTitle className="text-sm font-medium text-green-700">报价单</CardTitle>
+              <p className="text-xs text-green-600">给客户展示</p>
             </CardHeader>
             <CardContent className="pt-2 pb-3 px-3">
               <div className="space-y-1 text-xs">
-                <div className="flex justify-between py-0.5 border-b border-green-100">
-                  <span className="text-gray-600">总成本</span>
+                {/* 费用明细 */}
+                {summary.totalAccommodation > 0 && (
+                  <div className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">住宿费</span>
+                    <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
+                  </div>
+                )}
+                {summary.totalMeal > 0 && (
+                  <div className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">用餐费</span>
+                    <span className="font-medium">{formatMoney(summary.totalMeal)}</span>
+                  </div>
+                )}
+                {summary.totalBus > 0 && (
+                  <div className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">交通费</span>
+                    <span className="font-medium">{formatMoney(summary.totalBus)}</span>
+                  </div>
+                )}
+                
+                {/* 单项费用列表 */}
+                {allSingleItems.map((item, idx) => (
+                  <div key={idx} className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">{item.name || `项目${idx + 1}`}</span>
+                    <span className="font-medium">{formatMoney(item.totalPrice)}</span>
+                  </div>
+                ))}
+                
+                {/* 团队费用 */}
+                {summary.totalTeamExpenses > 0 && (
+                  <div className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">活动费用</span>
+                    <span className="font-medium">{formatMoney(summary.totalTeamExpenses)}</span>
+                  </div>
+                )}
+                
+                {/* 保险 */}
+                {otherExpenses.insurance > 0 && (
+                  <div className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">保险费</span>
+                    <span className="font-medium">{formatMoney(otherExpenses.insurance)}</span>
+                  </div>
+                )}
+                
+                {/* 物料 */}
+                {otherExpenses.materialFee > 0 && (
+                  <div className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">物料费</span>
+                    <span className="font-medium">{formatMoney(otherExpenses.materialFee)}</span>
+                  </div>
+                )}
+                
+                {/* 礼品 */}
+                {otherExpenses.giftFee > 0 && (
+                  <div className="flex justify-between py-0.5 border-b border-green-100">
+                    <span className="text-gray-600">礼品费</span>
+                    <span className="font-medium">{formatMoney(otherExpenses.giftFee)}</span>
+                  </div>
+                )}
+                
+                {/* 小计 */}
+                <div className="flex justify-between py-0.5 bg-green-100/30 rounded px-1 mt-1">
+                  <span className="text-gray-600">小计</span>
                   <span className="font-medium">{formatMoney(summary.totalCost)}</span>
                 </div>
+                
+                {/* 服务费 */}
                 <div className="flex justify-between py-0.5 border-b border-green-100">
-                  <span className="text-gray-600">利润率</span>
-                  <span className="font-medium">{(profitRate * 100).toFixed(0)}%</span>
+                  <span className="text-gray-600">服务费 (10%)</span>
+                  <span className="font-medium">{formatMoney(serviceFee)}</span>
                 </div>
+                
+                {/* 税费 */}
                 <div className="flex justify-between py-0.5 border-b border-green-100">
-                  <span className="text-gray-600">利润</span>
-                  <span className="font-medium text-green-600">{formatMoney(summary.totalCost * profitRate)}</span>
+                  <span className="text-gray-600">税费 (6%)</span>
+                  <span className="font-medium">{formatMoney(tax)}</span>
                 </div>
-                <div className="flex justify-between py-1.5 bg-green-100/50 rounded mt-1 px-1">
-                  <span className="font-semibold text-green-700">报价总额</span>
+                
+                {/* 报价合计 */}
+                <div className="flex justify-between py-1 bg-green-100/50 rounded mt-1 px-1">
+                  <span className="font-semibold text-green-700">报价合计</span>
                   <span className="font-bold text-green-700 text-base">{formatMoney(totalPrice)}</span>
                 </div>
+                
+                {/* 优惠 */}
+                <div className="flex justify-between items-center py-0.5 border-b border-green-100">
+                  <span className="text-gray-600">优惠</span>
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-gray-400">-</span>
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      step="0.01"
+                      className="h-6 w-16 text-xs px-1 text-right" 
+                      value={discount} 
+                      onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} 
+                    />
+                  </div>
+                </div>
+                
+                {/* 优惠后价格 */}
+                <div className="flex justify-between py-1.5 bg-green-200/50 rounded mt-1 px-1">
+                  <span className="font-bold text-green-800">应付金额</span>
+                  <span className="font-bold text-green-800 text-lg">{formatMoney(finalPrice)}</span>
+                </div>
+                
+                {/* 人均价格 */}
                 <div className="flex justify-between py-1 text-gray-500">
-                  <span>人均报价</span>
+                  <span>人均费用</span>
                   <span className="font-medium text-green-600">{formatMoney(pricePerClient)}</span>
                 </div>
               </div>
