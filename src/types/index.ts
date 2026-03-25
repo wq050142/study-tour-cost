@@ -130,6 +130,7 @@ export interface InsuranceConfig {
   pricePerPerson: number; // 元/人/天
   days: number; // 天数
   totalAmount: number; // 总价（可手动修改）
+  quoteAmount?: number; // 报价金额（可手动修改，默认等于 totalAmount）
 }
 
 // 物料费用项
@@ -139,6 +140,7 @@ export interface MaterialItem {
   price: number; // 单价
   quantity: number; // 数量
   totalPrice: number; // 总价
+  quoteTotalPrice?: number; // 报价总价（可手动修改，默认等于 totalPrice）
 }
 
 // 其他费用项

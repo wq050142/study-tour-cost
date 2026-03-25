@@ -254,7 +254,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const quoteTrans = busQ + transportsQ;
     
     const quoteSingle = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
-    const quoteOther = otherExpenses.insurance.totalAmount + otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+    const insuranceQ = otherExpenses.insurance.quoteAmount ?? otherExpenses.insurance.totalAmount;
+    const materialsQ = otherExpenses.materials.reduce((s, m) => s + (m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity), 0);
+    const quoteOther = insuranceQ + materialsQ;
     
     const qSubtotal = quoteAcc + quoteMeal + quoteTrans + quoteSingle + quoteOther;
     const qServiceFee = calculateServiceFee(qSubtotal, otherExpenses.serviceFeePercent);
@@ -1374,8 +1376,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
                 
                 // 计算其他费用报价（保险、杂费等）
-                const quoteOtherExpenses = otherExpenses.insurance.totalAmount + 
-                                           otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+                const insuranceQuote = otherExpenses.insurance.quoteAmount ?? otherExpenses.insurance.totalAmount;
+                const materialsQuote = otherExpenses.materials.reduce((s, m) => s + (m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity), 0);
+                const quoteOtherExpenses = insuranceQuote + materialsQuote;
                 
                 // 报价小计
                 const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
@@ -1593,27 +1596,67 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     )}
                     
                     {/* 保险费 */}
-                    {otherExpenses.insurance.totalAmount > 0 && (
-                      <div className="flex justify-between py-2 border-b border-gray-100">
-                        <span className="text-gray-600">保险费</span>
-                        <span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span>
-                      </div>
-                    )}
+                    {otherExpenses.insurance.totalAmount > 0 && (() => {
+                      const insuranceQuote = otherExpenses.insurance.quoteAmount ?? otherExpenses.insurance.totalAmount;
+                      return (
+                        <>
+                          <div className="flex justify-between py-2 border-b border-gray-100">
+                            <span className="text-gray-600 font-medium">保险费</span>
+                            <span className="font-medium">{formatMoney(insuranceQuote)}</span>
+                          </div>
+                          <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
+                            <div className="flex justify-between items-center">
+                              <span>{totalClients}人 × {otherExpenses.insurance.days}天</span>
+                              <div className="flex items-center gap-1">
+                                <NumberInput 
+                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                  value={insuranceQuote} 
+                                  onChange={(v) => {
+                                    updateData({ 
+                                      otherExpenses: { 
+                                        ...otherExpenses, 
+                                        insurance: { ...otherExpenses.insurance, quoteAmount: v } 
+                                      } 
+                                    });
+                                  }}
+                                />
+                                <span className="w-14 text-right font-medium">{formatMoney(insuranceQuote)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                     
                     {/* 杂费（客户） */}
                     {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).length > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
                           <span className="text-gray-600 font-medium">杂费</span>
-                          <span className="font-medium">{formatMoney(otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0))}</span>
+                          <span className="font-medium">{formatMoney(otherExpenses.materials.reduce((s, m) => s + (m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity), 0))}</span>
                         </div>
-                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
-                          {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
-                            <div key={idx} className="flex justify-between">
-                              <span>{m.name || `项目${idx + 1}`}</span>
-                              <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
-                            </div>
-                          ))}
+                        <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
+                          {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => {
+                            const mQuote = m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity;
+                            return (
+                              <div key={m.id || idx} className="flex justify-between items-center">
+                                <span>{m.name || `项目${idx + 1}`}</span>
+                                <div className="flex items-center gap-1">
+                                  <NumberInput 
+                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                    value={mQuote} 
+                                    onChange={(v) => {
+                                      const newMaterials = otherExpenses.materials.map(item => 
+                                        item.id === m.id ? { ...item, quoteTotalPrice: v } : item
+                                      );
+                                      updateData({ otherExpenses: { ...otherExpenses, materials: newMaterials } });
+                                    }}
+                                  />
+                                  <span className="w-14 text-right font-medium">{formatMoney(mQuote)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </>
                     )}
@@ -1690,8 +1733,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
                 
                 // 计算其他费用报价
-                const quoteOtherExpenses = otherExpenses.insurance.totalAmount + 
-                                           otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+                const insuranceQuote = otherExpenses.insurance.quoteAmount ?? otherExpenses.insurance.totalAmount;
+                const materialsQuote = otherExpenses.materials.reduce((s, m) => s + (m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity), 0);
+                const quoteOtherExpenses = insuranceQuote + materialsQuote;
                 
                 // 报价小计
                 const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
@@ -1713,32 +1757,33 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const mealDiff = quoteMealTotal - summary.totalMeal;
                 const busDiff = quoteBus - summary.totalBus;
                 const singleItemsDiff = quoteSingleItemsTotal - summary.totalSingleItems;
-                const totalDiff = profit;
+                const insuranceDiff = insuranceQuote - otherExpenses.insurance.totalAmount;
+                const materialsDiff = materialsQuote - otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
                 
                 return (
                   <div className="space-y-0 text-sm">
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">营收</span>
-                      <span className="font-medium text-green-600">{formatMoney(revenue)}</span>
+                      <span className="font-medium text-gray-800">{formatMoney(revenue)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">成本</span>
-                      <span className="font-medium text-red-500">-{formatMoney(cost)}</span>
+                      <span className="font-medium text-gray-800">{formatMoney(cost)}</span>
                     </div>
                     <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3">
                       <span className="font-semibold text-gray-800">利润</span>
-                      <span className={`font-bold text-xl ${profit >= 0 ? 'text-green-600' : 'text-red-500'}`}>{profit >= 0 ? '+' : ''}{formatMoney(profit)}</span>
+                      <span className={`font-bold text-xl ${profit >= 0 ? 'text-red-600' : 'text-green-600'}`}>{profit >= 0 ? '+' : ''}{formatMoney(profit)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">利润率</span>
-                      <span className={`font-medium ${profitRate >= 0 ? 'text-green-600' : 'text-red-500'}`}>{profitRate.toFixed(1)}%</span>
+                      <span className={`font-medium ${profitRate >= 0 ? 'text-red-600' : 'text-green-600'}`}>{profitRate.toFixed(1)}%</span>
                     </div>
-                    {totalDiff !== 0 && (
+                    {(accommodationDiff !== 0 || mealDiff !== 0 || busDiff !== 0 || singleItemsDiff !== 0 || insuranceDiff !== 0 || materialsDiff !== 0) && (
                       <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-500 space-y-1">
                         {accommodationDiff !== 0 && (
                           <div className="flex justify-between">
                             <span>住宿费差价</span>
-                            <span className={accommodationDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                            <span className={accommodationDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
                               {accommodationDiff >= 0 ? '+' : ''}{formatMoney(accommodationDiff)}
                             </span>
                           </div>
@@ -1746,7 +1791,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {mealDiff !== 0 && (
                           <div className="flex justify-between">
                             <span>用餐费差价</span>
-                            <span className={mealDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                            <span className={mealDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
                               {mealDiff >= 0 ? '+' : ''}{formatMoney(mealDiff)}
                             </span>
                           </div>
@@ -1754,7 +1799,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {busDiff !== 0 && (
                           <div className="flex justify-between">
                             <span>交通费差价</span>
-                            <span className={busDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                            <span className={busDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
                               {busDiff >= 0 ? '+' : ''}{formatMoney(busDiff)}
                             </span>
                           </div>
@@ -1762,8 +1807,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {singleItemsDiff !== 0 && (
                           <div className="flex justify-between">
                             <span>活动项目差价</span>
-                            <span className={singleItemsDiff >= 0 ? 'text-green-600' : 'text-red-500'}>
+                            <span className={singleItemsDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
                               {singleItemsDiff >= 0 ? '+' : ''}{formatMoney(singleItemsDiff)}
+                            </span>
+                          </div>
+                        )}
+                        {insuranceDiff !== 0 && (
+                          <div className="flex justify-between">
+                            <span>保险费差价</span>
+                            <span className={insuranceDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                              {insuranceDiff >= 0 ? '+' : ''}{formatMoney(insuranceDiff)}
+                            </span>
+                          </div>
+                        )}
+                        {materialsDiff !== 0 && (
+                          <div className="flex justify-between">
+                            <span>杂费差价</span>
+                            <span className={materialsDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                              {materialsDiff >= 0 ? '+' : ''}{formatMoney(materialsDiff)}
                             </span>
                           </div>
                         )}
