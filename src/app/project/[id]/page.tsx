@@ -1209,16 +1209,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       {dailyExpenses.map((day, idx) => {
                         const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
                         const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                        const lunchAmount = lunch.amount || 0;
-                        const dinnerAmount = dinner.amount || 0;
-                        const dayMealTotal = lunchAmount + dinnerAmount;
-                        if (dayMealTotal === 0) return null;
                         
-                        // 计算用餐人数
+                        // 使用与 calculation.ts 相同的计算逻辑
+                        const calculateMeal = (meal: typeof lunch) => {
+                          if (meal.amount && meal.amount > 0) return meal.amount;
+                          const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
+                          if ((meal.clientMealType || 'table') === 'table') {
+                            const tables = meal.tableCount || Math.ceil(totalClients / 10);
+                            return price * 10 * tables;
+                          } else {
+                            const count = meal.clientCount || totalClients;
+                            return price * count;
+                          }
+                        };
+                        
+                        const lunchAmount = calculateMeal(lunch);
+                        const dinnerAmount = calculateMeal(dinner);
+                        if (lunchAmount === 0 && dinnerAmount === 0) return null;
+                        
+                        // 计算用餐明细
                         const getMealDetail = (meal: typeof lunch, amount: number) => {
                           if (amount === 0) return null;
                           const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
-                          if (meal.clientMealType === 'table') {
+                          if ((meal.clientMealType || 'table') === 'table') {
                             const tables = meal.tableCount || Math.ceil(totalClients / 10);
                             return `${tables}桌 × ${price}元/人 × 10人`;
                           } else {
@@ -1380,12 +1393,31 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const quoteAccommodation = (coreConfig.twinRoom?.countClient || 0) * twinQuotePrice * coreConfig.accommodationDays +
                                            (coreConfig.kingRoom?.countClient || 0) * kingQuotePrice * coreConfig.accommodationDays;
                 
-                // 计算用餐费报价
+                // 计算用餐费报价 - 使用与 calculation.ts 相同的计算逻辑
+                const calculateMealAmountLocal = (meal: typeof DEFAULT_MEAL_CONFIG) => {
+                  // 如果有手动输入的金额，直接使用
+                  if (meal.amount && meal.amount > 0) {
+                    return meal.amount;
+                  }
+                  // 使用单价（优先使用每餐配置的单价，否则使用客户配置的餐标）
+                  const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
+                  // 客户餐费
+                  const clientMealType = meal.clientMealType || 'table';
+                  if (clientMealType === 'table') {
+                    const tables = meal.tableCount || Math.ceil(totalClients / 10);
+                    return price * 10 * tables;
+                  } else {
+                    const count = meal.clientCount || totalClients;
+                    return price * count;
+                  }
+                };
+                
                 const quoteMealTotal = dailyExpenses.reduce((total, day) => {
                   const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
                   const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                  const lunchQuote = lunch.quoteAmount ?? lunch.amount ?? 0;
-                  const dinnerQuote = dinner.quoteAmount ?? dinner.amount ?? 0;
+                  // 优先使用报价金额，否则使用计算出的金额
+                  const lunchQuote = lunch.quoteAmount ?? calculateMealAmountLocal(lunch);
+                  const dinnerQuote = dinner.quoteAmount ?? calculateMealAmountLocal(dinner);
                   return total + lunchQuote + dinnerQuote;
                 }, 0);
                 
@@ -1480,8 +1512,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           {dailyExpenses.map((day) => {
                             const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
                             const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                            const lunchAmount = lunch.amount || 0;
-                            const dinnerAmount = dinner.amount || 0;
+                            
+                            // 使用与 calculation.ts 相同的计算逻辑
+                            const calculateMeal = (meal: typeof lunch) => {
+                              if (meal.amount && meal.amount > 0) return meal.amount;
+                              const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
+                              if ((meal.clientMealType || 'table') === 'table') {
+                                const tables = meal.tableCount || Math.ceil(totalClients / 10);
+                                return price * 10 * tables;
+                              } else {
+                                const count = meal.clientCount || totalClients;
+                                return price * count;
+                              }
+                            };
+                            
+                            const lunchAmount = calculateMeal(lunch);
+                            const dinnerAmount = calculateMeal(dinner);
                             if (lunchAmount === 0 && dinnerAmount === 0) return null;
                             
                             const lunchQuote = lunch.quoteAmount ?? lunchAmount;
@@ -1748,12 +1794,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const quoteAccommodation = (coreConfig.twinRoom?.countClient || 0) * twinQuotePrice * coreConfig.accommodationDays +
                                            (coreConfig.kingRoom?.countClient || 0) * kingQuotePrice * coreConfig.accommodationDays;
                 
-                // 计算用餐费报价
+                // 计算用餐费报价 - 使用与 calculation.ts 相同的计算逻辑
+                const calculateMealAmountLocal = (meal: typeof DEFAULT_MEAL_CONFIG) => {
+                  if (meal.amount && meal.amount > 0) return meal.amount;
+                  const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
+                  const clientMealType = meal.clientMealType || 'table';
+                  if (clientMealType === 'table') {
+                    const tables = meal.tableCount || Math.ceil(totalClients / 10);
+                    return price * 10 * tables;
+                  } else {
+                    const count = meal.clientCount || totalClients;
+                    return price * count;
+                  }
+                };
+                
                 const quoteMealTotal = dailyExpenses.reduce((total, day) => {
                   const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
                   const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                  const lunchQuote = lunch.quoteAmount ?? lunch.amount ?? 0;
-                  const dinnerQuote = dinner.quoteAmount ?? dinner.amount ?? 0;
+                  const lunchQuote = lunch.quoteAmount ?? calculateMealAmountLocal(lunch);
+                  const dinnerQuote = dinner.quoteAmount ?? calculateMealAmountLocal(dinner);
                   return total + lunchQuote + dinnerQuote;
                 }, 0);
                 
