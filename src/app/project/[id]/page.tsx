@@ -127,13 +127,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const handleExport = () => {
     if (!projectData) return;
+    
+    const { coreConfig: cfg, dailyExpenses: days, otherExpenses: other } = projectData;
     const summary = calculateCostSummary(projectData);
-    const serviceFee = calculateServiceFee(summary.totalCost, otherExpenses.serviceFeePercent);
+    const serviceFee = calculateServiceFee(summary.totalCost, other.serviceFeePercent || 10);
     const tax = (summary.totalCost + serviceFee) * 0.06;
     const totalPrice = summary.totalCost + serviceFee + tax;
     const finalPrice = totalPrice - discount;
     
-    const projectTypeLabel = projectData.project.type === 'half-day' ? '半日' : projectData.project.type === 'one-day' ? '一日' : `${coreConfig.tripDays}天`;
+    const projectTypeLabel = projectData.project.type === 'half-day' ? '半日' : projectData.project.type === 'one-day' ? '一日' : `${cfg.tripDays}天`;
+    
+    // 安全获取保险数据
+    const insurance = other.insurance && typeof other.insurance === 'object' 
+      ? other.insurance 
+      : { totalAmount: 0 };
+    const materials = other.materials || [];
+    const otherList = other.otherExpenses || [];
+    const transports = cfg.otherTransports || [];
     
     const lines = ['═'.repeat(50), '研学旅行报价单', '═'.repeat(50),
       `项目名称：${projectData.project.name}`,
@@ -149,22 +159,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       if (summary.totalMeal > 0) lines.push(`用餐费用：${formatMoney(summary.totalMeal)}`);
       if (summary.totalBus > 0) lines.push(`交通费用：${formatMoney(summary.totalBus)}`);
       if (summary.totalSingleItems > 0) lines.push(`活动费用：${formatMoney(summary.totalSingleItems)}`);
-      if (otherExpenses.insurance.totalAmount > 0) lines.push(`保险费用：${formatMoney(otherExpenses.insurance.totalAmount)}`);
-      if (otherExpenses.materials.length > 0) {
-        const materialsTotal = otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+      if (insurance.totalAmount > 0) lines.push(`保险费用：${formatMoney(insurance.totalAmount)}`);
+      if (materials.length > 0) {
+        const materialsTotal = materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
         lines.push(`杂费（客户）：${formatMoney(materialsTotal)}`);
       }
-      if (otherExpenses.otherExpenses.length > 0) {
-        const otherTotal = otherExpenses.otherExpenses.reduce((s, o) => s + o.amount, 0);
+      if (otherList.length > 0) {
+        const otherTotal = otherList.reduce((s, o) => s + o.amount, 0);
         lines.push(`杂费（工作人员）：${formatMoney(otherTotal)}`);
       }
     } else {
       // 按日期模式
-      dailyExpenses.forEach(day => {
+      days.forEach(day => {
         const dayAccommodation = projectData.project.type === 'multi-day' ? day.accommodation : 0;
-        const dayLunch = day.lunch.amount || (day.lunch.pricePerPerson * (day.lunch.clientMealType === 'table' ? day.lunch.tableCount * 10 : day.lunch.clientCount));
-        const dayDinner = day.dinner.amount || (day.dinner.pricePerPerson * (day.dinner.clientMealType === 'table' ? day.dinner.tableCount * 10 : day.dinner.clientCount));
-        const daySingleItems = day.singleItems.reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0);
+        const dayLunch = day.lunch?.amount || (day.lunch?.pricePerPerson * (day.lunch?.clientMealType === 'table' ? day.lunch.tableCount * 10 : day.lunch?.clientCount)) || 0;
+        const dayDinner = day.dinner?.amount || (day.dinner?.pricePerPerson * (day.dinner?.clientMealType === 'table' ? day.dinner.tableCount * 10 : day.dinner?.clientCount)) || 0;
+        const daySingleItems = (day.singleItems || []).reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0);
         const dayTotal = dayAccommodation + dayLunch + dayDinner + daySingleItems;
         
         if (dayTotal > 0) {
@@ -172,17 +182,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           if (dayAccommodation > 0) lines.push(`  住宿：${formatMoney(dayAccommodation)}`);
           if (dayLunch > 0) lines.push(`  中餐：${formatMoney(dayLunch)}`);
           if (dayDinner > 0) lines.push(`  晚餐：${formatMoney(dayDinner)}`);
-          day.singleItems.filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).forEach(item => {
+          (day.singleItems || []).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).forEach(item => {
             lines.push(`  ${item.name}：${formatMoney(item.totalPrice || item.price * item.count)}`);
           });
         }
       });
       
       // 其他费用
-      if (otherExpenses.insurance.totalAmount > 0 || otherExpenses.materials.some(m => (m.totalPrice || m.price * m.quantity) > 0)) {
+      if (insurance.totalAmount > 0 || materials.some(m => (m.totalPrice || m.price * m.quantity) > 0)) {
         lines.push(``, `【其他费用】`);
-        if (otherExpenses.insurance.totalAmount > 0) lines.push(`  保险：${formatMoney(otherExpenses.insurance.totalAmount)}`);
-        otherExpenses.materials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).forEach(m => {
+        if (insurance.totalAmount > 0) lines.push(`  保险：${formatMoney(insurance.totalAmount)}`);
+        materials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).forEach(m => {
           lines.push(`  ${m.name || '杂费'}：${formatMoney(m.totalPrice || m.price * m.quantity)}`);
         });
       }
@@ -190,15 +200,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       // 交通费
       if (summary.totalBus > 0) {
         lines.push(``, `【交通费】 ${formatMoney(summary.totalBus)}`);
-        if (coreConfig.busFee > 0) lines.push(`  大巴：${formatMoney(coreConfig.busFee)}`);
-        coreConfig.otherTransports?.forEach(t => {
+        if (cfg.busFee > 0) lines.push(`  大巴：${formatMoney(cfg.busFee)}`);
+        transports.forEach(t => {
           lines.push(`  ${t.type === 'flight' ? '飞机' : '高铁'}：${formatMoney(t.price * t.count)}`);
         });
       }
     }
     
     lines.push('', '─'.repeat(50), `小计：${formatMoney(summary.totalCost)}`, 
-      `服务费(${otherExpenses.serviceFeePercent}%)：${formatMoney(serviceFee)}`, 
+      `服务费(${other.serviceFeePercent || 10}%)：${formatMoney(serviceFee)}`, 
       `税费(6%)：${formatMoney(tax)}`,
       `报价合计：${formatMoney(totalPrice)}`, 
       `优惠：-${formatMoney(discount)}`, 
@@ -220,81 +230,30 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { coreConfig, dailyExpenses, otherExpenses } = projectData;
   const summary = calculateCostSummary(projectData);
   const totalClients = coreConfig.studentCount + coreConfig.parentCount + coreConfig.teacherCount;
-  const totalStaff = coreConfig.staffMembers.reduce((sum, m) => sum + m.count, 0);
+  const totalStaff = (coreConfig.staffMembers || []).reduce((sum, m) => sum + (m.count || 0), 0);
   const totalPeople = totalClients + totalStaff;
 
-  // 确保工作人员列表存在
-  if (!coreConfig.staffMembers || coreConfig.staffMembers.length === 0) {
-    coreConfig.staffMembers = [...DEFAULT_STAFF_MEMBERS];
-  }
+  // 安全获取数据（不修改原状态）
+  const safeStaffMembers = coreConfig.staffMembers && coreConfig.staffMembers.length > 0 
+    ? coreConfig.staffMembers 
+    : DEFAULT_STAFF_MEMBERS;
   
-  // 确保其他费用格式正确
-  if (!otherExpenses.insurance || typeof otherExpenses.insurance !== 'object') {
-    otherExpenses.insurance = { ...DEFAULT_INSURANCE_CONFIG, days: coreConfig.tripDays };
-  }
-  if (!otherExpenses.materials) otherExpenses.materials = [];
-  if (!otherExpenses.otherExpenses) otherExpenses.otherExpenses = [];
+  const safeInsurance = otherExpenses.insurance && typeof otherExpenses.insurance === 'object'
+    ? otherExpenses.insurance
+    : { ...DEFAULT_INSURANCE_CONFIG, days: coreConfig.tripDays || 1 };
+  
+  const safeMaterials = otherExpenses.materials || [];
+  const safeOtherExpensesList = otherExpenses.otherExpenses || [];
+  const safeOtherTransports = coreConfig.otherTransports || [];
 
-  // 确保每日数据长度正确，且每天至少有一个活动项目
-  if (dailyExpenses.length !== coreConfig.tripDays) {
-    const staffFeesBase: Record<string, number> = {};
-    coreConfig.staffMembers.forEach(m => { staffFeesBase[m.id] = m.dailyFee; });
-    
-    const newData = Array.from({ length: coreConfig.tripDays }, (_, i) => {
-      const existingDay = dailyExpenses[i];
-      if (existingDay) {
-        // 如果已有数据但没有活动项目，添加一个默认的
-        if (!existingDay.singleItems || existingDay.singleItems.length === 0) {
-          return {
-            ...existingDay,
-            singleItems: [{ id: Date.now().toString() + i, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }]
-          };
-        }
-        // 确保 unit 字段存在
-        if (existingDay.singleItems.some(item => !item.unit)) {
-          return {
-            ...existingDay,
-            singleItems: existingDay.singleItems.map(item => ({ ...item, unit: item.unit || '人' as const }))
-          };
-        }
-        return existingDay;
-      }
-      // 新创建的天，默认添加一个活动项目
-      return { 
-        day: i + 1, 
-        accommodation: 0, 
-        lunch: { ...DEFAULT_MEAL_CONFIG }, 
-        dinner: { ...DEFAULT_MEAL_CONFIG },
-        staffFees: { ...staffFeesBase }, 
-        singleItems: [{ id: Date.now().toString() + i, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }] 
-      };
-    });
-    updateData({ dailyExpenses: newData });
-  } else {
-    // 即使天数正确，也要确保每天至少有一个活动项目
-    let needsUpdate = false;
-    const updatedDays = dailyExpenses.map((day, idx) => {
-      if (!day.singleItems || day.singleItems.length === 0) {
-        needsUpdate = true;
-        return {
-          ...day,
-          singleItems: [{ id: Date.now().toString() + idx, name: '', remark: '', startTime: '', endTime: '', price: 0, count: totalClients, unit: '人' as const, totalPrice: 0 }]
-        };
-      }
-      // 确保 unit 字段存在
-      if (day.singleItems.some(item => !item.unit)) {
-        needsUpdate = true;
-        return {
-          ...day,
-          singleItems: day.singleItems.map(item => ({ ...item, unit: item.unit || '人' as const }))
-        };
-      }
-      return day;
-    });
-    if (needsUpdate) {
-      updateData({ dailyExpenses: updatedDays });
-    }
-  }
+  // 确保每日数据格式正确
+  const safeDailyExpenses = dailyExpenses.map((day, idx) => ({
+    ...day,
+    singleItems: (day.singleItems || []).map(item => ({
+      ...item,
+      unit: item.unit || '人' as const
+    }))
+  }));
 
   // 添加工作人员
   const addStaffMember = () => {
@@ -1159,7 +1118,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className="font-bold">{formatMoney(summary.totalMeal)}</span>
                       </div>
                       <div className="divide-y text-xs">
-                        {dailyExpenses.map((day, idx) => {
+                        {safeDailyExpenses.map((day, idx) => {
                           const lunchAmount = day.lunch.amount || (day.lunch.pricePerPerson * (day.lunch.clientMealType === 'table' ? day.lunch.tableCount * 10 : day.lunch.clientCount));
                           const dinnerAmount = day.dinner.amount || (day.dinner.pricePerPerson * (day.dinner.clientMealType === 'table' ? day.dinner.tableCount * 10 : day.dinner.clientCount));
                           if (lunchAmount <= 0 && dinnerAmount <= 0) return null;
@@ -1201,7 +1160,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span>{formatMoney(coreConfig.busFee)}</span>
                           </div>
                         )}
-                        {coreConfig.otherTransports?.map(t => (
+                        {safeOtherTransports.map(t => (
                           <div key={t.id} className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">{t.type === 'flight' ? '飞机' : '高铁'} {t.price}元 × {t.count}张</span>
                             <span>{formatMoney(t.price * t.count)}</span>
@@ -1219,7 +1178,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className="font-bold">{formatMoney(summary.totalStaffFee)}</span>
                       </div>
                       <div className="divide-y text-xs">
-                        {coreConfig.staffMembers.filter(m => m.count > 0).map(member => {
+                        {safeStaffMembers.filter(m => m.count > 0).map(member => {
                           const totalFee = member.count * member.dailyFee * coreConfig.tripDays;
                           return (
                             <div key={member.id} className="px-3 py-1.5 flex justify-between">
@@ -1240,7 +1199,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className="font-bold">{formatMoney(summary.totalSingleItems)}</span>
                       </div>
                       <div className="divide-y text-xs">
-                        {dailyExpenses.map((day, idx) => 
+                        {safeDailyExpenses.map((day, idx) => 
                           day.singleItems.filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).map((item, iidx) => (
                             <div key={`${idx}-${iidx}`} className="px-3 py-1.5 flex justify-between">
                               <span className="text-gray-600">{item.name} {item.price}元/{item.unit} × {item.count}{item.unit}</span>
@@ -1260,19 +1219,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className="font-bold">{formatMoney(summary.totalOtherExpenses)}</span>
                       </div>
                       <div className="divide-y text-xs">
-                        {otherExpenses.insurance.totalAmount > 0 && (
+                        {safeInsurance.totalAmount > 0 && (
                           <div className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">保险 {otherExpenses.insurance.pricePerPerson}元/人/天 × {otherExpenses.insurance.days}天 × {totalClients + totalStaff}人</span>
-                            <span>{formatMoney(otherExpenses.insurance.totalAmount)}</span>
+                            <span>{formatMoney(safeInsurance.totalAmount)}</span>
                           </div>
                         )}
-                        {otherExpenses.materials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).map(m => (
+                        {safeMaterials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).map(m => (
                           <div key={m.id} className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">杂费(客户) {m.name} {m.price}元 × {m.quantity}</span>
                             <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
                           </div>
                         ))}
-                        {otherExpenses.otherExpenses.filter(o => o.amount > 0).map(o => (
+                        {safeOtherExpensesList.filter(o => o.amount > 0).map(o => (
                           <div key={o.id} className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">杂费(工作人员) {o.remark}</span>
                             <span>{formatMoney(o.amount)}</span>
@@ -1294,7 +1253,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ) : (
                 /* 按日期模式 */
                 <div className="space-y-3 text-sm">
-                  {dailyExpenses.map((day, idx) => {
+                  {safeDailyExpenses.map((day, idx) => {
                     const dayAccommodation = projectData.project.type === 'multi-day' ? day.accommodation : 0;
                     const dayLunch = day.lunch.amount || (day.lunch.pricePerPerson * (day.lunch.clientMealType === 'table' ? day.lunch.tableCount * 10 : day.lunch.clientCount));
                     const dayDinner = day.dinner.amount || (day.dinner.pricePerPerson * (day.dinner.clientMealType === 'table' ? day.dinner.tableCount * 10 : day.dinner.clientCount));
@@ -1352,19 +1311,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className="font-bold">{formatMoney(summary.totalOtherExpenses)}</span>
                       </div>
                       <div className="divide-y text-xs">
-                        {otherExpenses.insurance.totalAmount > 0 && (
+                        {safeInsurance.totalAmount > 0 && (
                           <div className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">保险</span>
-                            <span>{formatMoney(otherExpenses.insurance.totalAmount)}</span>
+                            <span>{formatMoney(safeInsurance.totalAmount)}</span>
                           </div>
                         )}
-                        {otherExpenses.materials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).map(m => (
+                        {safeMaterials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).map(m => (
                           <div key={m.id} className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">{m.name || '杂费(客户)'}</span>
                             <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
                           </div>
                         ))}
-                        {otherExpenses.otherExpenses.filter(o => o.amount > 0).map(o => (
+                        {safeOtherExpensesList.filter(o => o.amount > 0).map(o => (
                           <div key={o.id} className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">{o.remark || '杂费(工作人员)'}</span>
                             <span>{formatMoney(o.amount)}</span>
@@ -1388,7 +1347,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span>{formatMoney(coreConfig.busFee)}</span>
                           </div>
                         )}
-                        {coreConfig.otherTransports?.map(t => (
+                        {safeOtherTransports.map(t => (
                           <div key={t.id} className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">{t.type === 'flight' ? '飞机' : '高铁'}</span>
                             <span>{formatMoney(t.price * t.count)}</span>
@@ -1439,13 +1398,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="font-medium">{formatMoney(summary.totalBus)}</span>
                     </div>
                   )}
-                  {dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).map((item, idx) => (
+                  {safeDailyExpenses.flatMap(d => d.singleItems).filter(i => i.name && (i.totalPrice || i.price * i.count) > 0).map((item, idx) => (
                     <div key={idx} className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">{item.name}</span>
                       <span className="font-medium">{formatMoney(item.totalPrice || item.price * item.count)}</span>
                     </div>
                   ))}
-                  {otherExpenses.insurance.totalAmount > 0 && (
+                  {safeInsurance.totalAmount > 0 && (
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">保险费</span>
                       <span className="font-medium">{formatMoney(otherExpenses.insurance.totalAmount)}</span>
@@ -1461,7 +1420,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ) : (
                 /* 按日期模式 */
                 <div className="space-y-3 text-sm">
-                  {dailyExpenses.map((day, idx) => {
+                  {safeDailyExpenses.map((day, idx) => {
                     const dayAccommodation = projectData.project.type === 'multi-day' ? day.accommodation : 0;
                     const dayLunch = day.lunch.amount || (day.lunch.pricePerPerson * (day.lunch.clientMealType === 'table' ? day.lunch.tableCount * 10 : day.lunch.clientCount));
                     const dayDinner = day.dinner.amount || (day.dinner.pricePerPerson * (day.dinner.clientMealType === 'table' ? day.dinner.tableCount * 10 : day.dinner.clientCount));
@@ -1506,20 +1465,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   })}
                   
                   {/* 其他费用 */}
-                  {(otherExpenses.insurance.totalAmount > 0 || otherExpenses.materials.some(m => (m.totalPrice || m.price * m.quantity) > 0)) && (
+                  {(safeInsurance.totalAmount > 0 || safeMaterials.some(m => (m.totalPrice || m.price * m.quantity) > 0)) && (
                     <div className="border rounded-lg overflow-hidden">
                       <div className="bg-gray-50 px-3 py-2 font-medium flex justify-between items-center">
                         <span>其他费用</span>
-                        <span className="font-bold">{formatMoney(otherExpenses.insurance.totalAmount + otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0))}</span>
+                        <span className="font-bold">{formatMoney(safeInsurance.totalAmount + safeMaterials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0))}</span>
                       </div>
                       <div className="divide-y text-xs">
-                        {otherExpenses.insurance.totalAmount > 0 && (
+                        {safeInsurance.totalAmount > 0 && (
                           <div className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">保险费</span>
-                            <span>{formatMoney(otherExpenses.insurance.totalAmount)}</span>
+                            <span>{formatMoney(safeInsurance.totalAmount)}</span>
                           </div>
                         )}
-                        {otherExpenses.materials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).map((m, idx) => (
+                        {safeMaterials.filter(m => (m.totalPrice || m.price * m.quantity) > 0).map((m, idx) => (
                           <div key={idx} className="px-3 py-1.5 flex justify-between">
                             <span className="text-gray-600">{m.name || `项目${idx + 1}`}</span>
                             <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
