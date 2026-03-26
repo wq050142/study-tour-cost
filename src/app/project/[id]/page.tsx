@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Download, Plus, Trash2, Pencil, Check } from 'lucide-react';
+import { ArrowLeft, Save, Download, Plus, Trash2, Pencil, Check, FileSpreadsheet, Image, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import {
 } from '@/types';
 import { getProjectData, updateProjectData } from '@/lib/storage';
 import { calculateCostSummary, calculateServiceFee, formatMoney } from '@/lib/calculation';
+import { exportToExcel, exportElementAsImage, exportElementAsPDF } from '@/lib/export';
 
 const PROJECT_TYPES: { value: ProjectType; label: string }[] = [
   { value: 'half-day', label: '半日' },
@@ -38,6 +39,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [isSaving, setIsSaving] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [isQuoteEditing, setIsQuoteEditing] = useState(false);
+  
+  // 导出相关 ref
+  const costProfitCardRef = useRef<HTMLDivElement>(null);
+  const quoteCardRef = useRef<HTMLDivElement>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showCostExportMenu, setShowCostExportMenu] = useState(false);
+  const [showQuoteExportMenu, setShowQuoteExportMenu] = useState(false);
 
   useEffect(() => {
     const data = getProjectData(id);
@@ -124,6 +132,38 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setIsSaving(true);
     updateProjectData(projectData);
     setTimeout(() => { setIsSaving(false); alert('保存成功！'); }, 300);
+  };
+
+  // 导出 Excel
+  const handleExportExcel = () => {
+    if (!projectData) return;
+    const summary = calculateCostSummary(projectData);
+    exportToExcel(projectData, summary, dailyExpenses, otherExpenses, coreConfig, discount);
+    setShowExportMenu(false);
+  };
+
+  // 导出成本利润卡片
+  const handleExportCostCard = async (type: 'image' | 'pdf') => {
+    if (!costProfitCardRef.current) return;
+    const filename = `${projectData?.project.name || '项目'}-成本核算与利润分析`;
+    if (type === 'image') {
+      await exportElementAsImage(costProfitCardRef.current, filename);
+    } else {
+      await exportElementAsPDF(costProfitCardRef.current, filename);
+    }
+    setShowCostExportMenu(false);
+  };
+
+  // 导出报价单卡片
+  const handleExportQuoteCard = async (type: 'image' | 'pdf') => {
+    if (!quoteCardRef.current) return;
+    const filename = `${projectData?.project.name || '项目'}-报价单`;
+    if (type === 'image') {
+      await exportElementAsImage(quoteCardRef.current, filename);
+    } else {
+      await exportElementAsPDF(quoteCardRef.current, filename);
+    }
+    setShowQuoteExportMenu(false);
   };
 
   const handleExport = () => {
@@ -535,7 +575,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </span>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleExport}><Download className="w-4 h-4 mr-1" />导出</Button>
+              {/* 导出按钮 */}
+              <div className="relative">
+                <Button variant="outline" size="sm" className="h-8 text-sm" onClick={() => setShowExportMenu(!showExportMenu)}>
+                  <Download className="w-4 h-4 mr-1" />导出
+                </Button>
+                {showExportMenu && (
+                  <div className="absolute right-0 top-10 z-50 bg-white border rounded-lg shadow-lg py-1 min-w-[140px]">
+                    <button
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      onClick={handleExportExcel}
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />导出 Excel
+                    </button>
+                    <button
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      onClick={() => { handleExport(); setShowExportMenu(false); }}
+                    >
+                      <FileText className="w-4 h-4" />导出文本
+                    </button>
+                  </div>
+                )}
+              </div>
               <Button size="sm" className="h-8 text-sm" onClick={handleSave} disabled={isSaving}><Save className="w-4 h-4 mr-1" />{isSaving ? '保存中' : '保存'}</Button>
             </div>
           </div>
@@ -1241,10 +1302,36 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         {/* 右侧面板 */}
         <div className="w-[420px] flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
           {/* 成本核算与利润分析 */}
+          <div ref={costProfitCardRef}>
           <Card>
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
-              <CardTitle className="text-lg font-bold text-gray-800">成本核算与利润分析</CardTitle>
-              <p className="text-sm text-gray-500 mt-0.5">内部参考</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold text-gray-800">成本核算与利润分析</CardTitle>
+                  <p className="text-sm text-gray-500 mt-0.5">内部参考</p>
+                </div>
+                <div className="relative">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowCostExportMenu(!showCostExportMenu)}>
+                    <Download className="w-3 h-3" />
+                  </Button>
+                  {showCostExportMenu && (
+                    <div className="absolute right-0 top-8 z-50 bg-white border rounded-lg shadow-lg py-1 min-w-[100px]">
+                      <button
+                        className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+                        onClick={() => handleExportCostCard('image')}
+                      >
+                        <Image className="w-3 h-3" />图片
+                      </button>
+                      <button
+                        className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+                        onClick={() => handleExportCostCard('pdf')}
+                      >
+                        <FileText className="w-3 h-3" />PDF
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="py-3 px-4">
               <div className="space-y-0 text-sm">
@@ -1619,21 +1706,46 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </CardContent>
           </Card>
+          </div>
 
           {/* 报价单 */}
+          <div ref={quoteCardRef}>
           <Card>
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-bold text-gray-800">{projectData.project.name} 报价单</CardTitle>
-                {isQuoteEditing ? (
-                  <Button size="sm" className="h-7 text-xs" onClick={() => { setIsQuoteEditing(false); handleSave(); }}>
-                    <Check className="w-3 h-3 mr-1" />保存
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsQuoteEditing(true)}>
-                    <Pencil className="w-3 h-3 mr-1" />编辑
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {isQuoteEditing ? (
+                    <Button size="sm" className="h-7 text-xs" onClick={() => { setIsQuoteEditing(false); handleSave(); }}>
+                      <Check className="w-3 h-3 mr-1" />保存
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsQuoteEditing(true)}>
+                      <Pencil className="w-3 h-3 mr-1" />编辑
+                    </Button>
+                  )}
+                  <div className="relative">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowQuoteExportMenu(!showQuoteExportMenu)}>
+                      <Download className="w-3 h-3" />
+                    </Button>
+                    {showQuoteExportMenu && (
+                      <div className="absolute right-0 top-8 z-50 bg-white border rounded-lg shadow-lg py-1 min-w-[100px]">
+                        <button
+                          className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+                          onClick={() => handleExportQuoteCard('image')}
+                        >
+                          <Image className="w-3 h-3" />图片
+                        </button>
+                        <button
+                          className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+                          onClick={() => handleExportQuoteCard('pdf')}
+                        >
+                          <FileText className="w-3 h-3" />PDF
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="py-3 px-4">
@@ -2075,6 +2187,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               })()}
             </CardContent>
           </Card>
+          </div>
         </div>
       </main>
     </div>
