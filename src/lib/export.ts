@@ -220,6 +220,36 @@ export function exportToExcel(
   XLSX.writeFile(wb, `${projectData.project.name}-成本核算与报价单.xlsx`);
 }
 
+// 修复 lab() 颜色问题的辅助函数
+function fixLabColors(clonedDoc: Document) {
+  // 获取所有元素
+  const allElements = clonedDoc.querySelectorAll('*');
+  allElements.forEach((el) => {
+    const htmlEl = el as HTMLElement;
+    const computedStyle = clonedDoc.defaultView?.getComputedStyle(htmlEl);
+    
+    if (computedStyle) {
+      // 处理 background-color
+      const bgColor = computedStyle.backgroundColor;
+      if (bgColor && bgColor.includes('lab(')) {
+        htmlEl.style.backgroundColor = '#ffffff';
+      }
+      
+      // 处理 color
+      const color = computedStyle.color;
+      if (color && color.includes('lab(')) {
+        htmlEl.style.color = '#000000';
+      }
+      
+      // 处理 border-color
+      const borderColor = computedStyle.borderColor;
+      if (borderColor && borderColor.includes('lab(')) {
+        htmlEl.style.borderColor = '#e5e7eb';
+      }
+    }
+  });
+}
+
 // 导出 HTML 元素为图片
 export async function exportElementAsImage(element: HTMLElement, filename: string) {
   try {
@@ -227,6 +257,10 @@ export async function exportElementAsImage(element: HTMLElement, filename: strin
       scale: 2,
       backgroundColor: '#ffffff',
       logging: false,
+      useCORS: true,
+      onclone: (clonedDoc) => {
+        fixLabColors(clonedDoc);
+      },
     });
     
     const link = document.createElement('a');
@@ -246,6 +280,10 @@ export async function exportElementAsPDF(element: HTMLElement, filename: string)
       scale: 2,
       backgroundColor: '#ffffff',
       logging: false,
+      useCORS: true,
+      onclone: (clonedDoc) => {
+        fixLabColors(clonedDoc);
+      },
     });
     
     const imgData = canvas.toDataURL('image/png');
