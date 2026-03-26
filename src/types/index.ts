@@ -148,8 +148,10 @@ export interface MaterialItem {
 // 其他费用项
 export interface OtherExpenseItem {
   id: string;
-  remark: string; // 备注
-  amount: number; // 金额
+  name: string; // 项目名称
+  price: number; // 单价
+  quantity: number; // 数量
+  totalPrice: number; // 总价
 }
 
 // 其他费用

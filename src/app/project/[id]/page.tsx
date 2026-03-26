@@ -72,7 +72,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         taxPercent: 1,
         reserveFund: old.reserveFund || 0,
         materials: [],
-        otherExpenses: old.other ? [{ id: '1', remark: '其他', amount: old.other || 0 }] : [],
+        otherExpenses: old.other ? [{ id: '1', name: '其他', price: old.other || 0, quantity: 1, totalPrice: old.other || 0 }] : [],
       };
     }
     
@@ -224,8 +224,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).forEach((m) => {
         lines.push(`  杂费(客户)-${m.name}：${m.price}元 × ${m.quantity} = ${formatMoney(m.totalPrice || m.price * m.quantity)}`);
       });
-      otherExpenses.otherExpenses.filter(o => o.amount > 0).forEach((o) => {
-        lines.push(`  杂费(工作人员)-${o.remark || '其他'}：${formatMoney(o.amount)}`);
+      otherExpenses.otherExpenses.filter(o => o.totalPrice > 0 || o.price * o.quantity > 0).forEach((o) => {
+        lines.push(`  杂费(工作人员)-${o.name || '其他'}：${o.price}元 × ${o.quantity} = ${formatMoney(o.totalPrice || o.price * o.quantity)}`);
       });
     }
     
@@ -306,6 +306,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   if (otherExpenses.taxPercent === undefined || otherExpenses.taxPercent === null) {
     otherExpenses.taxPercent = 1;
   }
+  // 迁移旧的 otherExpenses 格式（remark/amount -> name/price/quantity/totalPrice）
+  otherExpenses.otherExpenses = otherExpenses.otherExpenses.map((item: any) => {
+    if (item.remark !== undefined && item.amount !== undefined) {
+      return {
+        id: item.id,
+        name: item.remark || '',
+        price: item.amount || 0,
+        quantity: 1,
+        totalPrice: item.amount || 0
+      };
+    }
+    return item;
+  });
 
   // 确保每日数据长度正确，且每天至少有一个活动项目
   if (dailyExpenses.length !== coreConfig.tripDays) {
@@ -468,16 +481,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     updateData({
       otherExpenses: {
         ...otherExpenses,
-        otherExpenses: [...otherExpenses.otherExpenses, { id: `other_${Date.now()}`, remark: '', amount: 0 }]
+        otherExpenses: [...otherExpenses.otherExpenses, { id: `other_${Date.now()}`, name: '', price: 0, quantity: 1, totalPrice: 0 }]
       }
     });
   };
 
   // 更新其他费用
   const updateOtherExpense = (id: string, updates: Partial<OtherExpenseItem>) => {
-    const newOthers = otherExpenses.otherExpenses.map(o => 
-      o.id === id ? { ...o, ...updates } : o
-    );
+    const newOthers = otherExpenses.otherExpenses.map(o => {
+      if (o.id === id) {
+        const updated = { ...o, ...updates };
+        // 自动计算总价
+        if (updates.price !== undefined || updates.quantity !== undefined) {
+          updated.totalPrice = updated.price * updated.quantity;
+        }
+        return updated;
+      }
+      return o;
+    });
     updateData({ otherExpenses: { ...otherExpenses, otherExpenses: newOthers } });
   };
 
@@ -1197,11 +1218,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
                 {otherExpenses.otherExpenses.map((item) => (
                   <div key={item.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                    <Input placeholder="备注" className="h-8 w-32 text-sm px-2" value={item.remark} onChange={(e) => updateOtherExpense(item.id, { remark: e.target.value })} />
+                    <Input placeholder="项目名称" className="h-8 w-32 text-sm px-2" value={item.name} onChange={(e) => updateOtherExpense(item.id, { name: e.target.value })} />
                     <div className="flex items-center gap-1">
-                      <NumberInput className="h-8 w-24 text-sm px-2 border rounded" value={item.amount} onChange={(v) => updateOtherExpense(item.id, { amount: v })} />
-                      <span className="text-gray-500">元</span>
+                      <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={item.price} onChange={(v) => updateOtherExpense(item.id, { price: v })} />
+                      <span className="text-gray-500">元 ×</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={item.quantity} onChange={(v) => updateOtherExpense(item.id, { quantity: v })} />
+                      <span className="text-gray-500">=</span>
+                    </div>
+                    <span className="text-sm font-medium">{formatMoney(item.totalPrice || item.price * item.quantity)}</span>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={() => removeOtherExpense(item.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -1408,10 +1434,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
                         </div>
                       ))}
-                      {otherExpenses.otherExpenses.filter(o => o.amount > 0).map((o, idx) => (
+                      {otherExpenses.otherExpenses.filter(o => o.totalPrice > 0 || o.price * o.quantity > 0).map((o, idx) => (
                         <div key={idx} className="flex justify-between">
-                          <span>杂费(工作人员)-{o.remark || '其他'}</span>
-                          <span>{formatMoney(o.amount)}</span>
+                          <span>杂费(工作人员)-{o.name || '其他'} {o.price}元 × {o.quantity}</span>
+                          <span>{formatMoney(o.totalPrice || o.price * o.quantity)}</span>
                         </div>
                       ))}
                     </div>

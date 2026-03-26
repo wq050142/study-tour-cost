@@ -48,7 +48,7 @@ function calculateOtherExpenses(otherExpenses: OtherExpenses, totalClients: numb
   
   // 其他费用
   const otherTotal = otherExpenses.otherExpenses.reduce((sum, item) => 
-    sum + item.amount, 0);
+    sum + (item.totalPrice || item.price * item.quantity), 0);
   
   return insuranceTotal + reserveFund + materialsTotal + otherTotal;
 }
