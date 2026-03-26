@@ -2,17 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Calendar, Users, MapPin, MoreVertical, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Project, ProjectType, PROJECT_TYPE_LABELS } from '@/types';
-import { getProjects, createProject, deleteProject } from '@/lib/storage';
+import { getProjects, createProject, deleteProject, copyProject } from '@/lib/storage';
 
 export default function Home() {
   const router = useRouter();
@@ -20,7 +19,7 @@ export default function Home() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({
     name: '',
-    type: 'one-day' as ProjectType,
+    type: '' as ProjectType | '',
     remark: '',
   });
 
@@ -38,10 +37,15 @@ export default function Home() {
       alert('请输入项目名称');
       return;
     }
+    
+    if (!newProject.type) {
+      alert('请选择项目类型');
+      return;
+    }
 
     createProject(newProject.name, newProject.type, newProject.remark);
     setIsDialogOpen(false);
-    setNewProject({ name: '', type: 'one-day', remark: '' });
+    setNewProject({ name: '', type: '', remark: '' });
     loadProjects();
   };
 
@@ -52,9 +56,22 @@ export default function Home() {
     }
   };
 
+  const handleCopyProject = (projectId: string) => {
+    const newProject = copyProject(projectId);
+    if (newProject) {
+      loadProjects();
+    }
+  };
+
   const handleOpenProject = (projectId: string) => {
     router.push(`/project/${projectId}`);
   };
+  
+  const projectTypes: { value: ProjectType; label: string; description: string }[] = [
+    { value: 'half-day', label: '半日', description: '半天活动，不含住宿' },
+    { value: 'one-day', label: '一日', description: '单日活动，不含住宿' },
+    { value: 'multi-day', label: '多日', description: '多日活动，含住宿安排' },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -79,7 +96,7 @@ export default function Home() {
                   新建项目
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle>新建研学项目</DialogTitle>
                   <DialogDescription>
@@ -88,7 +105,7 @@ export default function Home() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="name">项目名称 *</Label>
+                    <Label htmlFor="name">项目名称 <span className="text-red-500">*</span></Label>
                     <Input
                       id="name"
                       placeholder="例如：北京科技研学之旅"
@@ -97,20 +114,24 @@ export default function Home() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="type">项目类型</Label>
-                    <Select
-                      value={newProject.type}
-                      onValueChange={(value: ProjectType) => setNewProject({ ...newProject, type: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="half-day">半日</SelectItem>
-                        <SelectItem value="one-day">一日</SelectItem>
-                        <SelectItem value="multi-day">多日</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>项目类型 <span className="text-red-500">*</span></Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {projectTypes.map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => setNewProject({ ...newProject, type: type.value })}
+                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                            newProject.type === type.value
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{type.label}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{type.description}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="remark">项目备注</Label>
@@ -178,6 +199,16 @@ export default function Home() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyProject(project.id);
+                          }}
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          复制项目
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           className="text-red-600"
                           onClick={(e) => {

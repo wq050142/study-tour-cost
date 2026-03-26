@@ -89,3 +89,52 @@ export function deleteProject(projectId: string): void {
   const filtered = projects.filter(p => p.project.id !== projectId);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
 }
+
+// 复制项目
+export function copyProject(projectId: string): ProjectData | null {
+  if (typeof window === 'undefined') return null;
+  
+  const originalData = getProjectData(projectId);
+  if (!originalData) return null;
+  
+  // 创建新的项目ID
+  const newId = generateId();
+  const now = new Date().toISOString();
+  
+  // 复制项目数据
+  const newProjectData: ProjectData = {
+    project: {
+      ...originalData.project,
+      id: newId,
+      name: `${originalData.project.name} (副本)`,
+      createdAt: now,
+      updatedAt: now,
+    },
+    coreConfig: JSON.parse(JSON.stringify(originalData.coreConfig)),
+    dailyExpenses: JSON.parse(JSON.stringify(originalData.dailyExpenses)),
+    otherExpenses: JSON.parse(JSON.stringify(originalData.otherExpenses)),
+  };
+  
+  // 保存到localStorage
+  const data = localStorage.getItem(STORAGE_KEY);
+  const projects: ProjectData[] = data ? JSON.parse(data) : [];
+  projects.push(newProjectData);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  
+  return newProjectData;
+}
+
+// 更新项目名称
+export function updateProjectName(projectId: string, name: string): void {
+  if (typeof window === 'undefined') return;
+  
+  const data = localStorage.getItem(STORAGE_KEY);
+  const projects: ProjectData[] = data ? JSON.parse(data) : [];
+  
+  const index = projects.findIndex(p => p.project.id === projectId);
+  if (index !== -1) {
+    projects[index].project.name = name;
+    projects[index].project.updatedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  }
+}
