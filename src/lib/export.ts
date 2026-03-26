@@ -224,10 +224,21 @@ export function exportToExcel(
 // 导出 HTML 元素为图片
 export async function exportElementAsImage(element: HTMLElement, filename: string) {
   try {
-    // 使用 modern-screenshot 导出，它对现代 CSS 支持更好
+    // 先隐藏导出按钮
+    const exportButtons = element.querySelectorAll('.export-button-container');
+    exportButtons.forEach((btn) => {
+      (btn as HTMLElement).style.display = 'none';
+    });
+    
+    // 使用 modern-screenshot 导出
     const dataUrl = await domToPng(element, {
       scale: 2,
       backgroundColor: '#ffffff',
+    });
+    
+    // 恢复导出按钮
+    exportButtons.forEach((btn) => {
+      (btn as HTMLElement).style.display = '';
     });
     
     const link = document.createElement('a');
@@ -243,10 +254,21 @@ export async function exportElementAsImage(element: HTMLElement, filename: strin
 // 导出 HTML 元素为 PDF
 export async function exportElementAsPDF(element: HTMLElement, filename: string) {
   try {
+    // 先隐藏导出按钮
+    const exportButtons = element.querySelectorAll('.export-button-container');
+    exportButtons.forEach((btn) => {
+      (btn as HTMLElement).style.display = 'none';
+    });
+    
     // 使用 modern-screenshot 获取图片
     const dataUrl = await domToPng(element, {
       scale: 2,
       backgroundColor: '#ffffff',
+    });
+    
+    // 恢复导出按钮
+    exportButtons.forEach((btn) => {
+      (btn as HTMLElement).style.display = '';
     });
     
     // 创建图片获取尺寸

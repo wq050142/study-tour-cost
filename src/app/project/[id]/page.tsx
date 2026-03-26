@@ -1310,7 +1310,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <CardTitle className="text-lg font-bold text-gray-800">成本核算与利润分析</CardTitle>
                   <p className="text-sm text-gray-500 mt-0.5">内部参考</p>
                 </div>
-                <div className="relative">
+                <div className="relative export-button-container">
                   <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowCostExportMenu(!showCostExportMenu)}>
                     <Download className="w-3 h-3" />
                   </Button>
@@ -1724,7 +1724,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <Pencil className="w-3 h-3 mr-1" />编辑
                     </Button>
                   )}
-                  <div className="relative">
+                  <div className="relative export-button-container">
                     <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowQuoteExportMenu(!showQuoteExportMenu)}>
                       <Download className="w-3 h-3" />
                     </Button>
