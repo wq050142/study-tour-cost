@@ -1365,17 +1365,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 报价单 */}
           <Card>
-            <CardHeader className="py-2 px-4 border-b bg-gray-50 flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg font-bold text-gray-800">报价单</CardTitle>
-              {isQuoteEditing ? (
-                <Button size="sm" className="h-7 text-xs" onClick={() => { setIsQuoteEditing(false); handleSave(); }}>
-                  <Check className="w-3 h-3 mr-1" />保存
-                </Button>
-              ) : (
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsQuoteEditing(true)}>
-                  <Pencil className="w-3 h-3 mr-1" />编辑
-                </Button>
-              )}
+            <CardHeader className="py-2 px-4 border-b bg-gray-50">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg font-bold text-gray-800">报价单</CardTitle>
+                {isQuoteEditing ? (
+                  <Button size="sm" className="h-7 text-xs" onClick={() => { setIsQuoteEditing(false); handleSave(); }}>
+                    <Check className="w-3 h-3 mr-1" />保存
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsQuoteEditing(true)}>
+                    <Pencil className="w-3 h-3 mr-1" />编辑
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="py-3 px-4">
               {(() => {
@@ -1779,7 +1781,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="text-gray-600">优惠</span>
                       <div className="flex items-center gap-1">
                         <span className="text-gray-400">-</span>
-                        <NumberInput className="h-8 w-20 text-sm px-2 text-right border rounded" value={discount} onChange={(v) => setDiscount(v)} />
+                        {isQuoteEditing ? (
+                          <NumberInput className="h-8 w-20 text-sm px-2 text-right border rounded" value={discount} onChange={(v) => setDiscount(v)} />
+                        ) : (
+                          <span className="font-medium">{formatMoney(discount)}</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex justify-between py-2.5 bg-gray-100 rounded mt-2 px-3">
@@ -1789,12 +1795,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <div className="flex justify-between items-center py-2 text-gray-500">
                       <span>人均费用</span>
                       <div className="flex items-center gap-1">
-                        <NumberInput 
-                          className="h-7 w-16 text-sm px-2 text-right border rounded" 
-                          value={coreConfig.pricingCount ?? totalClients} 
-                          onChange={(v) => updateData({ coreConfig: { ...coreConfig, pricingCount: v } })}
-                        />
-                        <span>人，</span>
+                        {isQuoteEditing ? (
+                          <>
+                            <NumberInput 
+                              className="h-7 w-16 text-sm px-2 text-right border rounded" 
+                              value={coreConfig.pricingCount ?? totalClients} 
+                              onChange={(v) => updateData({ coreConfig: { ...coreConfig, pricingCount: v } })}
+                            />
+                            <span>人，</span>
+                          </>
+                        ) : (
+                          <span>{coreConfig.pricingCount ?? totalClients}人，</span>
+                        )}
                         <span className="font-medium text-gray-700">{formatMoney(quoteFinalPrice / (coreConfig.pricingCount || totalClients || 1))}/人</span>
                       </div>
                     </div>
