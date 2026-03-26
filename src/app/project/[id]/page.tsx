@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Download, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Download, Plus, Trash2, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [discount, setDiscount] = useState(0);
+  const [isQuoteEditing, setIsQuoteEditing] = useState(false);
 
   useEffect(() => {
     const data = getProjectData(id);
@@ -1142,7 +1143,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 右侧面板 */}
-        <div className="w-80 flex-shrink-0 space-y-4 sticky top-14 self-start">
+        <div className="w-80 flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
           {/* 成本表 */}
           <Card>
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
@@ -1364,9 +1365,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 报价单 */}
           <Card>
-            <CardHeader className="py-2 px-4 border-b bg-gray-50">
+            <CardHeader className="py-2 px-4 border-b bg-gray-50 flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg font-bold text-gray-800">报价单</CardTitle>
-              <p className="text-sm text-gray-500 mt-0.5">给客户展示</p>
+              {isQuoteEditing ? (
+                <Button size="sm" className="h-7 text-xs" onClick={() => { setIsQuoteEditing(false); handleSave(); }}>
+                  <Check className="w-3 h-3 mr-1" />保存
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsQuoteEditing(true)}>
+                  <Pencil className="w-3 h-3 mr-1" />编辑
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="py-3 px-4">
               {(() => {
@@ -1442,18 +1451,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div className="flex justify-between items-center">
                               <span>双床房 {coreConfig.twinRoom.countClient}间</span>
                               <div className="flex items-center gap-1">
-                                <NumberInput 
-                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                  value={twinQuotePrice} 
-                                  onChange={(v) => {
-                                    updateData({ 
-                                      coreConfig: { 
-                                        ...coreConfig, 
-                                        twinRoom: { ...coreConfig.twinRoom!, quotePrice: v } 
-                                      } 
-                                    });
-                                  }}
-                                />
+                                {isQuoteEditing ? (
+                                  <NumberInput 
+                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                    value={twinQuotePrice} 
+                                    onChange={(v) => {
+                                      updateData({ 
+                                        coreConfig: { 
+                                          ...coreConfig, 
+                                          twinRoom: { ...coreConfig.twinRoom!, quotePrice: v } 
+                                        } 
+                                      });
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="w-16 text-right">{twinQuotePrice}</span>
+                                )}
                                 <span>元/晚 × {coreConfig.accommodationDays}晚</span>
                                 <span className="w-14 text-right font-medium">{formatMoney(coreConfig.twinRoom.countClient * twinQuotePrice * coreConfig.accommodationDays)}</span>
                               </div>
@@ -1463,18 +1476,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div className="flex justify-between items-center">
                               <span>大床房 {coreConfig.kingRoom.countClient}间</span>
                               <div className="flex items-center gap-1">
-                                <NumberInput 
-                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                  value={kingQuotePrice} 
-                                  onChange={(v) => {
-                                    updateData({ 
-                                      coreConfig: { 
-                                        ...coreConfig, 
-                                        kingRoom: { ...coreConfig.kingRoom!, quotePrice: v } 
-                                      } 
-                                    });
-                                  }}
-                                />
+                                {isQuoteEditing ? (
+                                  <NumberInput 
+                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                    value={kingQuotePrice} 
+                                    onChange={(v) => {
+                                      updateData({ 
+                                        coreConfig: { 
+                                          ...coreConfig, 
+                                          kingRoom: { ...coreConfig.kingRoom!, quotePrice: v } 
+                                        } 
+                                      });
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="w-16 text-right">{kingQuotePrice}</span>
+                                )}
                                 <span>元/晚 × {coreConfig.accommodationDays}晚</span>
                                 <span className="w-14 text-right font-medium">{formatMoney(coreConfig.kingRoom.countClient * kingQuotePrice * coreConfig.accommodationDays)}</span>
                               </div>
@@ -1531,12 +1548,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                   <div className="flex justify-between items-center">
                                     <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
                                     <div className="flex items-center gap-1">
-                                      <NumberInput 
-                                        className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                        value={lunchQuote} 
-                                        onChange={(v) => updateMealQuote('lunch', v)}
-                                      />
-                                      <span className="w-14 text-right font-medium">{formatMoney(lunchQuote)}</span>
+                                      {isQuoteEditing ? (
+                                        <NumberInput 
+                                          className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                          value={lunchQuote} 
+                                          onChange={(v) => updateMealQuote('lunch', v)}
+                                        />
+                                      ) : (
+                                        <span className="w-16 text-right">{formatMoney(lunchQuote)}</span>
+                                      )}
                                     </div>
                                   </div>
                                 )}
@@ -1544,12 +1564,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                   <div className="flex justify-between items-center">
                                     <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
                                     <div className="flex items-center gap-1">
-                                      <NumberInput 
-                                        className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                        value={dinnerQuote} 
-                                        onChange={(v) => updateMealQuote('dinner', v)}
-                                      />
-                                      <span className="w-14 text-right font-medium">{formatMoney(dinnerQuote)}</span>
+                                      {isQuoteEditing ? (
+                                        <NumberInput 
+                                          className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                          value={dinnerQuote} 
+                                          onChange={(v) => updateMealQuote('dinner', v)}
+                                        />
+                                      ) : (
+                                        <span className="w-16 text-right">{formatMoney(dinnerQuote)}</span>
+                                      )}
                                     </div>
                                   </div>
                                 )}
@@ -1572,12 +1595,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div className="flex justify-between items-center">
                               <span>大巴租赁</span>
                               <div className="flex items-center gap-1">
-                                <NumberInput 
-                                  className="h-6 w-20 text-xs px-1 text-right border rounded" 
-                                  value={busQuote} 
-                                  onChange={(v) => updateData({ coreConfig: { ...coreConfig, busQuoteFee: v } })}
-                                />
-                                <span className="w-14 text-right font-medium">{formatMoney(busQuote)}</span>
+                                {isQuoteEditing ? (
+                                  <NumberInput 
+                                    className="h-6 w-20 text-xs px-1 text-right border rounded" 
+                                    value={busQuote} 
+                                    onChange={(v) => updateData({ coreConfig: { ...coreConfig, busQuoteFee: v } })}
+                                  />
+                                ) : (
+                                  <span className="w-20 text-right">{formatMoney(busQuote)}</span>
+                                )}
                               </div>
                             </div>
                           )}
@@ -1587,16 +1613,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <div key={t.id} className="flex justify-between items-center">
                                 <span>{t.type === 'flight' ? '飞机票' : '高铁票'} {t.count}张</span>
                                 <div className="flex items-center gap-1">
-                                  <NumberInput 
-                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                    value={tQuotePrice} 
-                                    onChange={(v) => {
-                                      const newTransports = (coreConfig.otherTransports || []).map(item => 
-                                        item.id === t.id ? { ...item, quotePrice: v } : item
-                                      );
-                                      updateData({ coreConfig: { ...coreConfig, otherTransports: newTransports } });
-                                    }}
-                                  />
+                                  {isQuoteEditing ? (
+                                    <NumberInput 
+                                      className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                      value={tQuotePrice} 
+                                      onChange={(v) => {
+                                        const newTransports = (coreConfig.otherTransports || []).map(item => 
+                                          item.id === t.id ? { ...item, quotePrice: v } : item
+                                        );
+                                        updateData({ coreConfig: { ...coreConfig, otherTransports: newTransports } });
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className="w-16 text-right">{tQuotePrice}</span>
+                                  )}
                                   <span>元/张</span>
                                   <span className="w-14 text-right font-medium">{formatMoney(tQuotePrice * t.count)}</span>
                                 </div>
@@ -1623,22 +1653,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <div key={`${day.day}-${idx}`} className="flex justify-between items-center">
                                   <span>D{day.day} {item.name}</span>
                                   <div className="flex items-center gap-1">
-                                    <NumberInput 
-                                      className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                      value={qPrice} 
-                                      onChange={(v) => {
-                                        const newDays = [...dailyExpenses];
-                                        const dayData = newDays.find(d => d.day === day.day);
-                                        if (dayData) {
-                                          const itemData = dayData.singleItems.find(i => i.id === item.id);
-                                          if (itemData) {
-                                            itemData.quotePrice = v;
-                                            itemData.quoteTotalPrice = v * itemData.count;
-                                            updateData({ dailyExpenses: newDays });
+                                    {isQuoteEditing ? (
+                                      <NumberInput 
+                                        className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                        value={qPrice} 
+                                        onChange={(v) => {
+                                          const newDays = [...dailyExpenses];
+                                          const dayData = newDays.find(d => d.day === day.day);
+                                          if (dayData) {
+                                            const itemData = dayData.singleItems.find(i => i.id === item.id);
+                                            if (itemData) {
+                                              itemData.quotePrice = v;
+                                              itemData.quoteTotalPrice = v * itemData.count;
+                                              updateData({ dailyExpenses: newDays });
+                                            }
                                           }
-                                        }
-                                      }}
-                                    />
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="w-16 text-right">{qPrice}</span>
+                                    )}
                                     <span>×</span>
                                     <span>{item.count}{item.unit || '人'}</span>
                                     <span>=</span>
@@ -1665,19 +1699,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div className="flex justify-between items-center">
                               <span>{totalClients}人 × {otherExpenses.insurance.days}天</span>
                               <div className="flex items-center gap-1">
-                                <NumberInput 
-                                  className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                  value={insuranceQuote} 
-                                  onChange={(v) => {
-                                    updateData({ 
-                                      otherExpenses: { 
-                                        ...otherExpenses, 
-                                        insurance: { ...otherExpenses.insurance, quoteAmount: v } 
-                                      } 
-                                    });
-                                  }}
-                                />
-                                <span className="w-14 text-right font-medium">{formatMoney(insuranceQuote)}</span>
+                                {isQuoteEditing ? (
+                                  <NumberInput 
+                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                    value={insuranceQuote} 
+                                    onChange={(v) => {
+                                      updateData({ 
+                                        otherExpenses: { 
+                                          ...otherExpenses, 
+                                          insurance: { ...otherExpenses.insurance, quoteAmount: v } 
+                                        } 
+                                      });
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="w-16 text-right">{formatMoney(insuranceQuote)}</span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1699,17 +1736,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <div key={m.id || idx} className="flex justify-between items-center">
                                 <span>{m.name || `项目${idx + 1}`}</span>
                                 <div className="flex items-center gap-1">
-                                  <NumberInput 
-                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                    value={mQuote} 
-                                    onChange={(v) => {
-                                      const newMaterials = otherExpenses.materials.map(item => 
-                                        item.id === m.id ? { ...item, quoteTotalPrice: v } : item
-                                      );
-                                      updateData({ otherExpenses: { ...otherExpenses, materials: newMaterials } });
-                                    }}
-                                  />
-                                  <span className="w-14 text-right font-medium">{formatMoney(mQuote)}</span>
+                                  {isQuoteEditing ? (
+                                    <NumberInput 
+                                      className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                      value={mQuote} 
+                                      onChange={(v) => {
+                                        const newMaterials = otherExpenses.materials.map(item => 
+                                          item.id === m.id ? { ...item, quoteTotalPrice: v } : item
+                                        );
+                                        updateData({ otherExpenses: { ...otherExpenses, materials: newMaterials } });
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className="w-16 text-right">{formatMoney(mQuote)}</span>
+                                  )}
                                 </div>
                               </div>
                             );
