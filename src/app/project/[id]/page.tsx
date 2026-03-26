@@ -1240,10 +1240,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         {/* 右侧面板 */}
         <div className="w-[420px] flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
-          {/* 成本表 */}
+          {/* 成本核算与利润分析 */}
           <Card>
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
-              <CardTitle className="text-lg font-bold text-gray-800">成本核算表</CardTitle>
+              <CardTitle className="text-lg font-bold text-gray-800">成本核算与利润分析</CardTitle>
               <p className="text-sm text-gray-500 mt-0.5">内部参考</p>
             </CardHeader>
             <CardContent className="py-3 px-4">
@@ -1456,6 +1456,153 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <span>人，</span>
                     <span className="font-medium text-gray-700">{formatMoney(summary.totalCost / (coreConfig.pricingCount || totalClients || 1))}/人</span>
                   </div>
+                </div>
+                
+                {/* 利润分析 */}
+                <div className="mt-4 pt-3 border-t-2 border-gray-200">
+                  <div className="text-sm font-semibold text-gray-700 mb-2">利润分析</div>
+                  {(() => {
+                    // 计算住宿费报价
+                    const twinQuotePrice = coreConfig.twinRoom?.quotePrice ?? coreConfig.twinRoom?.price ?? 0;
+                    const kingQuotePrice = coreConfig.kingRoom?.quotePrice ?? coreConfig.kingRoom?.price ?? 0;
+                    const quoteAccommodation = (coreConfig.twinRoom?.countClient || 0) * twinQuotePrice * coreConfig.accommodationDays +
+                                               (coreConfig.kingRoom?.countClient || 0) * kingQuotePrice * coreConfig.accommodationDays;
+                    
+                    // 计算用餐费报价 - 使用与 calculation.ts 相同的计算逻辑
+                    const calculateMealAmountLocal = (meal: typeof DEFAULT_MEAL_CONFIG) => {
+                      if (meal.enabled === false) return 0;
+                      if (meal.amount && meal.amount > 0) return meal.amount;
+                      const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
+                      const clientMealType = meal.clientMealType || 'table';
+                      if (clientMealType === 'table') {
+                        const tables = meal.tableCount || Math.ceil(totalClients / 10);
+                        return price * 10 * tables;
+                      } else {
+                        const count = meal.clientCount || totalClients;
+                        return price * count;
+                      }
+                    };
+                    
+                    const quoteMealTotal = dailyExpenses.reduce((total, day) => {
+                      const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
+                      const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
+                      const lunchQuote = lunch.quoteAmount ?? calculateMealAmountLocal(lunch);
+                      const dinnerQuote = dinner.quoteAmount ?? calculateMealAmountLocal(dinner);
+                      return total + lunchQuote + dinnerQuote;
+                    }, 0);
+                    
+                    // 计算交通费报价
+                    const busQuote = coreConfig.busQuoteFee ?? coreConfig.busFee ?? 0;
+                    const transportsQuote = (coreConfig.otherTransports || []).reduce((s, t) => {
+                      const qPrice = t.quotePrice ?? t.price;
+                      return s + qPrice * t.count;
+                    }, 0);
+                    const quoteBus = busQuote + transportsQuote;
+                    
+                    // 计算活动项目报价
+                    const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
+                    
+                    // 计算其他费用报价
+                    const insuranceQuote = otherExpenses.insurance.quoteAmount ?? otherExpenses.insurance.totalAmount;
+                    const materialsQuote = otherExpenses.materials.reduce((s, m) => s + (m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity), 0);
+                    const quoteOtherExpenses = insuranceQuote + materialsQuote;
+                    
+                    // 报价小计
+                    const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
+                    const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
+                    const quoteTax = (quoteSubtotal + quoteServiceFee) * (otherExpenses.taxPercent ?? 1) / 100;
+                    const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
+                    
+                    // 最终营收
+                    const revenue = quoteTotal - discount;
+                    // 成本
+                    const cost = summary.totalCost;
+                    // 利润
+                    const profit = revenue - cost;
+                    // 利润率
+                    const profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
+                    
+                    // 计算差价
+                    const accommodationDiff = quoteAccommodation - summary.totalAccommodation;
+                    const mealDiff = quoteMealTotal - summary.totalMeal;
+                    const busDiff = quoteBus - summary.totalBus;
+                    const singleItemsDiff = quoteSingleItemsTotal - summary.totalSingleItems;
+                    const insuranceDiff = insuranceQuote - otherExpenses.insurance.totalAmount;
+                    const materialsDiff = materialsQuote - otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between py-1.5 border-b border-gray-100">
+                          <span className="text-gray-600">营收</span>
+                          <span className="font-medium text-gray-800">{formatMoney(revenue)}</span>
+                        </div>
+                        <div className="flex justify-between py-1.5 border-b border-gray-100">
+                          <span className="text-gray-600">成本</span>
+                          <span className="font-medium text-gray-800">{formatMoney(cost)}</span>
+                        </div>
+                        <div className="flex justify-between py-2 bg-gray-50 rounded mt-1 px-2">
+                          <span className="font-semibold text-gray-800">利润</span>
+                          <span className={`font-bold text-lg ${profit >= 0 ? 'text-red-600' : 'text-green-600'}`}>{profit >= 0 ? '+' : ''}{formatMoney(profit)}</span>
+                        </div>
+                        <div className="flex justify-between py-1.5 border-b border-gray-100">
+                          <span className="text-gray-600">利润率</span>
+                          <span className={`font-medium ${profitRate >= 0 ? 'text-red-600' : 'text-green-600'}`}>{profitRate.toFixed(1)}%</span>
+                        </div>
+                        {(accommodationDiff !== 0 || mealDiff !== 0 || busDiff !== 0 || singleItemsDiff !== 0 || insuranceDiff !== 0 || materialsDiff !== 0) && (
+                          <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500 space-y-0.5">
+                            {accommodationDiff !== 0 && (
+                              <div className="flex justify-between">
+                                <span>住宿费差价</span>
+                                <span className={accommodationDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                                  {accommodationDiff >= 0 ? '+' : ''}{formatMoney(accommodationDiff)}
+                                </span>
+                              </div>
+                            )}
+                            {mealDiff !== 0 && (
+                              <div className="flex justify-between">
+                                <span>用餐费差价</span>
+                                <span className={mealDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                                  {mealDiff >= 0 ? '+' : ''}{formatMoney(mealDiff)}
+                                </span>
+                              </div>
+                            )}
+                            {busDiff !== 0 && (
+                              <div className="flex justify-between">
+                                <span>交通费差价</span>
+                                <span className={busDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                                  {busDiff >= 0 ? '+' : ''}{formatMoney(busDiff)}
+                                </span>
+                              </div>
+                            )}
+                            {singleItemsDiff !== 0 && (
+                              <div className="flex justify-between">
+                                <span>活动项目差价</span>
+                                <span className={singleItemsDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                                  {singleItemsDiff >= 0 ? '+' : ''}{formatMoney(singleItemsDiff)}
+                                </span>
+                              </div>
+                            )}
+                            {insuranceDiff !== 0 && (
+                              <div className="flex justify-between">
+                                <span>保险费差价</span>
+                                <span className={insuranceDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                                  {insuranceDiff >= 0 ? '+' : ''}{formatMoney(insuranceDiff)}
+                                </span>
+                              </div>
+                            )}
+                            {materialsDiff !== 0 && (
+                              <div className="flex justify-between">
+                                <span>杂费差价</span>
+                                <span className={materialsDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
+                                  {materialsDiff >= 0 ? '+' : ''}{formatMoney(materialsDiff)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </CardContent>
@@ -1911,157 +2058,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className="font-medium text-gray-700">{formatMoney(quoteFinalPrice / (coreConfig.pricingCount || totalClients || 1))}/人</span>
                       </div>
                     </div>
-                  </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
-
-          {/* 利润分析 */}
-          <Card>
-            <CardHeader className="py-2 px-4 border-b bg-gray-50">
-              <CardTitle className="text-lg font-bold text-gray-800">利润分析</CardTitle>
-            </CardHeader>
-            <CardContent className="py-3 px-4">
-              {(() => {
-                // 计算住宿费报价
-                const twinQuotePrice = coreConfig.twinRoom?.quotePrice ?? coreConfig.twinRoom?.price ?? 0;
-                const kingQuotePrice = coreConfig.kingRoom?.quotePrice ?? coreConfig.kingRoom?.price ?? 0;
-                const quoteAccommodation = (coreConfig.twinRoom?.countClient || 0) * twinQuotePrice * coreConfig.accommodationDays +
-                                           (coreConfig.kingRoom?.countClient || 0) * kingQuotePrice * coreConfig.accommodationDays;
-                
-                // 计算用餐费报价 - 使用与 calculation.ts 相同的计算逻辑
-                const calculateMealAmountLocal = (meal: typeof DEFAULT_MEAL_CONFIG) => {
-                  if (meal.enabled === false) return 0;
-                  if (meal.amount && meal.amount > 0) return meal.amount;
-                  const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
-                  const clientMealType = meal.clientMealType || 'table';
-                  if (clientMealType === 'table') {
-                    const tables = meal.tableCount || Math.ceil(totalClients / 10);
-                    return price * 10 * tables;
-                  } else {
-                    const count = meal.clientCount || totalClients;
-                    return price * count;
-                  }
-                };
-                
-                const quoteMealTotal = dailyExpenses.reduce((total, day) => {
-                  const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
-                  const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
-                  const lunchQuote = lunch.quoteAmount ?? calculateMealAmountLocal(lunch);
-                  const dinnerQuote = dinner.quoteAmount ?? calculateMealAmountLocal(dinner);
-                  return total + lunchQuote + dinnerQuote;
-                }, 0);
-                
-                // 计算交通费报价
-                const busQuote = coreConfig.busQuoteFee ?? coreConfig.busFee ?? 0;
-                const transportsQuote = (coreConfig.otherTransports || []).reduce((s, t) => {
-                  const qPrice = t.quotePrice ?? t.price;
-                  return s + qPrice * t.count;
-                }, 0);
-                const quoteBus = busQuote + transportsQuote;
-                
-                // 计算活动项目报价
-                const quoteSingleItemsTotal = dailyExpenses.flatMap(d => d.singleItems).filter(i => i.name).reduce((s, item) => s + (item.quoteTotalPrice || (item.quotePrice || item.price) * item.count), 0);
-                
-                // 计算其他费用报价
-                const insuranceQuote = otherExpenses.insurance.quoteAmount ?? otherExpenses.insurance.totalAmount;
-                const materialsQuote = otherExpenses.materials.reduce((s, m) => s + (m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity), 0);
-                const quoteOtherExpenses = insuranceQuote + materialsQuote;
-                
-                // 报价小计
-                const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
-                const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
-                const quoteTax = (quoteSubtotal + quoteServiceFee) * (otherExpenses.taxPercent ?? 1) / 100;
-                const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
-                
-                // 最终营收
-                const revenue = quoteTotal - discount;
-                // 成本
-                const cost = summary.totalCost;
-                // 利润
-                const profit = revenue - cost;
-                // 利润率
-                const profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
-                
-                // 计算差价
-                const accommodationDiff = quoteAccommodation - summary.totalAccommodation;
-                const mealDiff = quoteMealTotal - summary.totalMeal;
-                const busDiff = quoteBus - summary.totalBus;
-                const singleItemsDiff = quoteSingleItemsTotal - summary.totalSingleItems;
-                const insuranceDiff = insuranceQuote - otherExpenses.insurance.totalAmount;
-                const materialsDiff = materialsQuote - otherExpenses.materials.reduce((s, m) => s + (m.totalPrice || m.price * m.quantity), 0);
-                
-                return (
-                  <div className="space-y-0 text-sm">
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">营收</span>
-                      <span className="font-medium text-gray-800">{formatMoney(revenue)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">成本</span>
-                      <span className="font-medium text-gray-800">{formatMoney(cost)}</span>
-                    </div>
-                    <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3">
-                      <span className="font-semibold text-gray-800">利润</span>
-                      <span className={`font-bold text-xl ${profit >= 0 ? 'text-red-600' : 'text-green-600'}`}>{profit >= 0 ? '+' : ''}{formatMoney(profit)}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">利润率</span>
-                      <span className={`font-medium ${profitRate >= 0 ? 'text-red-600' : 'text-green-600'}`}>{profitRate.toFixed(1)}%</span>
-                    </div>
-                    {(accommodationDiff !== 0 || mealDiff !== 0 || busDiff !== 0 || singleItemsDiff !== 0 || insuranceDiff !== 0 || materialsDiff !== 0) && (
-                      <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-500 space-y-1">
-                        {accommodationDiff !== 0 && (
-                          <div className="flex justify-between">
-                            <span>住宿费差价</span>
-                            <span className={accommodationDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
-                              {accommodationDiff >= 0 ? '+' : ''}{formatMoney(accommodationDiff)}
-                            </span>
-                          </div>
-                        )}
-                        {mealDiff !== 0 && (
-                          <div className="flex justify-between">
-                            <span>用餐费差价</span>
-                            <span className={mealDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
-                              {mealDiff >= 0 ? '+' : ''}{formatMoney(mealDiff)}
-                            </span>
-                          </div>
-                        )}
-                        {busDiff !== 0 && (
-                          <div className="flex justify-between">
-                            <span>交通费差价</span>
-                            <span className={busDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
-                              {busDiff >= 0 ? '+' : ''}{formatMoney(busDiff)}
-                            </span>
-                          </div>
-                        )}
-                        {singleItemsDiff !== 0 && (
-                          <div className="flex justify-between">
-                            <span>活动项目差价</span>
-                            <span className={singleItemsDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
-                              {singleItemsDiff >= 0 ? '+' : ''}{formatMoney(singleItemsDiff)}
-                            </span>
-                          </div>
-                        )}
-                        {insuranceDiff !== 0 && (
-                          <div className="flex justify-between">
-                            <span>保险费差价</span>
-                            <span className={insuranceDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
-                              {insuranceDiff >= 0 ? '+' : ''}{formatMoney(insuranceDiff)}
-                            </span>
-                          </div>
-                        )}
-                        {materialsDiff !== 0 && (
-                          <div className="flex justify-between">
-                            <span>杂费差价</span>
-                            <span className={materialsDiff >= 0 ? 'text-red-600' : 'text-green-600'}>
-                              {materialsDiff >= 0 ? '+' : ''}{formatMoney(materialsDiff)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 );
               })()}
