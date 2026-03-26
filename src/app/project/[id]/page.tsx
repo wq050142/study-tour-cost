@@ -1714,7 +1714,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-bold text-gray-800">{projectData.project.name} 报价单</CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 export-button-container">
                   {isQuoteEditing ? (
                     <Button size="sm" className="h-7 text-xs" onClick={() => { setIsQuoteEditing(false); handleSave(); }}>
                       <Check className="w-3 h-3 mr-1" />保存
@@ -1724,7 +1724,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <Pencil className="w-3 h-3 mr-1" />编辑
                     </Button>
                   )}
-                  <div className="relative export-button-container">
+                  <div className="relative">
                     <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowQuoteExportMenu(!showQuoteExportMenu)}>
                       <Download className="w-3 h-3" />
                     </Button>
