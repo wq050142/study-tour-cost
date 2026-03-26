@@ -932,8 +932,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <span>桌餐</span>
                             </label>
                             <div className="flex items-center gap-1">
-                              <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={lunch.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('lunch', { pricePerPerson: v })} />
-                              <span className="text-gray-500 whitespace-nowrap">元/人</span>
+                              <NumberInput 
+                                className="h-8 w-16 text-sm px-2 border rounded" 
+                                value={(lunch.clientMealType || 'table') === 'table' 
+                                  ? (lunch.pricePerPerson || coreConfig.mealStandardClient || 0) * 10 
+                                  : (lunch.pricePerPerson || coreConfig.mealStandardClient || 0)} 
+                                onChange={(v) => updateMeal('lunch', { pricePerPerson: (lunch.clientMealType || 'table') === 'table' ? v / 10 : v })} 
+                              />
+                              <span className="text-gray-500 whitespace-nowrap">{(lunch.clientMealType || 'table') === 'table' ? '元/桌' : '元/人'}</span>
                             </div>
                             <span className="text-gray-400">×</span>
                             {lunch.clientMealType === 'individual' ? (
@@ -990,8 +996,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <span>桌餐</span>
                             </label>
                             <div className="flex items-center gap-1">
-                              <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={dinner.pricePerPerson || coreConfig.mealStandardClient} onChange={(v) => updateMeal('dinner', { pricePerPerson: v })} />
-                              <span className="text-gray-500 whitespace-nowrap">元/人</span>
+                              <NumberInput 
+                                className="h-8 w-16 text-sm px-2 border rounded" 
+                                value={(dinner.clientMealType || 'table') === 'table' 
+                                  ? (dinner.pricePerPerson || coreConfig.mealStandardClient || 0) * 10 
+                                  : (dinner.pricePerPerson || coreConfig.mealStandardClient || 0)} 
+                                onChange={(v) => updateMeal('dinner', { pricePerPerson: (dinner.clientMealType || 'table') === 'table' ? v / 10 : v })} 
+                              />
+                              <span className="text-gray-500 whitespace-nowrap">{(dinner.clientMealType || 'table') === 'table' ? '元/桌' : '元/人'}</span>
                             </div>
                             <span className="text-gray-400">×</span>
                             {dinner.clientMealType === 'individual' ? (
@@ -1217,7 +1229,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           const price = meal.pricePerPerson || coreConfig.mealStandardClient || 0;
                           if ((meal.clientMealType || 'table') === 'table') {
                             const tables = meal.tableCount || Math.ceil(totalClients / 10);
-                            return `${tables}桌 × ${price}元/人 × 10人`;
+                            const pricePerTable = price * 10;
+                            return `${tables}桌 × ${pricePerTable}元/桌`;
                           } else {
                             const count = meal.clientCount || totalClients;
                             return `${count}人 × ${price}元/人`;
