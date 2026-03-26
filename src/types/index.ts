@@ -12,6 +12,7 @@ export type ClientMealType = 'table' | 'individual'; // 桌餐 | 例餐
 
 // 每餐配置
 export interface MealConfig {
+  enabled: boolean; // 是否启用该餐
   clientMealType: ClientMealType; // 客户用餐方式：桌餐或例餐
   tableCount: number; // 桌餐桌数（仅桌餐时使用）
   clientCount: number; // 客户用餐人数（例餐时使用，参考客户配置）
@@ -205,6 +206,7 @@ export interface DailyCostBreakdown {
 
 // 默认餐食配置
 export const DEFAULT_MEAL_CONFIG: MealConfig = {
+  enabled: true, // 默认启用
   clientMealType: 'table', // 客户默认桌餐
   tableCount: 0,
   clientCount: 0, // 客户用餐人数

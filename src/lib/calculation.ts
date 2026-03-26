@@ -2,11 +2,16 @@ import { ProjectData, CostSummary, DailyCostBreakdown, DEFAULT_MEAL_CONFIG, Othe
 
 // 计算单餐费用
 function calculateMealAmount(
-  mealConfig: { clientMealType?: string; tableCount?: number; clientCount?: number; pricePerPerson?: number; staffMealType?: string; amount?: number },
+  mealConfig: { enabled?: boolean; clientMealType?: string; tableCount?: number; clientCount?: number; pricePerPerson?: number; staffMealType?: string; amount?: number },
   coreConfig: ProjectData['coreConfig'],
   totalClients: number,
   totalStaff: number
 ): number {
+  // 如果未启用，返回0
+  if (mealConfig.enabled === false) {
+    return 0;
+  }
+  
   // 如果有手动输入的金额，直接使用
   if (mealConfig.amount && mealConfig.amount > 0) {
     return mealConfig.amount;
@@ -16,7 +21,7 @@ function calculateMealAmount(
   const pricePerPerson = mealConfig.pricePerPerson || coreConfig.mealStandardClient || 0;
   
   // 客户餐费
-  const clientMealType = mealConfig.clientMealType || 'individual';
+  const clientMealType = mealConfig.clientMealType || 'table';
   const clientAmount = clientMealType === 'table'
     ? pricePerPerson * 10 * (mealConfig.tableCount || Math.ceil(totalClients / 10))
     : pricePerPerson * (mealConfig.clientCount || totalClients);
