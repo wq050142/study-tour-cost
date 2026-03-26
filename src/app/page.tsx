@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Project, ProjectType, PROJECT_TYPE_LABELS } from '@/types';
-import { getProjects, createProject, deleteProject, copyProject } from '@/lib/storage';
+import { getProjects, createProject, deleteProject, copyProject, updateProjectName } from '@/lib/storage';
 
 export default function Home() {
   const router = useRouter();
@@ -22,6 +22,11 @@ export default function Home() {
     type: '' as ProjectType | '',
     remark: '',
   });
+  
+  // 重命名相关状态
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [renameProjectId, setRenameProjectId] = useState<string>('');
+  const [renameProjectName, setRenameProjectName] = useState('');
 
   useEffect(() => {
     loadProjects();
@@ -61,6 +66,25 @@ export default function Home() {
     if (newProject) {
       loadProjects();
     }
+  };
+
+  const handleRenameProject = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setRenameProjectId(projectId);
+      setRenameProjectName(project.name);
+      setIsRenameDialogOpen(true);
+    }
+  };
+
+  const handleConfirmRename = () => {
+    if (!renameProjectName.trim()) {
+      alert('请输入项目名称');
+      return;
+    }
+    updateProjectName(renameProjectId, renameProjectName.trim());
+    setIsRenameDialogOpen(false);
+    loadProjects();
   };
 
   const handleOpenProject = (projectId: string) => {
@@ -151,6 +175,40 @@ export default function Home() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* 重命名项目对话框 */}
+            <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle>重命名项目</DialogTitle>
+                  <DialogDescription>
+                    为项目设置一个新名称
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="rename-name">项目名称</Label>
+                    <Input
+                      id="rename-name"
+                      placeholder="输入新的项目名称"
+                      value={renameProjectName}
+                      onChange={(e) => setRenameProjectName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleConfirmRename();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+                    取消
+                  </Button>
+                  <Button onClick={handleConfirmRename}>确认</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </header>
@@ -199,6 +257,15 @@ export default function Home() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameProject(project.id);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          重命名
+                        </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={(e) => {
                             e.stopPropagation();
