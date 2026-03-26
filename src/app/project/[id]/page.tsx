@@ -1515,6 +1515,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     
                     // 最终营收
                     const revenue = quoteTotal - discount;
+                    const pricingPeople = coreConfig.pricingCount ?? totalClients;
+                    const pricePerPerson = pricingPeople > 0 ? revenue / pricingPeople : 0;
                     // 成本
                     const cost = summary.totalCost;
                     // 利润
@@ -1535,6 +1537,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <div className="flex justify-between py-1.5 border-b border-gray-100">
                           <span className="text-gray-600">营收</span>
                           <span className="font-medium text-gray-800">{formatMoney(revenue)}</span>
+                        </div>
+                        <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                          <div className="flex justify-between">
+                            <span>报价合计 {formatMoney(quoteTotal)} - 优惠 {formatMoney(discount)}</span>
+                            <span>{formatMoney(revenue)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{pricingPeople}人 × {formatMoney(pricePerPerson)}/人</span>
+                            <span></span>
+                          </div>
                         </div>
                         <div className="flex justify-between py-1.5 border-b border-gray-100">
                           <span className="text-gray-600">成本</span>
