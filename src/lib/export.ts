@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { domToPng, domToJpeg } from 'modern-screenshot';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { ProjectData, CostSummary, DailyExpense, OtherExpenses, CoreConfig, DEFAULT_MEAL_CONFIG } from '@/types';
@@ -220,52 +221,18 @@ export function exportToExcel(
   XLSX.writeFile(wb, `${projectData.project.name}-成本核算与报价单.xlsx`);
 }
 
-// 修复 lab() 颜色问题的辅助函数
-function fixLabColors(clonedDoc: Document) {
-  // 获取所有元素
-  const allElements = clonedDoc.querySelectorAll('*');
-  allElements.forEach((el) => {
-    const htmlEl = el as HTMLElement;
-    const computedStyle = clonedDoc.defaultView?.getComputedStyle(htmlEl);
-    
-    if (computedStyle) {
-      // 处理 background-color
-      const bgColor = computedStyle.backgroundColor;
-      if (bgColor && bgColor.includes('lab(')) {
-        htmlEl.style.backgroundColor = '#ffffff';
-      }
-      
-      // 处理 color
-      const color = computedStyle.color;
-      if (color && color.includes('lab(')) {
-        htmlEl.style.color = '#000000';
-      }
-      
-      // 处理 border-color
-      const borderColor = computedStyle.borderColor;
-      if (borderColor && borderColor.includes('lab(')) {
-        htmlEl.style.borderColor = '#e5e7eb';
-      }
-    }
-  });
-}
-
 // 导出 HTML 元素为图片
 export async function exportElementAsImage(element: HTMLElement, filename: string) {
   try {
-    const canvas = await html2canvas(element, {
+    // 使用 modern-screenshot 导出，它对现代 CSS 支持更好
+    const dataUrl = await domToPng(element, {
       scale: 2,
       backgroundColor: '#ffffff',
-      logging: false,
-      useCORS: true,
-      onclone: (clonedDoc) => {
-        fixLabColors(clonedDoc);
-      },
     });
     
     const link = document.createElement('a');
     link.download = `${filename}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.href = dataUrl;
     link.click();
   } catch (error) {
     console.error('导出图片失败:', error);
@@ -276,19 +243,21 @@ export async function exportElementAsImage(element: HTMLElement, filename: strin
 // 导出 HTML 元素为 PDF
 export async function exportElementAsPDF(element: HTMLElement, filename: string) {
   try {
-    const canvas = await html2canvas(element, {
+    // 使用 modern-screenshot 获取图片
+    const dataUrl = await domToPng(element, {
       scale: 2,
       backgroundColor: '#ffffff',
-      logging: false,
-      useCORS: true,
-      onclone: (clonedDoc) => {
-        fixLabColors(clonedDoc);
-      },
     });
     
-    const imgData = canvas.toDataURL('image/png');
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+    // 创建图片获取尺寸
+    const img = new Image();
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.src = dataUrl;
+    });
+    
+    const imgWidth = img.width;
+    const imgHeight = img.height;
     
     // 计算PDF尺寸（A4纸张）
     const pdfWidth = 210; // A4宽度(mm)
@@ -300,7 +269,7 @@ export async function exportElementAsPDF(element: HTMLElement, filename: string)
       format: [pdfWidth, Math.min(pdfHeight, 2000)], // 限制最大高度
     });
     
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
     pdf.save(`${filename}.pdf`);
   } catch (error) {
     console.error('导出PDF失败:', error);
