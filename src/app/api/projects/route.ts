@@ -34,6 +34,12 @@ export async function POST(request: NextRequest) {
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
   try {
     const body = await request.json();
     const { name, type, remark } = body;
@@ -45,12 +51,13 @@ export async function POST(request: NextRequest) {
     const { data, error } = await client
       .from('projects')
       .insert({
+        user_id: user.id,
         name,
         type,
         remark: remark || '',
-        core_config: DEFAULT_CORE_CONFIG,
-        daily_expenses: [],
-        other_expenses: DEFAULT_OTHER_EXPENSES,
+        config: DEFAULT_CORE_CONFIG,
+        daily_costs: [],
+        other_costs: DEFAULT_OTHER_EXPENSES,
       })
       .select()
       .single();
