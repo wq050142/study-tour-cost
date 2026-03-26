@@ -69,6 +69,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       data.otherExpenses = {
         insurance: { pricePerPerson: 0, days: data.coreConfig.tripDays || 1, totalAmount: old.insurance || 0 },
         serviceFeePercent: 10,
+        taxPercent: 1,
         reserveFund: old.reserveFund || 0,
         materials: [],
         otherExpenses: old.other ? [{ id: '1', remark: '其他', amount: old.other || 0 }] : [],
@@ -129,7 +130,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (!projectData) return;
     const summary = calculateCostSummary(projectData);
     const serviceFee = calculateServiceFee(summary.totalCost, otherExpenses.serviceFeePercent);
-    const tax = (summary.totalCost + serviceFee) * 0.06;
+    const tax = (summary.totalCost + serviceFee) * (otherExpenses.taxPercent ?? 1) / 100;
     const totalPrice = summary.totalCost + serviceFee + tax;
     const finalPrice = totalPrice - discount;
     
@@ -231,7 +232,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     lines.push('', '─'.repeat(60), 
       `成本小计：${formatMoney(summary.totalCost)}`, 
       `服务费(${otherExpenses.serviceFeePercent}%)：${formatMoney(serviceFee)}`, 
-      `税费(6%)：${formatMoney(tax)}`,
+      `税费(${otherExpenses.taxPercent ?? 1}%)：${formatMoney(tax)}`,
       `报价合计：${formatMoney(totalPrice)}`, 
       `优惠：-${formatMoney(discount)}`, 
       '', '═'.repeat(60), 
@@ -261,7 +262,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     
     const qSubtotal = quoteAcc + quoteMeal + quoteTrans + quoteSingle + quoteOther;
     const qServiceFee = calculateServiceFee(qSubtotal, otherExpenses.serviceFeePercent);
-    const qTax = (qSubtotal + qServiceFee) * 0.06;
+    const qTax = (qSubtotal + qServiceFee) * (otherExpenses.taxPercent ?? 1) / 100;
     const qTotal = qSubtotal + qServiceFee + qTax;
     const revenue = qTotal - discount;
     const cost = summary.totalCost;
@@ -302,6 +303,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
   if (!otherExpenses.materials) otherExpenses.materials = [];
   if (!otherExpenses.otherExpenses) otherExpenses.otherExpenses = [];
+  if (otherExpenses.taxPercent === undefined || otherExpenses.taxPercent === null) {
+    otherExpenses.taxPercent = 1;
+  }
 
   // 确保每日数据长度正确，且每天至少有一个活动项目
   if (dailyExpenses.length !== coreConfig.tripDays) {
@@ -485,7 +489,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   };
 
   const serviceFee = calculateServiceFee(summary.totalCost, otherExpenses.serviceFeePercent);
-  const tax = (summary.totalCost + serviceFee) * 0.06;
+  const tax = (summary.totalCost + serviceFee) * (otherExpenses.taxPercent ?? 1) / 100;
   const totalPrice = summary.totalCost + serviceFee + tax;
   const finalPrice = totalPrice - discount;
   const pricePerClient = totalClients > 0 ? finalPrice / totalClients : 0;
@@ -1133,6 +1137,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
+              {/* 税费 */}
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <span className="text-sm font-medium text-gray-700">税费</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-600">按合计</span>
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={otherExpenses.taxPercent ?? 1} onChange={(v) => updateData({ otherExpenses: { ...otherExpenses, taxPercent: v } })} />
+                    <span className="text-gray-500">%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-400">=</span>
+                    <span className="text-base font-semibold text-gray-900">{formatMoney(tax)}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* 备用金 */}
               <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                 <span className="text-sm font-medium text-gray-700">备用金</span>
@@ -1488,7 +1508,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 // 报价小计
                 const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
                 const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
-                const quoteTax = (quoteSubtotal + quoteServiceFee) * 0.06;
+                const quoteTax = (quoteSubtotal + quoteServiceFee) * (otherExpenses.taxPercent ?? 1) / 100;
                 const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
                 const quoteFinalPrice = quoteTotal - discount;
                 const quotePricePerClient = totalClients > 0 ? quoteFinalPrice / totalClients : 0;
@@ -1825,7 +1845,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="font-medium">{formatMoney(quoteServiceFee)}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">税费 (6%)</span>
+                      <span className="text-gray-600">税费 ({otherExpenses.taxPercent ?? 1}%)</span>
                       <span className="font-medium">{formatMoney(quoteTax)}</span>
                     </div>
                     <div className="flex justify-between py-2.5 bg-gray-50 rounded mt-2 px-3">
@@ -1926,7 +1946,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 // 报价小计
                 const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
                 const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
-                const quoteTax = (quoteSubtotal + quoteServiceFee) * 0.06;
+                const quoteTax = (quoteSubtotal + quoteServiceFee) * (otherExpenses.taxPercent ?? 1) / 100;
                 const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
                 
                 // 最终营收

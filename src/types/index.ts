@@ -156,6 +156,7 @@ export interface OtherExpenseItem {
 export interface OtherExpenses {
   insurance: InsuranceConfig; // 保险费
   serviceFeePercent: number; // 服务费百分比
+  taxPercent: number; // 税费百分比，默认 1%
   reserveFund: number; // 备用金
   materials: MaterialItem[]; // 物料费列表
   otherExpenses: OtherExpenseItem[]; // 其他费用列表
@@ -262,6 +263,7 @@ export const DEFAULT_INSURANCE_CONFIG: InsuranceConfig = {
 export const DEFAULT_OTHER_EXPENSES: OtherExpenses = {
   insurance: { ...DEFAULT_INSURANCE_CONFIG },
   serviceFeePercent: 10, // 默认10%
+  taxPercent: 1, // 默认1%
   reserveFund: 0,
   materials: [],
   otherExpenses: [],
