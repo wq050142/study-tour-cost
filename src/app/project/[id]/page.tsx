@@ -1193,7 +1193,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 右侧面板 */}
-        <div className="w-80 flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
+        <div className="w-[420px] flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
           {/* 成本表 */}
           <Card>
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
