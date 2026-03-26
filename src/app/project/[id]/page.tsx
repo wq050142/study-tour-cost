@@ -492,14 +492,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
-        <div className="px-4 py-2">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/')}>
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <Input value={projectData.project.name} onChange={(e) => updateData({ project: { ...projectData.project, name: e.target.value } })}
-                className="text-base font-semibold border-0 p-0 h-auto w-40 focus-visible:ring-0" />
+                className="text-lg font-bold border-0 p-0 h-auto w-auto min-w-32 max-w-64 focus-visible:ring-0" />
+              <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${
+                projectData.project.type === 'half-day' ? 'bg-green-100 text-green-700' :
+                projectData.project.type === 'one-day' ? 'bg-blue-100 text-blue-700' :
+                'bg-purple-100 text-purple-700'
+              }`}>
+                {PROJECT_TYPES.find(t => t.value === projectData.project.type)?.label}
+              </span>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleExport}><Download className="w-4 h-4 mr-1" />导出</Button>
@@ -511,36 +518,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       <main className="flex gap-4 p-4">
         <div className="flex-1 min-w-0 space-y-4">
-          {/* 项目设置 */}
-          <Card>
-            <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">项目设置</CardTitle></CardHeader>
-            <CardContent className="py-3 px-4">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <span className="text-gray-500 w-12">类型</span>
-                <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                  projectData.project.type === 'half-day' ? 'bg-green-100 text-green-700' :
-                  projectData.project.type === 'one-day' ? 'bg-blue-100 text-blue-700' :
-                  'bg-purple-100 text-purple-700'
-                }`}>
-                  {PROJECT_TYPES.find(t => t.value === projectData.project.type)?.label}
-                </span>
-                {projectData.project.type === 'multi-day' && (
-                  <>
-                    <span className="text-gray-500 w-12 ml-6">天数</span>
-                    <div className="flex items-center gap-1">
-                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.tripDays} onChange={(v) => updateData({ coreConfig: { ...coreConfig, tripDays: v, accommodationDays: v > 0 ? Math.min(coreConfig.accommodationDays, v) : 0 } })} />
-                      <span className="text-gray-500">天</span>
-                    </div>
-                    <span className="text-gray-500 w-12 ml-4">住宿</span>
-                    <div className="flex items-center gap-1">
-                      <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.accommodationDays} onChange={(v) => updateData({ coreConfig: { ...coreConfig, accommodationDays: v } })} />
-                      <span className="text-gray-500">晚</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {/* 项目时长 - 仅多日项目显示 */}
+          {projectData.project.type === 'multi-day' && (
+            <Card>
+              <CardHeader className="py-2 px-4 border-b bg-gray-50"><CardTitle className="text-lg font-bold text-gray-800">项目时长</CardTitle></CardHeader>
+              <CardContent className="py-3 px-4">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <span className="text-gray-500 w-12">天数</span>
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.tripDays} onChange={(v) => updateData({ coreConfig: { ...coreConfig, tripDays: v, accommodationDays: v > 0 ? Math.min(coreConfig.accommodationDays, v) : 0 } })} />
+                    <span className="text-gray-500">天</span>
+                  </div>
+                  <span className="text-gray-500 w-12 ml-4">住宿</span>
+                  <div className="flex items-center gap-1">
+                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.accommodationDays} onChange={(v) => updateData({ coreConfig: { ...coreConfig, accommodationDays: v } })} />
+                    <span className="text-gray-500">晚</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 客户配置 */}
           <Card>
