@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil } from 'lucide-react';
+import { Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil, LogOut, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,12 +11,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Project, ProjectType, PROJECT_TYPE_LABELS } from '@/types';
-import { getProjects, createProject, deleteProject, copyProject, updateProjectName } from '@/lib/storage';
+import { getProjects, createProject, deleteProject, copyProject, updateProjectName } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthModal } from '@/components/AuthModal';
 
 export default function Home() {
   const router = useRouter();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [newProject, setNewProject] = useState({
     name: '',
     type: '' as ProjectType | '',
@@ -29,15 +34,21 @@ export default function Home() {
   const [renameProjectName, setRenameProjectName] = useState('');
 
   useEffect(() => {
-    loadProjects();
-  }, []);
+    if (!authLoading && user) {
+      loadProjects();
+    } else if (!authLoading && !user) {
+      setProjectsLoading(false);
+    }
+  }, [user, authLoading]);
 
-  const loadProjects = () => {
-    const projectList = getProjects();
+  const loadProjects = async () => {
+    setProjectsLoading(true);
+    const projectList = await getProjects();
     setProjects(projectList);
+    setProjectsLoading(false);
   };
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newProject.name.trim()) {
       alert('请输入项目名称');
       return;
@@ -48,23 +59,33 @@ export default function Home() {
       return;
     }
 
-    createProject(newProject.name, newProject.type, newProject.remark);
-    setIsDialogOpen(false);
-    setNewProject({ name: '', type: '', remark: '' });
-    loadProjects();
-  };
-
-  const handleDeleteProject = (projectId: string) => {
-    if (confirm('确定要删除这个项目吗？此操作不可恢复。')) {
-      deleteProject(projectId);
-      loadProjects();
+    const result = await createProject(newProject.name, newProject.type, newProject.remark);
+    if (result) {
+      setIsDialogOpen(false);
+      setNewProject({ name: '', type: '', remark: '' });
+      router.push(`/project/${result.project.id}`);
+    } else {
+      alert('创建项目失败，请重试');
     }
   };
 
-  const handleCopyProject = (projectId: string) => {
-    const newProject = copyProject(projectId);
+  const handleDeleteProject = async (projectId: string) => {
+    if (confirm('确定要删除这个项目吗？此操作不可恢复。')) {
+      const success = await deleteProject(projectId);
+      if (success) {
+        loadProjects();
+      } else {
+        alert('删除项目失败，请重试');
+      }
+    }
+  };
+
+  const handleCopyProject = async (projectId: string) => {
+    const newProject = await copyProject(projectId);
     if (newProject) {
       loadProjects();
+    } else {
+      alert('复制项目失败，请重试');
     }
   };
 
@@ -77,18 +98,27 @@ export default function Home() {
     }
   };
 
-  const handleConfirmRename = () => {
+  const handleConfirmRename = async () => {
     if (!renameProjectName.trim()) {
       alert('请输入项目名称');
       return;
     }
-    updateProjectName(renameProjectId, renameProjectName.trim());
-    setIsRenameDialogOpen(false);
-    loadProjects();
+    const success = await updateProjectName(renameProjectId, renameProjectName.trim());
+    if (success) {
+      setIsRenameDialogOpen(false);
+      loadProjects();
+    } else {
+      alert('重命名失败，请重试');
+    }
   };
 
   const handleOpenProject = (projectId: string) => {
     router.push(`/project/${projectId}`);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setProjects([]);
   };
   
   const projectTypes: { value: ProjectType; label: string; description: string }[] = [
@@ -96,6 +126,18 @@ export default function Home() {
     { value: 'one-day', label: '一日', description: '单日活动，不含住宿' },
     { value: 'multi-day', label: '多日', description: '多日活动，含住宿安排' },
   ];
+
+  // 认证加载中
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -113,109 +155,160 @@ export default function Home() {
               </div>
             </div>
             
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  新建项目
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>新建研学项目</DialogTitle>
-                  <DialogDescription>
-                    创建一个新的研学项目，开始进行成本核算
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">项目名称 <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="name"
-                      placeholder="例如：北京科技研学之旅"
-                      value={newProject.name}
-                      onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>项目类型 <span className="text-red-500">*</span></Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {projectTypes.map((type) => (
-                        <button
-                          key={type.value}
-                          type="button"
-                          onClick={() => setNewProject({ ...newProject, type: type.value })}
-                          className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            newProject.type === type.value
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <div className="font-medium text-sm">{type.label}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{type.description}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="remark">项目备注</Label>
-                    <Textarea
-                      id="remark"
-                      placeholder="记录项目的特殊说明或要求..."
-                      value={newProject.remark}
-                      onChange={(e) => setNewProject({ ...newProject, remark: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    取消
-                  </Button>
-                  <Button onClick={handleCreateProject}>创建项目</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        新建项目
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle>新建研学项目</DialogTitle>
+                        <DialogDescription>
+                          创建一个新的研学项目，开始进行成本核算
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="name">项目名称 <span className="text-red-500">*</span></Label>
+                          <Input
+                            id="name"
+                            placeholder="例如：北京科技研学之旅"
+                            value={newProject.name}
+                            onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>项目类型 <span className="text-red-500">*</span></Label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {projectTypes.map((type) => (
+                              <button
+                                key={type.value}
+                                type="button"
+                                onClick={() => setNewProject({ ...newProject, type: type.value })}
+                                className={`p-3 rounded-lg border-2 text-left transition-all ${
+                                  newProject.type === type.value
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <div className="font-medium text-sm">{type.label}</div>
+                                <div className="text-xs text-gray-500 mt-0.5">{type.description}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="remark">项目备注</Label>
+                          <Textarea
+                            id="remark"
+                            placeholder="记录项目的特殊说明或要求..."
+                            value={newProject.remark}
+                            onChange={(e) => setNewProject({ ...newProject, remark: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                          取消
+                        </Button>
+                        <Button onClick={handleCreateProject}>创建项目</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
 
-            {/* 重命名项目对话框 */}
-            <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
-              <DialogContent className="sm:max-w-[400px]">
-                <DialogHeader>
-                  <DialogTitle>重命名项目</DialogTitle>
-                  <DialogDescription>
-                    为项目设置一个新名称
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="rename-name">项目名称</Label>
-                    <Input
-                      id="rename-name"
-                      placeholder="输入新的项目名称"
-                      value={renameProjectName}
-                      onChange={(e) => setRenameProjectName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleConfirmRename();
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
-                    取消
-                  </Button>
-                  <Button onClick={handleConfirmRename}>确认</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                  {/* 重命名项目对话框 */}
+                  <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+                    <DialogContent className="sm:max-w-[400px]">
+                      <DialogHeader>
+                        <DialogTitle>重命名项目</DialogTitle>
+                        <DialogDescription>
+                          为项目设置一个新名称
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="rename-name">项目名称</Label>
+                          <Input
+                            id="rename-name"
+                            placeholder="输入新的项目名称"
+                            value={renameProjectName}
+                            onChange={(e) => setRenameProjectName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleConfirmRename();
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+                          取消
+                        </Button>
+                        <Button onClick={handleConfirmRename}>确认</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
+                        <User className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <div className="px-2 py-1.5 text-sm text-gray-600">
+                        {user.email}
+                      </div>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        <LogOut className="w-4 h-4 mr-2" />
+                        退出登录
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
+                <Button className="gap-2" onClick={() => setIsAuthModalOpen(true)}>
+                  <LogIn className="w-4 h-4" />
+                  登录 / 注册
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
+      {/* Auth Modal */}
+      <AuthModal open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen} />
+
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        {projects.length === 0 ? (
+        {!user ? (
+          // 未登录状态
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
+              <User className="w-12 h-12 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">欢迎使用研学旅行成本核算工具</h2>
+            <p className="text-gray-500 mb-6">请登录或注册账号，开始管理您的研学项目</p>
+            <Button onClick={() => setIsAuthModalOpen(true)} className="gap-2">
+              <LogIn className="w-4 h-4" />
+              登录 / 注册
+            </Button>
+          </div>
+        ) : projectsLoading ? (
+          // 加载中
+          <div className="flex items-center justify-center py-20">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : projects.length === 0 ? (
+          // 已登录但无项目
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
               <Calendar className="w-12 h-12 text-gray-400" />
@@ -228,6 +321,7 @@ export default function Home() {
             </Button>
           </div>
         ) : (
+          // 项目列表
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
               <Card 

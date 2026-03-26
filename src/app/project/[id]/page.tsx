@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Download, Plus, Trash2, Pencil, Check, FileSpreadsheet, Image, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Download, Plus, Trash2, Pencil, Check, FileSpreadsheet, Image, FileText, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,8 @@ import {
   DEFAULT_OTHER_EXPENSES,
   DEFAULT_INSURANCE_CONFIG
 } from '@/types';
-import { getProjectData, updateProjectData } from '@/lib/storage';
+import { getProjectData, updateProjectData } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { calculateCostSummary, calculateServiceFee, formatMoney } from '@/lib/calculation';
 import { exportToExcel, exportElementAsImage, exportElementAsPDF } from '@/lib/export';
 
@@ -35,7 +36,9 @@ const PROJECT_TYPES: { value: ProjectType; label: string }[] = [
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [isQuoteEditing, setIsQuoteEditing] = useState(false);
@@ -48,14 +51,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [showQuoteExportMenu, setShowQuoteExportMenu] = useState(false);
 
   useEffect(() => {
-    const data = getProjectData(id);
-    if (data) {
-      // 迁移旧数据格式
-      migrateOldData(data);
-      setProjectData(data);
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push('/');
+      return;
     }
-    else { alert('项目不存在'); router.push('/'); }
-  }, [id, router]);
+    
+    const loadData = async () => {
+      setIsLoading(true);
+      const data = await getProjectData(id);
+      if (data) {
+        // 迁移旧数据格式
+        migrateOldData(data);
+        setProjectData(data);
+      } else {
+        alert('项目不存在或无权限访问');
+        router.push('/');
+      }
+      setIsLoading(false);
+    };
+    
+    loadData();
+  }, [id, router, user, authLoading]);
 
   // 迁移旧数据格式到新格式
   const migrateOldData = (data: ProjectData) => {
@@ -127,11 +145,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setProjectData({ ...projectData, ...updates });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!projectData) return;
     setIsSaving(true);
-    updateProjectData(projectData);
-    setTimeout(() => { setIsSaving(false); alert('保存成功！'); }, 300);
+    const success = await updateProjectData(projectData);
+    setIsSaving(false);
+    if (success) {
+      alert('保存成功！');
+    } else {
+      alert('保存失败，请重试');
+    }
   };
 
   // 导出 Excel
@@ -324,7 +347,33 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     URL.revokeObjectURL(url);
   };
 
-  if (!projectData) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div></div>;
+  if (authLoading || isLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">加载中...</p>
+      </div>
+    </div>
+  );
+  
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <LogIn className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+        <p className="text-gray-600 mb-4">请先登录</p>
+        <Button onClick={() => router.push('/')}>返回首页</Button>
+      </div>
+    </div>
+  );
+  
+  if (!projectData) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-gray-600 mb-4">项目不存在或无权限访问</p>
+        <Button onClick={() => router.push('/')}>返回首页</Button>
+      </div>
+    </div>
+  );
 
   const { coreConfig, dailyExpenses, otherExpenses } = projectData;
   const summary = calculateCostSummary(projectData);
