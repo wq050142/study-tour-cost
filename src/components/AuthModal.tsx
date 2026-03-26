@@ -53,10 +53,20 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       if (mode === 'register') {
         const { error } = await signUp(email.trim(), password);
         if (error) {
-          setError(error.message);
+          // 检查是否是需要邮箱验证的提示
+          if (error.message.includes('注册成功')) {
+            setError(error.message);
+            setTimeout(() => {
+              setMode('login');
+              setError('');
+            }, 3000);
+          } else {
+            setError(error.message);
+          }
         } else {
-          setError('注册成功！请查收邮件验证您的账户。');
-          setMode('login');
+          // 注册成功且直接登录，关闭对话框
+          onOpenChange(false);
+          resetForm();
         }
       } else {
         const { error } = await signIn(email.trim(), password);
@@ -139,7 +149,11 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           )}
           
           {error && (
-            <div className={`text-sm ${error.includes('成功') ? 'text-green-600' : 'text-red-500'}`}>
+            <div className={`text-sm p-2 rounded ${
+              error.includes('注册成功') 
+                ? 'bg-green-50 text-green-700 border border-green-200' 
+                : 'text-red-500'
+            }`}>
               {error}
             </div>
           )}

@@ -82,13 +82,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error(data.error) };
       }
       
-      if (data.session) {
+      // 如果返回了 session，说明可以直接登录
+      if (data.session && data.session.access_token) {
         setSession(data.session);
-        setUser(data.user);
+        setUser(data.session.user);
         localStorage.setItem(SESSION_KEY, JSON.stringify(data.session));
+        return { error: null };
       }
       
-      return { error: null };
+      // 如果没有 session，可能需要邮箱验证
+      // 返回提示信息
+      return { 
+        error: new Error('注册成功！如果项目开启了邮箱验证，请查收验证邮件。如果未开启邮箱验证，请直接登录。') 
+      };
     } catch (err) {
       return { error: err instanceof Error ? err : new Error('注册失败') };
     }
