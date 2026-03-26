@@ -518,7 +518,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       </header>
 
       <main className="flex gap-4 p-4">
-        <div className="flex-1 min-w-0 max-w-3xl space-y-4">
+        <div className="flex-1 min-w-0 space-y-4">
           {/* 项目时长 - 仅多日项目显示 */}
           {projectData.project.type === 'multi-day' && (
             <Card>
@@ -1143,7 +1143,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 右侧面板 */}
-        <div className="w-[420px] flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
+        <div className="w-80 flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
           {/* 成本表 */}
           <Card>
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
