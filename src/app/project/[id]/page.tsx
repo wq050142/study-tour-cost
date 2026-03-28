@@ -508,30 +508,36 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const newMembers = coreConfig.staffMembers.map(m => 
       m.id === id ? { ...m, ...updates } : m
     );
-    updateData({ coreConfig: { ...coreConfig, staffMembers: newMembers } });
+    const newCoreConfig = { ...coreConfig, staffMembers: newMembers };
     
-    // 如果更新的是日薪且值为0，清除每日费用中对应的历史值
-    if (updates.dailyFee !== undefined && updates.dailyFee === 0) {
-      const newDailyExpenses = dailyExpenses.map(day => {
-        // 使用 Object.fromEntries 创建新对象，排除掉指定id的属性
-        const newStaffFees: Record<string, number> = {};
-        Object.entries(day.staffFees).forEach(([key, value]) => {
-          if (key !== id) {
-            newStaffFees[key] = value;
-          }
+    // 同步更新每日费用中的日薪
+    let newDailyExpenses = dailyExpenses;
+    if (updates.dailyFee !== undefined) {
+      if (updates.dailyFee === 0) {
+        // 清除每日费用中对应的历史值
+        newDailyExpenses = dailyExpenses.map(day => {
+          const newStaffFees: Record<string, number> = {};
+          Object.entries(day.staffFees || {}).forEach(([key, value]) => {
+            if (key !== id) {
+              newStaffFees[key] = value;
+            }
+          });
+          return { ...day, staffFees: newStaffFees };
         });
-        return { ...day, staffFees: newStaffFees };
-      });
-      updateData({ dailyExpenses: newDailyExpenses });
+      } else {
+        // 同步到每日费用
+        newDailyExpenses = dailyExpenses.map(day => ({
+          ...day,
+          staffFees: { ...(day.staffFees || {}), [id]: updates.dailyFee } as Record<string, number>
+        }));
+      }
     }
-    // 如果更新的是日薪且值大于0，同步到每日费用
-    if (updates.dailyFee !== undefined && updates.dailyFee > 0) {
-      const newDailyExpenses = dailyExpenses.map(day => ({
-        ...day,
-        staffFees: { ...day.staffFees, [id]: updates.dailyFee } as Record<string, number>
-      }));
-      updateData({ dailyExpenses: newDailyExpenses });
-    }
+    
+    // 一次性更新所有数据
+    updateData({ 
+      coreConfig: newCoreConfig, 
+      dailyExpenses: newDailyExpenses 
+    });
   };
 
   // 删除工作人员
