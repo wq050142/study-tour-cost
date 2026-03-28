@@ -272,13 +272,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       coreConfig.staffMembers.filter(m => m.count > 0).forEach((member) => {
         // 计算该工作人员的实际总费用（使用每日费用中的实际日薪）
         let actualTotalFee = 0;
+        let firstDailyFee = 0;
         dailyExpenses.forEach(day => {
           const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+          if (dailyFee > 0 && firstDailyFee === 0) {
+            firstDailyFee = dailyFee;
+          }
           actualTotalFee += dailyFee * member.count;
         });
-        // 获取默认日薪用于显示
-        const defaultDailyFee = member.dailyFee || (dailyExpenses[0]?.staffFees[member.id] ?? 0);
-        lines.push(`  ${member.name}：${member.count}人 × ${defaultDailyFee}元/天 × ${coreConfig.tripDays}天 = ${formatMoney(actualTotalFee)}`);
+        // 显示的日薪：优先使用找到的第一个有效日薪，否则使用核心配置
+        const displayDailyFee = firstDailyFee || member.dailyFee;
+        lines.push(`  ${member.name}：${member.count}人 × ${displayDailyFee}元/天 × ${coreConfig.tripDays}天 = ${formatMoney(actualTotalFee)}`);
       });
     }
     
@@ -1547,15 +1551,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       {coreConfig.staffMembers.filter(m => m.count > 0).map((member) => {
                         // 计算该工作人员的实际总费用（使用每日费用中的实际日薪）
                         let actualTotalFee = 0;
+                        let firstDailyFee = 0;
                         dailyExpenses.forEach(day => {
                           const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+                          if (dailyFee > 0 && firstDailyFee === 0) {
+                            firstDailyFee = dailyFee;
+                          }
                           actualTotalFee += dailyFee * member.count;
                         });
-                        // 获取默认日薪用于显示
-                        const defaultDailyFee = member.dailyFee || (dailyExpenses[0]?.staffFees[member.id] ?? 0);
+                        // 显示的日薪：优先使用找到的第一个有效日薪，否则使用核心配置
+                        const displayDailyFee = firstDailyFee || member.dailyFee;
                         return (
                           <div key={member.id} className="flex justify-between">
-                            <span>{member.name} {member.count}人 × {defaultDailyFee}元/天 × {coreConfig.tripDays}天</span>
+                            <span>{member.name} {member.count}人 × {displayDailyFee}元/天 × {coreConfig.tripDays}天</span>
                             <span>{formatMoney(actualTotalFee)}</span>
                           </div>
                         );
