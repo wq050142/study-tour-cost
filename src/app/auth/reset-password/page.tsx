@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import { MapPin } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -17,17 +18,62 @@ function ResetPasswordContent() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  
-  // 从 URL 获取 token
-  const token = searchParams.get('token') || searchParams.get('token_hash') || '';
-  const type = searchParams.get('type');
+  const [sessionReady, setSessionReady] = useState(false);
   
   useEffect(() => {
-    // 检查是否是有效的重置链接
-    if (!token || type !== 'recovery') {
-      setError('无效的密码重置链接');
-    }
-  }, [token, type]);
+    const initSession = async () => {
+      // 从 URL hash 或查询参数中获取 token
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      
+      const accessToken = hashParams.get('access_token') || searchParams.get('access_token') || '';
+      const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token') || '';
+      const type = hashParams.get('type') || searchParams.get('type') || '';
+      
+      console.log('Reset params:', { accessToken: !!accessToken, type });
+      
+      if (!accessToken) {
+        setError('无效的密码重置链接：缺少验证令牌');
+        return;
+      }
+      
+      if (type !== 'recovery') {
+        setError('无效的链接类型，请确认是从密码重置邮件点击的链接');
+        return;
+      }
+      
+      try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.COZE_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.COZE_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          setError('服务配置错误');
+          return;
+        }
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // 设置会话
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        });
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setError('链接已过期或无效，请重新申请密码重置');
+          return;
+        }
+        
+        setSessionReady(true);
+      } catch (err) {
+        console.error('Init error:', err);
+        setError('初始化失败，请重试');
+      }
+    };
+    
+    initSession();
+  }, [searchParams]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,16 +92,17 @@ function ResetPasswordContent() {
     setLoading(true);
     
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.COZE_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.COZE_SUPABASE_ANON_KEY;
+      
+      const supabase = createClient(supabaseUrl!, supabaseKey!);
+      
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password,
       });
       
-      const data = await response.json();
-      
-      if (data.error) {
-        setError(data.error);
+      if (updateError) {
+        setError(updateError.message);
       } else {
         setSuccess(true);
         setTimeout(() => {
@@ -114,7 +161,7 @@ function ResetPasswordContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
-                    disabled={loading}
+                    disabled={loading || !sessionReady}
                   />
                 </div>
               </div>
@@ -130,12 +177,12 @@ function ResetPasswordContent() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
-                    disabled={loading}
+                    disabled={loading || !sessionReady}
                   />
                 </div>
               </div>
               
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || !sessionReady}>
                 {loading ? '处理中...' : '确认重置'}
               </Button>
             </form>

@@ -64,6 +64,34 @@ export default function Home() {
   const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
   const [isTrashSelectMode, setIsTrashSelectMode] = useState(false);
 
+  // 处理 Supabase 回调（邮箱验证、密码重置等）
+  useEffect(() => {
+    const handleCallback = () => {
+      const hash = window.location.hash.substring(1);
+      if (!hash) return;
+      
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      if (accessToken && type) {
+        console.log('Detected Supabase callback:', { type });
+        
+        // 根据类型跳转到对应页面
+        if (type === 'signup' || type === 'email_change') {
+          // 邮箱验证，跳转到验证页面
+          router.push(`/auth/verify-email${window.location.hash}`);
+        } else if (type === 'recovery') {
+          // 密码重置，跳转到重置密码页面
+          router.push(`/auth/reset-password${window.location.hash}`);
+        }
+      }
+    };
+    
+    handleCallback();
+  }, [router]);
+
   // 加载数据
   useEffect(() => {
     if (!authLoading && user) {
