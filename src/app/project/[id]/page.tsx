@@ -1895,6 +1895,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
                 
+                {/* 服务费和税费 */}
+                {(() => {
+                  const serviceFee = calculateServiceFee(summary.totalCost, otherExpenses.serviceFeePercent);
+                  const tax = (summary.totalCost + serviceFee) * (otherExpenses.taxPercent ?? 1) / 100;
+                  const totalWithFee = summary.totalCost + serviceFee + tax;
+                  return (
+                    <div className="mt-2 pt-2 border-t border-gray-100 space-y-1 text-sm">
+                      <div className="flex justify-between py-1 text-gray-600">
+                        <span>服务费（{otherExpenses.serviceFeePercent}%）</span>
+                        <span>{formatMoney(serviceFee)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 text-gray-600">
+                        <span>税费（{otherExpenses.taxPercent ?? 1}%）</span>
+                        <span>{formatMoney(tax)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 bg-blue-50 rounded px-2">
+                        <span className="font-semibold text-gray-800">成本合计</span>
+                        <span className="font-bold text-blue-700">{formatMoney(totalWithFee)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
                 {/* 利润分析 */}
                 <div className="mt-4 pt-3 border-t-2 border-gray-200">
                   <div className="text-sm font-semibold text-gray-700 mb-2">利润分析</div>
