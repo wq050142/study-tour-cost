@@ -565,14 +565,14 @@ export default function Home() {
               </div>
             ) : viewMode === 'card' ? (
               /* 卡片视图 */
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* 文件夹 */}
                 {childFolders.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {childFolders.map((folder) => (
                       <Card 
                         key={folder.id} 
-                        className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-blue-300 ${
+                        className={`cursor-pointer hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
                           isSelectMode && selectedFolderIds.has(folder.id) ? 'ring-2 ring-blue-500 border-blue-300' : ''
                         }`}
                         onClick={() => {
@@ -583,19 +583,19 @@ export default function Home() {
                           }
                         }}
                       >
-                        <CardHeader className="pb-2">
+                        <div className="p-3">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               {isSelectMode && (
                                 <Checkbox checked={selectedFolderIds.has(folder.id)} />
                               )}
-                              <FolderIcon className="w-6 h-6 text-blue-500" />
-                              <CardTitle className="text-base">{folder.name}</CardTitle>
+                              <FolderIcon className="w-5 h-5 text-blue-500" />
+                              <span className="font-medium text-sm truncate">{folder.name}</span>
                             </div>
                             {!isSelectMode && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -611,7 +611,7 @@ export default function Home() {
                               </DropdownMenu>
                             )}
                           </div>
-                        </CardHeader>
+                        </div>
                       </Card>
                     ))}
                   </div>
@@ -619,11 +619,11 @@ export default function Home() {
 
                 {/* 项目 */}
                 {projects.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {projects.map((project) => (
                       <Card 
                         key={project.id} 
-                        className={`cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-blue-300 ${
+                        className={`cursor-pointer hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
                           isSelectMode && selectedProjectIds.has(project.id) ? 'ring-2 ring-blue-500 border-blue-300' : ''
                         }`}
                         onClick={() => {
@@ -634,26 +634,26 @@ export default function Home() {
                           }
                         }}
                       >
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
+                        <div className="p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
                                 {isSelectMode && (
                                   <Checkbox checked={selectedProjectIds.has(project.id)} />
                                 )}
-                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                                <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700">
                                   {PROJECT_TYPE_LABELS[project.type]}
                                 </span>
                               </div>
-                              <CardTitle className="text-lg">{project.name}</CardTitle>
+                              <div className="font-medium text-sm truncate">{project.name}</div>
                               {project.remark && (
-                                <CardDescription className="mt-2 line-clamp-2">{project.remark}</CardDescription>
+                                <p className="mt-1 text-xs text-gray-500 line-clamp-1">{project.remark}</p>
                               )}
                             </div>
                             {!isSelectMode && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -672,19 +672,11 @@ export default function Home() {
                               </DropdownMenu>
                             )}
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <Users className="w-4 h-4" />
-                            <span>创建于 {new Date(project.createdAt).toLocaleDateString()}</span>
+                          <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                            <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                            <span>更新 {new Date(project.updatedAt).toLocaleDateString()}</span>
                           </div>
-                        </CardContent>
-                        <CardFooter className="pt-0">
-                          <div className="flex items-center gap-2 text-xs text-gray-400">
-                            <Calendar className="w-3 h-3" />
-                            <span>最后更新: {new Date(project.updatedAt).toLocaleDateString()}</span>
-                          </div>
-                        </CardFooter>
+                        </div>
                       </Card>
                     ))}
                   </div>
