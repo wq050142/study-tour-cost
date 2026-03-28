@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import { MapPin } from 'lucide-react';
@@ -13,12 +14,32 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const [errorCode, setErrorCode] = useState('');
+  
+  // 重新发送验证邮件
+  const [email, setEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   
   useEffect(() => {
     const verifyEmail = async () => {
-      // 从 URL hash 或查询参数中获取 token
+      // 从 URL hash 或查询参数中获取参数
       const hash = window.location.hash.substring(1);
       const hashParams = new URLSearchParams(hash);
+      
+      // 检查是否有错误参数
+      const error = hashParams.get('error') || searchParams.get('error');
+      const errCode = hashParams.get('error_code') || searchParams.get('error_code');
+      const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+      
+      if (error) {
+        console.error('Supabase error:', { error, errCode, errorDescription });
+        setStatus('error');
+        setErrorCode(errCode || '');
+        // 解码错误描述
+        setMessage(decodeURIComponent(errorDescription?.replace(/\+/g, ' ') || error || '验证失败'));
+        return;
+      }
       
       // 优先从 hash 获取，其次从查询参数获取
       const accessToken = hashParams.get('access_token') || searchParams.get('access_token') || '';
@@ -50,15 +71,15 @@ function VerifyEmailContent() {
           
           // 方式1：使用 access_token 设置会话
           if (accessToken) {
-            const { error } = await supabase.auth.setSession({
+            const { error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
             
-            if (error) {
-              console.error('Session error:', error);
+            if (sessionError) {
+              console.error('Session error:', sessionError);
               setStatus('error');
-              setMessage('验证失败：' + error.message);
+              setMessage('验证失败：' + sessionError.message);
               return;
             }
             
@@ -69,15 +90,15 @@ function VerifyEmailContent() {
           
           // 方式2：使用 token_hash 验证
           if (tokenHash) {
-            const { error } = await supabase.auth.verifyOtp({
+            const { error: otpError } = await supabase.auth.verifyOtp({
               token_hash: tokenHash,
               type: type === 'email_change' ? 'email_change' : 'signup',
             });
             
-            if (error) {
-              console.error('OTP error:', error);
+            if (otpError) {
+              console.error('OTP error:', otpError);
               setStatus('error');
-              setMessage('验证失败：' + error.message);
+              setMessage('验证失败：' + otpError.message);
               return;
             }
             
@@ -99,6 +120,34 @@ function VerifyEmailContent() {
     
     verifyEmail();
   }, [searchParams]);
+  
+  const handleResendVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) return;
+    
+    setResending(true);
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        setMessage(data.error);
+      } else {
+        setResendSuccess(true);
+        setMessage('');
+      }
+    } catch (err) {
+      setMessage('发送失败，请重试');
+    } finally {
+      setResending(false);
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -129,7 +178,31 @@ function VerifyEmailContent() {
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">验证失败</h2>
               <p className="text-gray-500 mb-4">{message}</p>
-              <div className="flex gap-2 justify-center">
+              
+              {/* 如果链接过期，显示重新发送表单 */}
+              {(errorCode === 'otp_expired' || message.includes('过期')) && !resendSuccess && (
+                <form onSubmit={handleResendVerification} className="mt-4 space-y-3 text-left">
+                  <p className="text-sm text-gray-500 text-center">重新发送验证邮件：</p>
+                  <Input
+                    type="email"
+                    placeholder="请输入您的注册邮箱"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={resending}
+                  />
+                  <Button type="submit" className="w-full" disabled={resending || !email.trim()}>
+                    {resending ? '发送中...' : '重新发送验证邮件'}
+                  </Button>
+                </form>
+              )}
+              
+              {resendSuccess && (
+                <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-lg">
+                  验证邮件已发送，请查收邮箱
+                </div>
+              )}
+              
+              <div className="mt-4">
                 <Button variant="outline" onClick={() => router.push('/')}>返回首页</Button>
               </div>
             </>
