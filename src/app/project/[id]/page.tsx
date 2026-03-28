@@ -386,6 +386,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     coreConfig.staffMembers = [...DEFAULT_STAFF_MEMBERS];
   }
   
+  // 同步工作人员日薪：如果核心配置中的日薪为0，清除每日费用中对应的历史值
+  coreConfig.staffMembers.forEach(member => {
+    if (member.dailyFee === 0) {
+      dailyExpenses.forEach(day => {
+        if (day.staffFees && day.staffFees[member.id] !== undefined && day.staffFees[member.id] !== 0) {
+          delete day.staffFees[member.id];
+        }
+      });
+    }
+  });
+  
   // 确保其他费用格式正确
   if (!otherExpenses.insurance || typeof otherExpenses.insurance !== 'object') {
     otherExpenses.insurance = { ...DEFAULT_INSURANCE_CONFIG, days: coreConfig.tripDays };
@@ -487,6 +498,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       m.id === id ? { ...m, ...updates } : m
     );
     updateData({ coreConfig: { ...coreConfig, staffMembers: newMembers } });
+    
+    // 如果更新的是日薪且值为0，清除每日费用中对应的历史值
+    if (updates.dailyFee !== undefined && updates.dailyFee === 0) {
+      const newDailyExpenses = dailyExpenses.map(day => {
+        // 使用 Object.fromEntries 创建新对象，排除掉指定id的属性
+        const newStaffFees: Record<string, number> = {};
+        Object.entries(day.staffFees).forEach(([key, value]) => {
+          if (key !== id) {
+            newStaffFees[key] = value;
+          }
+        });
+        return { ...day, staffFees: newStaffFees };
+      });
+      updateData({ dailyExpenses: newDailyExpenses });
+    }
+    // 如果更新的是日薪且值大于0，同步到每日费用
+    if (updates.dailyFee !== undefined && updates.dailyFee > 0) {
+      const newDailyExpenses = dailyExpenses.map(day => ({
+        ...day,
+        staffFees: { ...day.staffFees, [id]: updates.dailyFee } as Record<string, number>
+      }));
+      updateData({ dailyExpenses: newDailyExpenses });
+    }
   };
 
   // 删除工作人员
@@ -774,15 +808,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-400">日薪</span>
-                    <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={member.dailyFee} onChange={(v) => {
-                      updateStaffMember(member.id, { dailyFee: v });
-                      // 同步更新每日费用中的参考薪资
-                      const newDailyExpenses = dailyExpenses.map(day => ({
-                        ...day,
-                        staffFees: { ...day.staffFees, [member.id]: v }
-                      }));
-                      updateData({ dailyExpenses: newDailyExpenses });
-                    }} />
+                    <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={member.dailyFee} onChange={(v) => updateStaffMember(member.id, { dailyFee: v })} />
                     <span className="text-gray-500">元</span>
                   </div>
                   {coreConfig.staffMembers.length > 1 && (
