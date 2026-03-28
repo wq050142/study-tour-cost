@@ -2135,29 +2135,59 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="py-3 px-4">
               {(() => {
-                // 计算住宿费报价 - 按每日实际数据
-                let quoteAccommodation = 0;
-                const dailyAccommodationDetails: { day: number; accommodationType: AccommodationType; hotelName?: string; twinCount: number; twinPrice: number; kingCount: number; kingPrice: number; amount: number }[] = [];
+                // 计算住宿费报价 - 按每日实际数据，支持编辑
+                const dailyAccommodationDetails: { day: number; dayIdx: number; accommodationType: AccommodationType; hotelName?: string; twinCount: number; twinPrice: number; kingCount: number; kingPrice: number; costAmount: number; quoteAmount: number }[] = [];
                 
-                dailyExpenses.slice(0, coreConfig.accommodationDays).forEach((day) => {
+                let quoteAccommodation = 0;
+                dailyExpenses.slice(0, coreConfig.accommodationDays).forEach((day, idx) => {
                   const dayTwinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
                   const dayTwinPrice = day.twinRoomPrice ?? coreConfig.twinRoom?.price ?? 0;
                   const dayKingCount = day.kingRoomCount ?? coreConfig.kingRoom?.countClient ?? 0;
                   const dayKingPrice = day.kingRoomPrice ?? coreConfig.kingRoom?.price ?? 0;
-                  const dayAmount = day.accommodationAmount || (dayTwinCount * dayTwinPrice + dayKingCount * dayKingPrice);
+                  const costAmount = day.accommodationAmount || (dayTwinCount * dayTwinPrice + dayKingCount * dayKingPrice);
+                  const quoteAmount = day.quoteAccommodationAmount ?? costAmount;
                   
-                  if (dayAmount > 0) {
-                    quoteAccommodation += dayAmount;
+                  if (costAmount > 0 || quoteAmount > 0) {
+                    quoteAccommodation += quoteAmount;
                     dailyAccommodationDetails.push({
                       day: day.day,
+                      dayIdx: idx,
                       accommodationType: day.accommodationType || coreConfig.accommodationType,
                       hotelName: day.hotelName || coreConfig.accommodationHotelName,
                       twinCount: dayTwinCount,
                       twinPrice: dayTwinPrice,
                       kingCount: dayKingCount,
                       kingPrice: dayKingPrice,
-                      amount: dayAmount
+                      costAmount,
+                      quoteAmount
                     });
+                  }
+                });
+                
+                // 计算工作人员费用报价
+                let quoteStaffFee = 0;
+                const dailyStaffDetails: { day: number; staffList: { name: string; count: number; dailyFee: number; amount: number }[]; dayTotal: number }[] = [];
+                
+                dailyExpenses.forEach(day => {
+                  const staffList: { name: string; count: number; dailyFee: number; amount: number }[] = [];
+                  
+                  // 核心配置的工作人员
+                  coreConfig.staffMembers.filter(m => m.count > 0).forEach(member => {
+                    const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+                    const amount = dailyFee * member.count;
+                    staffList.push({ name: member.name, count: member.count, dailyFee, amount });
+                  });
+                  
+                  // 每日独立添加的工作人员
+                  (day.staffMembers || []).forEach(member => {
+                    const amount = member.dailyFee * member.count;
+                    staffList.push({ name: member.name, count: member.count, dailyFee: member.dailyFee, amount });
+                  });
+                  
+                  const dayTotal = staffList.reduce((sum, s) => sum + s.amount, 0);
+                  if (dayTotal > 0) {
+                    quoteStaffFee += dayTotal;
+                    dailyStaffDetails.push({ day: day.day, staffList, dayTotal });
                   }
                 });
                 
@@ -2207,8 +2237,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const materialsQuote = otherExpenses.materials.reduce((s, m) => s + (m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity), 0);
                 const quoteOtherExpenses = insuranceQuote + materialsQuote;
                 
-                // 报价小计
-                const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteSingleItemsTotal + quoteOtherExpenses;
+                // 报价小计（包含工作人员费用）
+                const quoteSubtotal = quoteAccommodation + quoteMealTotal + quoteBus + quoteStaffFee + quoteSingleItemsTotal + quoteOtherExpenses;
                 const quoteServiceFee = calculateServiceFee(quoteSubtotal, otherExpenses.serviceFeePercent);
                 const quoteTax = (quoteSubtotal + quoteServiceFee) * (otherExpenses.taxPercent ?? 1) / 100;
                 const quoteTotal = quoteSubtotal + quoteServiceFee + quoteTax;
@@ -2217,7 +2247,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 
                 return (
                   <div className="space-y-0 text-sm">
-                    {/* 住宿费明细 - 按每日实际数据 */}
+                    {/* 住宿费明细 - 按每日实际数据，支持编辑 */}
                     {projectData.project.type === 'multi-day' && quoteAccommodation > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
@@ -2229,11 +2259,53 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div key={detail.day} className="py-1">
                               <div className="flex justify-between font-medium text-gray-700">
                                 <span>D{detail.day} {ACCOMMODATION_TYPE_LABELS[detail.accommodationType]}{detail.hotelName ? ` · ${detail.hotelName}` : ''}</span>
-                                <span>{formatMoney(detail.amount)}</span>
+                                <div className="flex items-center gap-1">
+                                  {isQuoteEditing ? (
+                                    <NumberInput 
+                                      className="h-6 w-16 text-xs px-1 text-right border rounded" 
+                                      value={detail.quoteAmount} 
+                                      onChange={(v) => {
+                                        const newDays = [...dailyExpenses];
+                                        newDays[detail.dayIdx] = { ...newDays[detail.dayIdx], quoteAccommodationAmount: v };
+                                        updateData({ dailyExpenses: newDays });
+                                      }}
+                                    />
+                                  ) : (
+                                    <span>{formatMoney(detail.quoteAmount)}</span>
+                                  )}
+                                </div>
                               </div>
                               <div className="text-gray-500 pl-2">
                                 {detail.twinCount > 0 && <span>双床{detail.twinCount}间×{detail.twinPrice}元 </span>}
                                 {detail.kingCount > 0 && <span>大床{detail.kingCount}间×{detail.kingPrice}元</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* 工作人员费用明细 - 按每日实际数据 */}
+                    {quoteStaffFee > 0 && (
+                      <>
+                        <div className="flex justify-between py-2 border-b border-gray-100">
+                          <span className="text-gray-600 font-medium">工作人员</span>
+                          <span className="font-medium">{formatMoney(quoteStaffFee)}</span>
+                        </div>
+                        <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
+                          {dailyStaffDetails.map((dayDetail) => (
+                            <div key={dayDetail.day} className="py-1">
+                              <div className="flex justify-between font-medium text-gray-700">
+                                <span>D{dayDetail.day}</span>
+                                <span>{formatMoney(dayDetail.dayTotal)}</span>
+                              </div>
+                              <div className="text-gray-500 pl-2 space-y-0.5">
+                                {dayDetail.staffList.map((staff, idx) => (
+                                  <div key={idx} className="flex justify-between">
+                                    <span>{staff.name} {staff.count}人 × {staff.dailyFee}元/天</span>
+                                    <span>{formatMoney(staff.amount)}</span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           ))}

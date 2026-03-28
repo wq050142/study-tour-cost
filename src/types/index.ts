@@ -124,6 +124,7 @@ export interface DailyExpense {
   kingRoomCount?: number; // 大床房数量（默认使用客户配置）
   kingRoomPrice?: number; // 大床房单价（默认使用客户配置）
   accommodationAmount: number; // 住宿总费用（可独立设置）
+  quoteAccommodationAmount?: number; // 住宿报价（可独立设置，默认等于 accommodationAmount）
   
   // 工作人员住宿费用
   staffRoomCount?: number; // 工作人员房间数
