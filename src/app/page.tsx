@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil, LogOut, User, LogIn } from 'lucide-react';
+import { Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil, LogOut, User, LogIn, Archive, RotateCcw, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Project, ProjectType, PROJECT_TYPE_LABELS } from '@/types';
-import { getProjects, createProject, deleteProject, copyProject, updateProjectName } from '@/lib/api';
+import { getProjects, createProject, deleteProject, copyProject, updateProjectName, getTrashProjects, restoreProject, permanentDeleteProject } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from '@/components/AuthModal';
 
@@ -32,6 +32,11 @@ export default function Home() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [renameProjectId, setRenameProjectId] = useState<string>('');
   const [renameProjectName, setRenameProjectName] = useState('');
+  
+  // 回收站相关状态
+  const [isTrashDialogOpen, setIsTrashDialogOpen] = useState(false);
+  const [trashProjects, setTrashProjects] = useState<Project[]>([]);
+  const [trashLoading, setTrashLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -70,10 +75,47 @@ export default function Home() {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (confirm('确定要删除这个项目吗？此操作不可恢复。')) {
+    if (confirm('确定要删除这个项目吗？删除后可在回收站找回。')) {
       const success = await deleteProject(projectId);
       if (success) {
         loadProjects();
+      } else {
+        alert('删除项目失败，请重试');
+      }
+    }
+  };
+
+  // 加载回收站项目
+  const loadTrashProjects = async () => {
+    setTrashLoading(true);
+    const projects = await getTrashProjects();
+    setTrashProjects(projects);
+    setTrashLoading(false);
+  };
+
+  // 打开回收站
+  const handleOpenTrash = () => {
+    setIsTrashDialogOpen(true);
+    loadTrashProjects();
+  };
+
+  // 恢复项目
+  const handleRestoreProject = async (projectId: string) => {
+    const success = await restoreProject(projectId);
+    if (success) {
+      loadTrashProjects();
+      loadProjects();
+    } else {
+      alert('恢复项目失败，请重试');
+    }
+  };
+
+  // 永久删除项目
+  const handlePermanentDelete = async (projectId: string) => {
+    if (confirm('确定要永久删除这个项目吗？此操作不可恢复。')) {
+      const success = await permanentDeleteProject(projectId);
+      if (success) {
+        loadTrashProjects();
       } else {
         alert('删除项目失败，请重试');
       }
@@ -158,13 +200,17 @@ export default function Home() {
             <div className="flex items-center gap-3">
               {user ? (
                 <>
+                  <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="w-4 h-4" />
+                    新建项目
+                  </Button>
+                  
+                  <Button variant="outline" size="icon" onClick={handleOpenTrash} title="回收站">
+                    <Archive className="w-4 h-4" />
+                  </Button>
+
+                  {/* 新建项目对话框 */}
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        新建项目
-                      </Button>
-                    </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px]">
                       <DialogHeader>
                         <DialogTitle>新建研学项目</DialogTitle>
@@ -252,6 +298,74 @@ export default function Home() {
                         </Button>
                         <Button onClick={handleConfirmRename}>确认</Button>
                       </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* 回收站对话框 */}
+                  <Dialog open={isTrashDialogOpen} onOpenChange={setIsTrashDialogOpen}>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <Archive className="w-5 h-5" />
+                          回收站
+                        </DialogTitle>
+                        <DialogDescription>
+                          已删除的项目将在回收站保留，您可以恢复或永久删除
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="max-h-[400px] overflow-y-auto">
+                        {trashLoading ? (
+                          <div className="flex items-center justify-center py-8">
+                            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        ) : trashProjects.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500">
+                            <Archive className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                            <p>回收站是空的</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {trashProjects.map((project) => (
+                              <div 
+                                key={project.id} 
+                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-200 text-gray-600">
+                                      {PROJECT_TYPE_LABELS[project.type]}
+                                    </span>
+                                    <span className="font-medium">{project.name}</span>
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    删除于 {project.deletedAt ? new Date(project.deletedAt).toLocaleString() : '-'}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleRestoreProject(project.id)}
+                                    className="gap-1"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                    恢复
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handlePermanentDelete(project.id)}
+                                    className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash className="w-3 h-3" />
+                                    永久删除
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </DialogContent>
                   </Dialog>
 

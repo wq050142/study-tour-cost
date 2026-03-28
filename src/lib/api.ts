@@ -38,6 +38,7 @@ interface DbProject {
   other_expenses: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 // 将数据库格式转换为前端格式
@@ -190,6 +191,44 @@ export async function updateProjectName(projectId: string, name: string): Promis
   
   if (error) {
     console.error('更新项目名称失败:', error);
+    return false;
+  }
+  
+  return true;
+}
+
+// 获取回收站项目列表
+export async function getTrashProjects(): Promise<Project[]> {
+  const { data, error } = await apiRequest<{ projects: Project[] }>('/trash');
+  if (error) {
+    console.error('获取回收站列表失败:', error);
+    return [];
+  }
+  return data?.projects || [];
+}
+
+// 恢复项目
+export async function restoreProject(projectId: string): Promise<boolean> {
+  const { error } = await apiRequest(`/trash/${projectId}`, {
+    method: 'POST',
+  });
+  
+  if (error) {
+    console.error('恢复项目失败:', error);
+    return false;
+  }
+  
+  return true;
+}
+
+// 永久删除项目
+export async function permanentDeleteProject(projectId: string): Promise<boolean> {
+  const { error } = await apiRequest(`/trash/${projectId}`, {
+    method: 'DELETE',
+  });
+  
+  if (error) {
+    console.error('永久删除项目失败:', error);
     return false;
   }
   

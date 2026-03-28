@@ -31,6 +31,7 @@ export interface Project {
   remark: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null; // 软删除时间
 }
 
 // 房型配置

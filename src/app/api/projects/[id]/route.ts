@@ -81,7 +81,7 @@ export async function PUT(
   }
 }
 
-// 删除项目
+// 软删除项目（移入回收站）
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -95,9 +95,10 @@ export async function DELETE(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
+  // 软删除：设置 deleted_at 字段
   const { error } = await client
     .from('projects')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', id);
   
   if (error) {

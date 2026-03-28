@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await client
     .from('projects')
     .select('id, name, type, remark, created_at, updated_at')
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false });
   
   if (error) {
