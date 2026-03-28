@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
         name,
         type,
         remark: remark || '',
-        config: DEFAULT_CORE_CONFIG,
-        daily_costs: [],
-        other_costs: DEFAULT_OTHER_EXPENSES,
+        core_config: DEFAULT_CORE_CONFIG,
+        daily_expenses: [],
+        other_expenses: DEFAULT_OTHER_EXPENSES,
       })
       .select()
       .single();

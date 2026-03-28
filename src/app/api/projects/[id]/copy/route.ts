@@ -30,10 +30,17 @@ export async function POST(
     return NextResponse.json({ error: '项目不存在' }, { status: 404 });
   }
   
+  // 获取当前用户
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
   // 创建副本
   const { data, error } = await client
     .from('projects')
     .insert({
+      user_id: user.id,
       name: `${original.name} (副本)`,
       type: original.type,
       remark: original.remark,
