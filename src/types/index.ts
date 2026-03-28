@@ -23,12 +23,22 @@ export interface MealConfig {
   quoteAmount?: number; // 报价金额（可手动修改，默认等于 amount）
 }
 
+// 文件夹
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 项目基础信息
 export interface Project {
   id: string;
   name: string;
   type: ProjectType;
   remark: string;
+  folderId?: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null; // 软删除时间

@@ -5,6 +5,7 @@ import {
   CoreConfig, 
   DailyExpense, 
   OtherExpenses,
+  Folder,
   DEFAULT_CORE_CONFIG,
   DEFAULT_OTHER_EXPENSES
 } from '@/types';
@@ -91,8 +92,9 @@ async function apiRequest<T>(
 }
 
 // 获取所有项目列表
-export async function getProjects(): Promise<Project[]> {
-  const { data, error } = await apiRequest<{ projects: Project[] }>('/projects');
+export async function getProjects(folderId?: string | null): Promise<Project[]> {
+  const queryParam = folderId ? `?folderId=${folderId}` : '';
+  const { data, error } = await apiRequest<{ projects: Project[] }>(`/projects${queryParam}`);
   if (error) {
     console.error('获取项目列表失败:', error);
     return [];
@@ -233,4 +235,107 @@ export async function permanentDeleteProject(projectId: string): Promise<boolean
   }
   
   return true;
+}
+
+// 获取文件夹列表
+export async function getFolders(): Promise<Folder[]> {
+  const { data, error } = await apiRequest<{ folders: Folder[] }>('/folders');
+  if (error) {
+    console.error('获取文件夹列表失败:', error);
+    return [];
+  }
+  return data?.folders || [];
+}
+
+// 创建文件夹
+export async function createFolder(name: string, parentId?: string): Promise<Folder | null> {
+  const { data, error } = await apiRequest<{ folder: Folder }>('/folders', {
+    method: 'POST',
+    body: JSON.stringify({ name, parentId }),
+  });
+  
+  if (error) {
+    console.error('创建文件夹失败:', error);
+    return null;
+  }
+  
+  return data?.folder || null;
+}
+
+// 更新文件夹
+export async function updateFolder(folderId: string, name: string): Promise<boolean> {
+  const { error } = await apiRequest(`/folders/${folderId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  });
+  
+  if (error) {
+    console.error('更新文件夹失败:', error);
+    return false;
+  }
+  
+  return true;
+}
+
+// 删除文件夹
+export async function deleteFolder(folderId: string): Promise<boolean> {
+  const { error } = await apiRequest(`/folders/${folderId}`, {
+    method: 'DELETE',
+  });
+  
+  if (error) {
+    console.error('删除文件夹失败:', error);
+    return false;
+  }
+  
+  return true;
+}
+
+// 批量操作项目
+export async function batchOperateProjects(
+  action: 'delete' | 'move' | 'copy',
+  projectIds: string[],
+  targetFolderId?: string | null
+): Promise<{ success: boolean; count: number }> {
+  const { data, error } = await apiRequest<{ success: boolean; count: number }>('/projects/batch', {
+    method: 'POST',
+    body: JSON.stringify({ action, projectIds, targetFolderId }),
+  });
+  
+  if (error) {
+    console.error('批量操作失败:', error);
+    return { success: false, count: 0 };
+  }
+  
+  return data || { success: false, count: 0 };
+}
+
+// 批量恢复项目
+export async function batchRestoreProjects(projectIds: string[]): Promise<{ success: boolean; count: number }> {
+  const { data, error } = await apiRequest<{ success: boolean; count: number }>('/trash/batch', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'restore', projectIds }),
+  });
+  
+  if (error) {
+    console.error('批量恢复失败:', error);
+    return { success: false, count: 0 };
+  }
+  
+  return data || { success: false, count: 0 };
+}
+
+// 批量永久删除项目
+export async function batchDeleteProjects(projectIds: string[]): Promise<{ success: boolean; count: number }> {
+  const { data, error } = await apiRequest<{ success: boolean; count: number }>('/trash/batch', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'delete', projectIds }),
+  });
+  
+  if (error) {
+    console.error('批量永久删除失败:', error);
+    return { success: false, count: 0 };
+  }
+  
+  return data || { success: false, count: 0 };
 }
