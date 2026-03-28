@@ -151,12 +151,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const handleSave = async () => {
     if (!projectData) return;
     setIsSaving(true);
-    
-    // 调试日志
-    console.log('=== 保存数据 ===');
-    console.log('staffMembers:', JSON.stringify(projectData.coreConfig.staffMembers));
-    console.log('dailyExpenses[0].staffFees:', JSON.stringify(projectData.dailyExpenses[0]?.staffFees));
-    
     const success = await updateProjectData(projectData);
     setIsSaving(false);
     if (success) {
@@ -514,19 +508,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   // 更新工作人员
   const updateStaffMember = (id: string, updates: Partial<StaffMember>) => {
-    console.log('=== updateStaffMember ===');
-    console.log('id:', id, 'updates:', updates);
-    
     setProjectData(prev => {
       if (!prev) return prev;
-      
-      console.log('prev staffMembers:', prev.coreConfig.staffMembers.map(m => ({ id: m.id, name: m.name, count: m.count, dailyFee: m.dailyFee })));
       
       const newMembers = prev.coreConfig.staffMembers.map(m => 
         m.id === id ? { ...m, ...updates } : m
       );
-      
-      console.log('new staffMembers:', newMembers.map(m => ({ id: m.id, name: m.name, count: m.count, dailyFee: m.dailyFee })));
       
       const newCoreConfig = { ...prev.coreConfig, staffMembers: newMembers };
       
@@ -550,8 +537,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           }));
         }
       }
-      
-      console.log('newDailyExpenses[0].staffFees:', newDailyExpenses[0]?.staffFees);
       
       return { 
         ...prev,
@@ -1422,6 +1407,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div>
                   <CardTitle className="text-lg font-bold text-gray-800">成本核算与利润分析</CardTitle>
                   <p className="text-sm text-gray-500 mt-0.5">内部参考</p>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {projectData.project.type === 'multi-day' && (
+                      <span>行程{coreConfig.tripDays}天 · </span>
+                    )}
+                    <span>
+                      {coreConfig.studentCount > 0 && `学生${coreConfig.studentCount}人`}
+                      {coreConfig.parentCount > 0 && `、家长${coreConfig.parentCount}人`}
+                      {coreConfig.teacherCount > 0 && `、老师${coreConfig.teacherCount}人`}
+                      {totalStaff > 0 && `、工作人员${totalStaff}人`}
+                    </span>
+                  </div>
                 </div>
                 <div className="relative export-button-container">
                   <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowCostExportMenu(!showCostExportMenu)}>
@@ -1452,7 +1448,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
                   <>
                     <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600 font-medium">住宿费</span>
+                      <span className="text-gray-600 font-medium">住宿费（{ACCOMMODATION_TYPE_LABELS[coreConfig.accommodationType]}）</span>
                       <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
                     </div>
                     <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
@@ -1837,7 +1833,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <Card>
             <CardHeader className="py-2 px-4 border-b bg-gray-50">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-bold text-gray-800">{projectData.project.name} 报价单</CardTitle>
+                <div>
+                  <CardTitle className="text-lg font-bold text-gray-800">{projectData.project.name} 报价单</CardTitle>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {projectData.project.type === 'multi-day' && (
+                      <span>行程{coreConfig.tripDays}天 · </span>
+                    )}
+                    <span>
+                      {coreConfig.studentCount > 0 && `学生${coreConfig.studentCount}人`}
+                      {coreConfig.parentCount > 0 && `、家长${coreConfig.parentCount}人`}
+                      {coreConfig.teacherCount > 0 && `、老师${coreConfig.teacherCount}人`}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2 export-button-container">
                   {isQuoteEditing ? (
                     <Button size="sm" className="h-7 text-xs" onClick={() => { setIsQuoteEditing(false); handleSave(); }}>
@@ -1940,7 +1948,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     {projectData.project.type === 'multi-day' && quoteAccommodation > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
-                          <span className="text-gray-600 font-medium">住宿费</span>
+                          <span className="text-gray-600 font-medium">住宿费（{ACCOMMODATION_TYPE_LABELS[coreConfig.accommodationType]}）</span>
                           <span className="font-medium">{formatMoney(quoteAccommodation)}</span>
                         </div>
                         <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
