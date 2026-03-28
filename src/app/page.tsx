@@ -572,7 +572,7 @@ export default function Home() {
                     {childFolders.map((folder) => (
                       <Card 
                         key={folder.id} 
-                        className={`cursor-pointer hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
+                        className={`cursor-pointer hover:shadow-md transition-all duration-200 hover:border-blue-300 relative ${
                           isSelectMode && selectedFolderIds.has(folder.id) ? 'ring-2 ring-blue-500 border-blue-300' : ''
                         }`}
                         onClick={() => {
@@ -583,19 +583,16 @@ export default function Home() {
                           }
                         }}
                       >
-                        <div className="p-3">
+                        <div className="p-4">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {isSelectMode && (
-                                <Checkbox checked={selectedFolderIds.has(folder.id)} />
-                              )}
-                              <FolderIcon className="w-5 h-5 text-blue-500" />
-                              <span className="font-medium text-sm truncate">{folder.name}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FolderIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                              <span className="font-medium truncate" title={folder.name}>{folder.name}</span>
                             </div>
                             {!isSelectMode && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 -mr-2">
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -611,6 +608,11 @@ export default function Home() {
                               </DropdownMenu>
                             )}
                           </div>
+                          {isSelectMode && (
+                            <div className="absolute top-3 left-3">
+                              <Checkbox checked={selectedFolderIds.has(folder.id)} />
+                            </div>
+                          )}
                         </div>
                       </Card>
                     ))}
@@ -634,26 +636,32 @@ export default function Home() {
                           }
                         }}
                       >
-                        <div className="p-3">
+                        <div className="p-4">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                {isSelectMode && (
-                                  <Checkbox checked={selectedProjectIds.has(project.id)} />
-                                )}
+                              {/* 项目名称 */}
+                              <div className="font-medium text-base truncate" title={project.name}>{project.name}</div>
+                              {/* 项目类型 */}
+                              <div className="mt-1">
                                 <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700">
                                   {PROJECT_TYPE_LABELS[project.type]}
                                 </span>
                               </div>
-                              <div className="font-medium text-sm truncate">{project.name}</div>
+                              {/* 备注 */}
                               {project.remark && (
-                                <p className="mt-1 text-xs text-gray-500 line-clamp-1">{project.remark}</p>
+                                <p className="mt-2 text-xs text-gray-500 line-clamp-2">{project.remark}</p>
                               )}
+                              {/* 时间信息 */}
+                              <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                                <span>创建 {new Date(project.createdAt).toLocaleDateString()}</span>
+                                <span>更新 {new Date(project.updatedAt).toLocaleDateString()}</span>
+                              </div>
                             </div>
+                            {/* 操作按钮 */}
                             {!isSelectMode && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 -mt-1 -mr-2">
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -672,10 +680,11 @@ export default function Home() {
                               </DropdownMenu>
                             )}
                           </div>
-                          <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                            <span>{new Date(project.createdAt).toLocaleDateString()}</span>
-                            <span>更新 {new Date(project.updatedAt).toLocaleDateString()}</span>
-                          </div>
+                          {isSelectMode && (
+                            <div className="absolute top-3 left-3">
+                              <Checkbox checked={selectedProjectIds.has(project.id)} />
+                            </div>
+                          )}
                         </div>
                       </Card>
                     ))}
