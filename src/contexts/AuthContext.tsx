@@ -17,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null; needsVerification?: boolean; message?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -82,34 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error(data.error) };
       }
       
-      // 如果返回了 session，直接登录成功
-      if (data.session && data.session.access_token) {
-        setSession(data.session);
-        setUser(data.session.user);
-        localStorage.setItem(SESSION_KEY, JSON.stringify(data.session));
-        return { error: null };
-      }
-      
-      // 如果没有 session（Supabase 开启了邮箱验证），尝试直接登录
-      // 因为用户可能已关闭邮箱验证，但 Supabase 仍要求验证
-      const loginResponse = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      
-      const loginData = await loginResponse.json();
-      
-      if (loginData.session && loginData.session.access_token) {
-        setSession(loginData.session);
-        setUser(loginData.user);
-        localStorage.setItem(SESSION_KEY, JSON.stringify(loginData.session));
-        return { error: null };
-      }
-      
-      // 登录也失败，返回提示
+      // 注册成功，提示用户验证邮箱
       return { 
-        error: new Error('注册成功，请直接登录') 
+        error: null,
+        needsVerification: true,
+        message: '注册成功！验证邮件已发送到您的邮箱，请查收并点击验证链接。'
       };
     } catch (err) {
       return { error: err instanceof Error ? err : new Error('注册失败') };

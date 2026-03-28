@@ -93,9 +93,16 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     
     try {
       if (mode === 'register') {
-        const { error } = await signUp(email.trim(), password);
-        if (error) {
-          setError(error.message);
+        const result = await signUp(email.trim(), password);
+        if (result.error) {
+          setError(result.error.message);
+        } else if (result.needsVerification) {
+          setSuccess(result.message || '注册成功！请查收验证邮件');
+          // 3秒后切换到登录页
+          setTimeout(() => {
+            setMode('login');
+            setSuccess('');
+          }, 3000);
         } else {
           onOpenChange(false);
           resetForm();
