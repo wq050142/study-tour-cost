@@ -1559,32 +1559,39 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="py-3 px-4">
               <div className="space-y-0 text-sm">
-                {/* 住宿费明细 */}
+                {/* 住宿费明细 - 按每日实际数据显示 */}
                 {projectData.project.type === 'multi-day' && summary.totalAccommodation > 0 && (
                   <>
                     <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600 font-medium">住宿费（{ACCOMMODATION_TYPE_LABELS[coreConfig.accommodationType]}）</span>
+                      <span className="text-gray-600 font-medium">住宿费</span>
                       <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
                     </div>
                     <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
-                      {coreConfig.twinRoom && (coreConfig.twinRoom.countClient > 0 || coreConfig.twinRoom.countStaff > 0) && (
-                        <div className="flex justify-between">
-                          <span>双床房 {(coreConfig.twinRoom.countClient || 0) + (coreConfig.twinRoom.countStaff || 0)}间 × {coreConfig.twinRoom.price}元/间 × {coreConfig.accommodationDays}晚</span>
-                          <span>{formatMoney(((coreConfig.twinRoom.countClient || 0) + (coreConfig.twinRoom.countStaff || 0)) * (coreConfig.twinRoom.price || 0) * coreConfig.accommodationDays)}</span>
-                        </div>
-                      )}
-                      {coreConfig.kingRoom && (coreConfig.kingRoom.countClient > 0 || coreConfig.kingRoom.countStaff > 0) && (
-                        <div className="flex justify-between">
-                          <span>大床房 {(coreConfig.kingRoom.countClient || 0) + (coreConfig.kingRoom.countStaff || 0)}间 × {coreConfig.kingRoom.price}元/间 × {coreConfig.accommodationDays}晚</span>
-                          <span>{formatMoney(((coreConfig.kingRoom.countClient || 0) + (coreConfig.kingRoom.countStaff || 0)) * (coreConfig.kingRoom.price || 0) * coreConfig.accommodationDays)}</span>
-                        </div>
-                      )}
-                      {coreConfig.staffAccommodation && (
-                        <div className="flex justify-between">
-                          <span>工作人员住宿 {Math.ceil(totalStaff / 2)}间 × {coreConfig.staffRoomPrice || 0}元/间 × {coreConfig.staffAccommodationNights || 0}晚</span>
-                          <span>{formatMoney(Math.ceil(totalStaff / 2) * (coreConfig.staffRoomPrice || 0) * (coreConfig.staffAccommodationNights || 0))}</span>
-                        </div>
-                      )}
+                      {dailyExpenses.slice(0, coreConfig.accommodationDays).map((day, idx) => {
+                        // 计算每日住宿费用
+                        const dayTwinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
+                        const dayTwinPrice = day.twinRoomPrice ?? coreConfig.twinRoom?.price ?? 0;
+                        const dayKingCount = day.kingRoomCount ?? coreConfig.kingRoom?.countClient ?? 0;
+                        const dayKingPrice = day.kingRoomPrice ?? coreConfig.kingRoom?.price ?? 0;
+                        const dayStaffRoomCount = day.staffRoomCount ?? (coreConfig.staffAccommodation ? Math.ceil(totalStaff / 2) : 0);
+                        const dayStaffRoomPrice = day.staffRoomPrice ?? coreConfig.staffRoomPrice ?? 0;
+                        
+                        const clientAccommodation = dayTwinCount * dayTwinPrice + dayKingCount * dayKingPrice;
+                        const staffAccommodation = day.staffAccommodationAmount ?? (dayStaffRoomCount * dayStaffRoomPrice);
+                        const dayAccommodation = day.accommodationAmount || (clientAccommodation + staffAccommodation);
+                        
+                        if (dayAccommodation <= 0) return null;
+                        
+                        // 酒店名称
+                        const hotelName = day.hotelName || coreConfig.accommodationHotelName;
+                        
+                        return (
+                          <div key={day.day} className="flex justify-between">
+                            <span>D{day.day}{hotelName ? ` ${hotelName}` : ''} {dayTwinCount > 0 && `双床${dayTwinCount}间×${dayTwinPrice}元`}{dayKingCount > 0 && ` 大床${dayKingCount}间×${dayKingPrice}元`}{staffAccommodation > 0 && ` 工作人员${dayStaffRoomCount}间×${dayStaffRoomPrice}元`}</span>
+                            <span>{formatMoney(dayAccommodation)}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -1997,11 +2004,30 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="py-3 px-4">
               {(() => {
-                // 计算住宿费报价
-                const twinQuotePrice = coreConfig.twinRoom?.quotePrice ?? coreConfig.twinRoom?.price ?? 0;
-                const kingQuotePrice = coreConfig.kingRoom?.quotePrice ?? coreConfig.kingRoom?.price ?? 0;
-                const quoteAccommodation = (coreConfig.twinRoom?.countClient || 0) * twinQuotePrice * coreConfig.accommodationDays +
-                                           (coreConfig.kingRoom?.countClient || 0) * kingQuotePrice * coreConfig.accommodationDays;
+                // 计算住宿费报价 - 按每日实际数据
+                let quoteAccommodation = 0;
+                const dailyAccommodationDetails: { day: number; hotelName?: string; twinCount: number; twinPrice: number; kingCount: number; kingPrice: number; amount: number }[] = [];
+                
+                dailyExpenses.slice(0, coreConfig.accommodationDays).forEach((day) => {
+                  const dayTwinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
+                  const dayTwinPrice = day.twinRoomPrice ?? coreConfig.twinRoom?.price ?? 0;
+                  const dayKingCount = day.kingRoomCount ?? coreConfig.kingRoom?.countClient ?? 0;
+                  const dayKingPrice = day.kingRoomPrice ?? coreConfig.kingRoom?.price ?? 0;
+                  const dayAmount = day.accommodationAmount || (dayTwinCount * dayTwinPrice + dayKingCount * dayKingPrice);
+                  
+                  if (dayAmount > 0) {
+                    quoteAccommodation += dayAmount;
+                    dailyAccommodationDetails.push({
+                      day: day.day,
+                      hotelName: day.hotelName || coreConfig.accommodationHotelName,
+                      twinCount: dayTwinCount,
+                      twinPrice: dayTwinPrice,
+                      kingCount: dayKingCount,
+                      kingPrice: dayKingPrice,
+                      amount: dayAmount
+                    });
+                  }
+                });
                 
                 // 计算用餐费报价 - 使用与 calculation.ts 相同的计算逻辑
                 const calculateMealAmountLocal = (meal: typeof DEFAULT_MEAL_CONFIG) => {
@@ -2059,64 +2085,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 
                 return (
                   <div className="space-y-0 text-sm">
-                    {/* 住宿费明细 */}
+                    {/* 住宿费明细 - 按每日实际数据 */}
                     {projectData.project.type === 'multi-day' && quoteAccommodation > 0 && (
                       <>
                         <div className="flex justify-between py-2 border-b border-gray-100">
-                          <span className="text-gray-600 font-medium">住宿费（{ACCOMMODATION_TYPE_LABELS[coreConfig.accommodationType]}）</span>
+                          <span className="text-gray-600 font-medium">住宿费</span>
                           <span className="font-medium">{formatMoney(quoteAccommodation)}</span>
                         </div>
                         <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
-                          {coreConfig.twinRoom && coreConfig.twinRoom.countClient > 0 && (
-                            <div className="flex justify-between items-center">
-                              <span>双床房 {coreConfig.twinRoom.countClient}间</span>
-                              <div className="flex items-center gap-1">
-                                {isQuoteEditing ? (
-                                  <NumberInput 
-                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                    value={twinQuotePrice} 
-                                    onChange={(v) => {
-                                      updateData({ 
-                                        coreConfig: { 
-                                          ...coreConfig, 
-                                          twinRoom: { ...coreConfig.twinRoom!, quotePrice: v } 
-                                        } 
-                                      });
-                                    }}
-                                  />
-                                ) : (
-                                  <span className="w-16 text-right">{twinQuotePrice}</span>
-                                )}
-                                <span>元/晚 × {coreConfig.accommodationDays}晚</span>
-                                <span className="w-14 text-right font-medium">{formatMoney(coreConfig.twinRoom.countClient * twinQuotePrice * coreConfig.accommodationDays)}</span>
-                              </div>
+                          {dailyAccommodationDetails.map((detail) => (
+                            <div key={detail.day} className="flex justify-between items-center">
+                              <span>D{detail.day}{detail.hotelName ? ` ${detail.hotelName}` : ''} {detail.twinCount > 0 && `双床${detail.twinCount}间×${detail.twinPrice}元`}{detail.kingCount > 0 && ` 大床${detail.kingCount}间×${detail.kingPrice}元`}</span>
+                              <span className="font-medium">{formatMoney(detail.amount)}</span>
                             </div>
-                          )}
-                          {coreConfig.kingRoom && coreConfig.kingRoom.countClient > 0 && (
-                            <div className="flex justify-between items-center">
-                              <span>大床房 {coreConfig.kingRoom.countClient}间</span>
-                              <div className="flex items-center gap-1">
-                                {isQuoteEditing ? (
-                                  <NumberInput 
-                                    className="h-6 w-16 text-xs px-1 text-right border rounded" 
-                                    value={kingQuotePrice} 
-                                    onChange={(v) => {
-                                      updateData({ 
-                                        coreConfig: { 
-                                          ...coreConfig, 
-                                          kingRoom: { ...coreConfig.kingRoom!, quotePrice: v } 
-                                        } 
-                                      });
-                                    }}
-                                  />
-                                ) : (
-                                  <span className="w-16 text-right">{kingQuotePrice}</span>
-                                )}
-                                <span>元/晚 × {coreConfig.accommodationDays}晚</span>
-                                <span className="w-14 text-right font-medium">{formatMoney(coreConfig.kingRoom.countClient * kingQuotePrice * coreConfig.accommodationDays)}</span>
-                              </div>
-                            </div>
-                          )}
+                          ))}
                         </div>
                       </>
                     )}
