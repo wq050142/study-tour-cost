@@ -117,11 +117,12 @@ export interface DailyExpense {
   date?: string; // 日期
   
   // 住宿费用（多天行程）
+  accommodationType?: AccommodationType; // 酒店标准（默认使用客户配置）
+  hotelName?: string; // 酒店名称（默认使用客户配置）
   twinRoomCount?: number; // 双床房数量（默认使用客户配置）
   twinRoomPrice?: number; // 双床房单价（默认使用客户配置）
   kingRoomCount?: number; // 大床房数量（默认使用客户配置）
   kingRoomPrice?: number; // 大床房单价（默认使用客户配置）
-  hotelName?: string; // 酒店名称（默认使用客户配置）
   accommodationAmount: number; // 住宿总费用（可独立设置）
   
   // 工作人员住宿费用
@@ -132,8 +133,9 @@ export interface DailyExpense {
   lunch: MealConfig; // 中餐
   dinner: MealConfig; // 晚餐
   
-  // 工作人员费用（按角色ID存储日薪，可独立设置）
-  staffFees: Record<string, number>;
+  // 工作人员费用（可独立添加工作人员）
+  staffMembers?: StaffMember[]; // 每日独立的工作人员列表（如果为空则使用核心配置）
+  staffFees: Record<string, number>; // 按角色ID存储日薪（兼容旧数据）
   
   // 单项费用（门票、活动等）
   singleItems: SingleItem[];

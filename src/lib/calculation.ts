@@ -108,12 +108,17 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   const otherTransportsTotal = (coreConfig.otherTransports || []).reduce((sum, t) => sum + t.price * t.count, 0);
   const totalTransport = totalBus + otherTransportsTotal;
   
-  // 计算工作人员费用
+  // 计算工作人员费用（包含核心配置和每日独立添加的）
   let totalStaffFee = 0;
   dailyExpenses.forEach(day => {
+    // 核心配置的工作人员
     coreConfig.staffMembers.forEach(member => {
       const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
       totalStaffFee += dailyFee * member.count;
+    });
+    // 每日独立添加的工作人员
+    (day.staffMembers || []).forEach(member => {
+      totalStaffFee += member.dailyFee * member.count;
     });
   });
   
@@ -142,11 +147,16 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   
   // 计算每日明细
   const dailyBreakdown: DailyCostBreakdown[] = dailyExpenses.map(day => {
-    // 工作人员费用
+    // 工作人员费用（包含核心配置和每日独立添加的）
     let dayStaffFee = 0;
+    // 核心配置的工作人员
     coreConfig.staffMembers.forEach(member => {
       const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
       dayStaffFee += dailyFee * member.count;
+    });
+    // 每日独立添加的工作人员
+    (day.staffMembers || []).forEach(member => {
+      dayStaffFee += member.dailyFee * member.count;
     });
     
     // 单项费用

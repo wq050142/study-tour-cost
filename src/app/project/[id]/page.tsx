@@ -988,11 +988,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   const lunchAmount = lunch.amount || calculateMealAmount(lunch);
                   const dinnerAmount = dinner.amount || calculateMealAmount(dinner);
                   
-                  // 计算工作人员费用
+                  // 计算工作人员费用（包含核心配置和每日独立添加的）
                   let dayStaffFee = 0;
+                  // 核心配置的工作人员
                   coreConfig.staffMembers.forEach(member => {
                     const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
                     dayStaffFee += dailyFee * member.count;
+                  });
+                  // 每日独立添加的工作人员
+                  (day.staffMembers || []).forEach(member => {
+                    dayStaffFee += member.dailyFee * member.count;
                   });
                   
                   const daySingleItems = day.singleItems.reduce((s, i) => s + (i.totalPrice || i.price * i.count), 0);
@@ -1019,6 +1024,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               <span className="text-sm font-medium text-gray-700">住宿</span>
                               <span className="text-sm font-medium text-gray-900">¥{accommodationValue.toFixed(0)}</span>
                             </div>
+                            {/* 酒店标准和名称 */}
+                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-600">标准</span>
+                                <select 
+                                  className="h-7 text-sm px-2 border rounded bg-white"
+                                  value={day.accommodationType || coreConfig.accommodationType}
+                                  onChange={(e) => { 
+                                    const newDays = [...dailyExpenses]; 
+                                    newDays[dayIdx] = { ...day, accommodationType: e.target.value as any }; 
+                                    updateData({ dailyExpenses: newDays }); 
+                                  }}
+                                >
+                                  <option value="3-diamond">3钻</option>
+                                  <option value="4-diamond">4钻</option>
+                                  <option value="5-diamond">5钻</option>
+                                  <option value="camp">营地</option>
+                                </select>
+                              </div>
+                              <div className="flex items-center gap-1 flex-1 min-w-[200px]">
+                                <span className="text-gray-600">酒店</span>
+                                <Input 
+                                  className="h-7 flex-1 text-sm px-2 border rounded" 
+                                  placeholder={coreConfig.accommodationHotelName || '酒店名称'} 
+                                  value={day.hotelName || ''} 
+                                  onChange={(e) => { 
+                                    const newDays = [...dailyExpenses]; 
+                                    newDays[dayIdx] = { ...day, hotelName: e.target.value }; 
+                                    updateData({ dailyExpenses: newDays }); 
+                                  }} 
+                                />
+                              </div>
+                            </div>
+                            {/* 房型配置 */}
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                               <div className="flex items-center gap-1">
                                 <span className="text-gray-600">双床房</span>
@@ -1071,19 +1110,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <span className="text-gray-500">元/间</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-gray-600">酒店</span>
-                              <Input 
-                                className="h-7 flex-1 text-sm px-2 border rounded" 
-                                placeholder={coreConfig.accommodationHotelName || '酒店名称'} 
-                                value={day.hotelName || ''} 
-                                onChange={(e) => { 
-                                  const newDays = [...dailyExpenses]; 
-                                  newDays[dayIdx] = { ...day, hotelName: e.target.value }; 
-                                  updateData({ dailyExpenses: newDays }); 
-                                }} 
-                              />
-                            </div>
                             {/* 工作人员住宿 */}
                             {coreConfig.staffAccommodation && (
                               <div className="flex items-center gap-2 text-sm border-t pt-2">
@@ -1113,26 +1139,85 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             )}
                           </div>
                         )}
-                        {/* 工作人员薪资 */}
-                        {coreConfig.staffMembers.filter(m => m.count > 0).length > 0 && (
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                            {coreConfig.staffMembers.filter(m => m.count > 0).map(member => (
-                              <div key={member.id} className="flex items-center gap-2">
-                                <span className="text-gray-600">{member.name}</span>
+                        {/* 工作人员薪资 - 支持独立添加和修改 */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600 font-medium">工作人员薪资</span>
+                            <Button variant="outline" size="sm" className="h-7 text-sm px-3" onClick={() => { 
+                              const newDays = [...dailyExpenses]; 
+                              const newMember: StaffMember = { id: Date.now().toString(), name: '', count: 1, dailyFee: 0 };
+                              const existingMembers = day.staffMembers || [];
+                              newDays[dayIdx] = { ...day, staffMembers: [...existingMembers, newMember] }; 
+                              updateData({ dailyExpenses: newDays }); 
+                            }}><Plus className="w-4 h-4 mr-1" />添加</Button>
+                          </div>
+                          {/* 核心配置的工作人员（默认显示） */}
+                          {coreConfig.staffMembers.filter(m => m.count > 0).map(member => {
+                            const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+                            return (
+                              <div key={member.id} className="flex items-center gap-2 text-sm bg-gray-50 rounded px-3 py-1.5">
+                                <span className="text-gray-700 w-20">{member.name}</span>
+                                <span className="text-gray-500">{member.count}人</span>
                                 <NumberInput 
                                   className="h-7 w-16 text-sm px-1 border rounded" 
-                                  value={day.staffFees[member.id] ?? member.dailyFee} 
+                                  value={dailyFee} 
                                   onChange={(v) => { 
                                     const newDays = [...dailyExpenses]; 
                                     newDays[dayIdx] = { ...day, staffFees: { ...day.staffFees, [member.id]: v } }; 
                                     updateData({ dailyExpenses: newDays }); 
                                   }} 
                                 />
-                                <span className="text-gray-500">元/天</span>
+                                <span className="text-gray-500">元/天 = ¥{(member.count * dailyFee).toFixed(0)}</span>
                               </div>
-                            ))}
-                          </div>
-                        )}
+                            );
+                          })}
+                          {/* 每日独立添加的工作人员 */}
+                          {(day.staffMembers || []).map((member, memberIdx) => (
+                            <div key={member.id} className="flex items-center gap-2 text-sm bg-blue-50 rounded px-3 py-1.5">
+                              <Input 
+                                className="h-7 w-20 text-sm px-2 border rounded" 
+                                placeholder="角色名"
+                                value={member.name} 
+                                onChange={(e) => { 
+                                  const newDays = [...dailyExpenses]; 
+                                  const members = [...(day.staffMembers || [])]; 
+                                  members[memberIdx] = { ...members[memberIdx], name: e.target.value }; 
+                                  newDays[dayIdx] = { ...day, staffMembers: members }; 
+                                  updateData({ dailyExpenses: newDays }); 
+                                }}
+                              />
+                              <NumberInput 
+                                className="h-7 w-14 text-sm px-1 border rounded" 
+                                value={member.count}
+                                onChange={(v) => { 
+                                  const newDays = [...dailyExpenses]; 
+                                  const members = [...(day.staffMembers || [])]; 
+                                  members[memberIdx] = { ...members[memberIdx], count: v }; 
+                                  newDays[dayIdx] = { ...day, staffMembers: members }; 
+                                  updateData({ dailyExpenses: newDays }); 
+                                }}
+                              />
+                              <span className="text-gray-500">人</span>
+                              <NumberInput 
+                                className="h-7 w-16 text-sm px-1 border rounded" 
+                                value={member.dailyFee}
+                                onChange={(v) => { 
+                                  const newDays = [...dailyExpenses]; 
+                                  const members = [...(day.staffMembers || [])]; 
+                                  members[memberIdx] = { ...members[memberIdx], dailyFee: v }; 
+                                  newDays[dayIdx] = { ...day, staffMembers: members }; 
+                                  updateData({ dailyExpenses: newDays }); 
+                                }}
+                              />
+                              <span className="text-gray-500">元/天 = ¥{(member.count * member.dailyFee).toFixed(0)}</span>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-red-500" onClick={() => { 
+                                const newDays = [...dailyExpenses]; 
+                                newDays[dayIdx] = { ...day, staffMembers: (day.staffMembers || []).filter((_, i) => i !== memberIdx) }; 
+                                updateData({ dailyExpenses: newDays }); 
+                              }}><Trash2 className="w-3 h-3" /></Button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
                       {/* 活动项目 */}
@@ -1566,7 +1651,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="text-gray-600 font-medium">住宿费</span>
                       <span className="font-medium">{formatMoney(summary.totalAccommodation)}</span>
                     </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
+                    <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
                       {dailyExpenses.slice(0, coreConfig.accommodationDays).map((day, idx) => {
                         // 计算每日住宿费用
                         const dayTwinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
@@ -1582,13 +1667,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         
                         if (dayAccommodation <= 0) return null;
                         
-                        // 酒店名称
+                        // 酒店标准和名称
+                        const accommodationType = day.accommodationType || coreConfig.accommodationType;
                         const hotelName = day.hotelName || coreConfig.accommodationHotelName;
                         
                         return (
-                          <div key={day.day} className="flex justify-between">
-                            <span>D{day.day}{hotelName ? ` ${hotelName}` : ''} {dayTwinCount > 0 && `双床${dayTwinCount}间×${dayTwinPrice}元`}{dayKingCount > 0 && ` 大床${dayKingCount}间×${dayKingPrice}元`}{staffAccommodation > 0 && ` 工作人员${dayStaffRoomCount}间×${dayStaffRoomPrice}元`}</span>
-                            <span>{formatMoney(dayAccommodation)}</span>
+                          <div key={day.day} className="py-1">
+                            <div className="flex justify-between font-medium text-gray-700">
+                              <span>D{day.day} {ACCOMMODATION_TYPE_LABELS[accommodationType]}{hotelName ? ` · ${hotelName}` : ''}</span>
+                              <span>{formatMoney(dayAccommodation)}</span>
+                            </div>
+                            <div className="text-gray-500 pl-2">
+                              {dayTwinCount > 0 && <span>双床{dayTwinCount}间×{dayTwinPrice}元 </span>}
+                              {dayKingCount > 0 && <span>大床{dayKingCount}间×{dayKingPrice}元 </span>}
+                              {staffAccommodation > 0 && <span>工作人员{dayStaffRoomCount}间×{dayStaffRoomPrice}元</span>}
+                            </div>
                           </div>
                         );
                       })}
@@ -1685,31 +1778,46 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </>
                 )}
                 
-                {/* 工作人员明细 */}
+                {/* 工作人员明细 - 按每日实际数据显示 */}
                 {summary.totalStaffFee > 0 && (
                   <>
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600 font-medium">工作人员</span>
                       <span className="font-medium">{formatMoney(summary.totalStaffFee)}</span>
                     </div>
-                    <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
-                      {coreConfig.staffMembers.filter(m => m.count > 0).map((member) => {
-                        // 计算该工作人员的实际总费用（使用每日费用中的实际日薪）
-                        let actualTotalFee = 0;
-                        let firstDailyFee = 0;
-                        dailyExpenses.forEach(day => {
+                    <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
+                      {dailyExpenses.map((day) => {
+                        // 计算当天工作人员费用
+                        const dayStaffDetails: { name: string; count: number; dailyFee: number; amount: number }[] = [];
+                        
+                        // 核心配置的工作人员
+                        coreConfig.staffMembers.filter(m => m.count > 0).forEach(member => {
                           const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
-                          if (dailyFee > 0 && firstDailyFee === 0) {
-                            firstDailyFee = dailyFee;
-                          }
-                          actualTotalFee += dailyFee * member.count;
+                          dayStaffDetails.push({ name: member.name, count: member.count, dailyFee, amount: dailyFee * member.count });
                         });
-                        // 显示的日薪：优先使用找到的第一个有效日薪，否则使用核心配置
-                        const displayDailyFee = firstDailyFee || member.dailyFee;
+                        
+                        // 每日独立添加的工作人员
+                        (day.staffMembers || []).forEach(member => {
+                          dayStaffDetails.push({ name: member.name, count: member.count, dailyFee: member.dailyFee, amount: member.dailyFee * member.count });
+                        });
+                        
+                        const dayStaffTotal = dayStaffDetails.reduce((sum, d) => sum + d.amount, 0);
+                        if (dayStaffTotal === 0) return null;
+                        
                         return (
-                          <div key={member.id} className="flex justify-between">
-                            <span>{member.name} {member.count}人 × {displayDailyFee}元/天 × {coreConfig.tripDays}天</span>
-                            <span>{formatMoney(actualTotalFee)}</span>
+                          <div key={day.day} className="py-1">
+                            <div className="flex justify-between font-medium text-gray-700">
+                              <span>D{day.day}</span>
+                              <span>{formatMoney(dayStaffTotal)}</span>
+                            </div>
+                            <div className="text-gray-500 pl-2 space-y-0.5">
+                              {dayStaffDetails.map((d, idx) => (
+                                <div key={idx} className="flex justify-between">
+                                  <span>{d.name} {d.count}人 × {d.dailyFee}元/天</span>
+                                  <span>{formatMoney(d.amount)}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         );
                       })}
@@ -2006,7 +2114,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               {(() => {
                 // 计算住宿费报价 - 按每日实际数据
                 let quoteAccommodation = 0;
-                const dailyAccommodationDetails: { day: number; hotelName?: string; twinCount: number; twinPrice: number; kingCount: number; kingPrice: number; amount: number }[] = [];
+                const dailyAccommodationDetails: { day: number; accommodationType: AccommodationType; hotelName?: string; twinCount: number; twinPrice: number; kingCount: number; kingPrice: number; amount: number }[] = [];
                 
                 dailyExpenses.slice(0, coreConfig.accommodationDays).forEach((day) => {
                   const dayTwinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
@@ -2019,6 +2127,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     quoteAccommodation += dayAmount;
                     dailyAccommodationDetails.push({
                       day: day.day,
+                      accommodationType: day.accommodationType || coreConfig.accommodationType,
                       hotelName: day.hotelName || coreConfig.accommodationHotelName,
                       twinCount: dayTwinCount,
                       twinPrice: dayTwinPrice,
@@ -2094,9 +2203,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                         <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
                           {dailyAccommodationDetails.map((detail) => (
-                            <div key={detail.day} className="flex justify-between items-center">
-                              <span>D{detail.day}{detail.hotelName ? ` ${detail.hotelName}` : ''} {detail.twinCount > 0 && `双床${detail.twinCount}间×${detail.twinPrice}元`}{detail.kingCount > 0 && ` 大床${detail.kingCount}间×${detail.kingPrice}元`}</span>
-                              <span className="font-medium">{formatMoney(detail.amount)}</span>
+                            <div key={detail.day} className="py-1">
+                              <div className="flex justify-between font-medium text-gray-700">
+                                <span>D{detail.day} {ACCOMMODATION_TYPE_LABELS[detail.accommodationType]}{detail.hotelName ? ` · ${detail.hotelName}` : ''}</span>
+                                <span>{formatMoney(detail.amount)}</span>
+                              </div>
+                              <div className="text-gray-500 pl-2">
+                                {detail.twinCount > 0 && <span>双床{detail.twinCount}间×{detail.twinPrice}元 </span>}
+                                {detail.kingCount > 0 && <span>大床{detail.kingCount}间×{detail.kingPrice}元</span>}
+                              </div>
                             </div>
                           ))}
                         </div>
