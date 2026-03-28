@@ -66,6 +66,7 @@ export interface CoreConfig {
   
   // 住宿信息 - 按房型分开
   accommodationType: AccommodationType; // 住宿标准：3钻、4钻、5钻、营地
+  accommodationHotelName?: string; // 酒店名称备注（可选）
   twinRoom: RoomConfig; // 双床房
   kingRoom: RoomConfig; // 大床房
   
@@ -115,12 +116,23 @@ export interface DailyExpense {
   day: number; // 第几天
   date?: string; // 日期
   
-  // 固定费用
-  accommodation: number; // 住宿费用
+  // 住宿费用（多天行程）
+  twinRoomCount?: number; // 双床房数量（默认使用客户配置）
+  twinRoomPrice?: number; // 双床房单价（默认使用客户配置）
+  kingRoomCount?: number; // 大床房数量（默认使用客户配置）
+  kingRoomPrice?: number; // 大床房单价（默认使用客户配置）
+  hotelName?: string; // 酒店名称（默认使用客户配置）
+  accommodationAmount: number; // 住宿总费用（可独立设置）
+  
+  // 工作人员住宿费用
+  staffRoomCount?: number; // 工作人员房间数
+  staffRoomPrice?: number; // 工作人员房间单价
+  staffAccommodationAmount: number; // 工作人员住宿费用
+  
   lunch: MealConfig; // 中餐
   dinner: MealConfig; // 晚餐
   
-  // 工作人员费用（按角色ID存储日薪）
+  // 工作人员费用（按角色ID存储日薪，可独立设置）
   staffFees: Record<string, number>;
   
   // 单项费用（门票、活动等）

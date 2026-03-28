@@ -66,17 +66,33 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   const totalClients = coreConfig.studentCount + coreConfig.parentCount + coreConfig.teacherCount;
   const totalStaff = coreConfig.staffMembers.reduce((sum, member) => sum + member.count, 0);
   
-  // 计算住宿费用
-  // 客户住宿费用（双床房 + 大床房）
-  const clientTwinRoomTotal = (coreConfig.twinRoom?.price || 0) * (coreConfig.twinRoom?.countClient || 0) * coreConfig.accommodationDays;
-  const clientKingRoomTotal = (coreConfig.kingRoom?.price || 0) * (coreConfig.kingRoom?.countClient || 0) * coreConfig.accommodationDays;
-  
-  // 工作人员住宿费用
-  const staffAccommodationTotal = coreConfig.staffAccommodation
-    ? (coreConfig.staffRoomPrice || 0) * Math.ceil(totalStaff / 2) * (coreConfig.staffAccommodationNights || 0)
-    : 0;
-  
-  const totalAccommodation = clientTwinRoomTotal + clientKingRoomTotal + staffAccommodationTotal;
+  // 计算住宿费用 - 优先使用每日实际设置的金额
+  let totalAccommodation = 0;
+  dailyExpenses.forEach(day => {
+    // 如果每日设置了金额，使用每日金额
+    if (day.accommodationAmount && day.accommodationAmount > 0) {
+      totalAccommodation += day.accommodationAmount;
+    } else {
+      // 否则根据每日房型配置或客户配置计算
+      const twinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
+      const twinPrice = day.twinRoomPrice ?? coreConfig.twinRoom?.price ?? 0;
+      const kingCount = day.kingRoomCount ?? coreConfig.kingRoom?.countClient ?? 0;
+      const kingPrice = day.kingRoomPrice ?? coreConfig.kingRoom?.price ?? 0;
+      const clientAccommodation = twinCount * twinPrice + kingCount * kingPrice;
+      
+      // 工作人员住宿
+      let staffAccommodation = 0;
+      if (day.staffAccommodationAmount && day.staffAccommodationAmount > 0) {
+        staffAccommodation = day.staffAccommodationAmount;
+      } else if (coreConfig.staffAccommodation) {
+        const staffRoomCount = day.staffRoomCount ?? Math.ceil(totalStaff / 2);
+        const staffRoomPrice = day.staffRoomPrice ?? coreConfig.staffRoomPrice ?? 0;
+        staffAccommodation = staffRoomCount * staffRoomPrice;
+      }
+      
+      totalAccommodation += clientAccommodation + staffAccommodation;
+    }
+  });
   
   // 计算用餐费用（中餐 + 晚餐）
   let totalMeal = 0;
@@ -126,30 +142,51 @@ export function calculateCostSummary(data: ProjectData): CostSummary {
   
   // 计算每日明细
   const dailyBreakdown: DailyCostBreakdown[] = dailyExpenses.map(day => {
+    // 工作人员费用
     let dayStaffFee = 0;
     coreConfig.staffMembers.forEach(member => {
       const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
       dayStaffFee += dailyFee * member.count;
     });
     
+    // 单项费用
     const daySingleItems = day.singleItems.reduce((sum, item) => 
       sum + (item.totalPrice || item.price * item.count), 0);
     
+    // 用餐费用
     const lunch = day.lunch || DEFAULT_MEAL_CONFIG;
     const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
     const lunchAmount = calculateMealAmount(lunch, coreConfig, totalClients, totalStaff);
     const dinnerAmount = calculateMealAmount(dinner, coreConfig, totalClients, totalStaff);
     
-    const dailyTotal = 
-      day.accommodation + 
-      lunchAmount + 
-      dinnerAmount + 
-      dayStaffFee + 
-      daySingleItems;
+    // 住宿费用 - 优先使用每日实际设置的金额
+    let dayAccommodation = 0;
+    if (day.accommodationAmount && day.accommodationAmount > 0) {
+      dayAccommodation = day.accommodationAmount;
+    } else {
+      const twinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
+      const twinPrice = day.twinRoomPrice ?? coreConfig.twinRoom?.price ?? 0;
+      const kingCount = day.kingRoomCount ?? coreConfig.kingRoom?.countClient ?? 0;
+      const kingPrice = day.kingRoomPrice ?? coreConfig.kingRoom?.price ?? 0;
+      const clientAccommodation = twinCount * twinPrice + kingCount * kingPrice;
+      
+      let staffAccommodation = 0;
+      if (day.staffAccommodationAmount && day.staffAccommodationAmount > 0) {
+        staffAccommodation = day.staffAccommodationAmount;
+      } else if (coreConfig.staffAccommodation) {
+        const staffRoomCount = day.staffRoomCount ?? Math.ceil(totalStaff / 2);
+        const staffRoomPrice = day.staffRoomPrice ?? coreConfig.staffRoomPrice ?? 0;
+        staffAccommodation = staffRoomCount * staffRoomPrice;
+      }
+      
+      dayAccommodation = clientAccommodation + staffAccommodation;
+    }
+    
+    const dailyTotal = dayAccommodation + lunchAmount + dinnerAmount + dayStaffFee + daySingleItems;
     
     return {
       day: day.day,
-      accommodation: day.accommodation,
+      accommodation: dayAccommodation,
       lunch: lunchAmount,
       dinner: dinnerAmount,
       staffFee: dayStaffFee,

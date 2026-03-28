@@ -27,6 +27,45 @@ const calculateMealAmount = (
   }
 };
 
+// 计算每日住宿费用
+const calculateDailyAccommodation = (
+  day: DailyExpense,
+  coreConfig: CoreConfig,
+  totalStaff: number,
+  accommodationDays: number,
+  dayIndex: number
+): number => {
+  // 如果每日设置了金额，使用每日金额
+  if (day.accommodationAmount && day.accommodationAmount > 0) {
+    return day.accommodationAmount;
+  }
+  
+  // 如果超过住宿晚数，返回0
+  if (dayIndex >= accommodationDays) {
+    return 0;
+  }
+  
+  // 否则根据每日房型配置或客户配置计算
+  const twinCount = day.twinRoomCount ?? coreConfig.twinRoom?.countClient ?? 0;
+  const twinPrice = day.twinRoomPrice ?? coreConfig.twinRoom?.price ?? 0;
+  const kingCount = day.kingRoomCount ?? coreConfig.kingRoom?.countClient ?? 0;
+  const kingPrice = day.kingRoomPrice ?? coreConfig.kingRoom?.price ?? 0;
+  const clientAccommodation = twinCount * twinPrice + kingCount * kingPrice;
+  
+  // 工作人员住宿
+  let staffAccommodation = 0;
+  if (day.staffAccommodationAmount && day.staffAccommodationAmount > 0) {
+    staffAccommodation = day.staffAccommodationAmount;
+  } else if (coreConfig.staffAccommodation) {
+    const staffRoomCount = day.staffRoomCount ?? Math.ceil(totalStaff / 2);
+    const staffRoomPrice = day.staffRoomPrice ?? coreConfig.staffRoomPrice ?? 0;
+    staffAccommodation = staffRoomCount * staffRoomPrice;
+  }
+  
+  return clientAccommodation + staffAccommodation;
+};
+
+
 // 导出为 Excel
 export function exportToExcel(
   projectData: ProjectData,
@@ -220,8 +259,9 @@ export function exportToExcel(
     }
     
     // 住宿
-    if (day.accommodation > 0) {
-      dailyArrangementData.push(['住宿费', formatMoney(day.accommodation)]);
+    const dayAccommodation = calculateDailyAccommodation(day, coreConfig, totalStaff, coreConfig.accommodationDays, index);
+    if (dayAccommodation > 0) {
+      dailyArrangementData.push(['住宿费', formatMoney(dayAccommodation)]);
     }
     
     // 用餐
@@ -322,7 +362,7 @@ export function exportToExcel(
     
     // 当日小计
     const daySingleItems = day.singleItems.reduce((sum, item) => sum + (item.totalPrice || item.price * item.count), 0);
-    const dailyTotal = day.accommodation + lunchAmount + dinnerAmount + dayStaffFee + daySingleItems;
+    const dailyTotal = dayAccommodation + lunchAmount + dinnerAmount + dayStaffFee + daySingleItems;
     dailyArrangementData.push([]);
     dailyArrangementData.push(['当日费用小计', formatMoney(dailyTotal)]);
     dailyArrangementData.push([]);
@@ -463,7 +503,7 @@ export function exportToExcel(
     ['日期', '住宿费', '中餐', '晚餐', '工作人员', '活动项目', '小计'],
   ];
   
-  dailyExpenses.forEach((day) => {
+  dailyExpenses.forEach((day, index) => {
     let dayStaffFee = 0;
     coreConfig.staffMembers.forEach((member) => {
       const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
@@ -475,11 +515,12 @@ export function exportToExcel(
     const dinner = day.dinner || DEFAULT_MEAL_CONFIG;
     const lunchAmount = calculateMealAmount(lunch, coreConfig, totalClients);
     const dinnerAmount = calculateMealAmount(dinner, coreConfig, totalClients);
-    const dailyTotal = day.accommodation + lunchAmount + dinnerAmount + dayStaffFee + daySingleItems;
+    const dayAccommodation = calculateDailyAccommodation(day, coreConfig, totalStaff, coreConfig.accommodationDays, index);
+    const dailyTotal = dayAccommodation + lunchAmount + dinnerAmount + dayStaffFee + daySingleItems;
     
     dailyData.push([
       `第${day.day}天`,
-      formatMoney(day.accommodation),
+      formatMoney(dayAccommodation),
       formatMoney(lunchAmount),
       formatMoney(dinnerAmount),
       formatMoney(dayStaffFee),
