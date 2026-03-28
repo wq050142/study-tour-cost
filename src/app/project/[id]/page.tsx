@@ -270,8 +270,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     if (summary.totalStaffFee > 0) {
       lines.push(``, `【工作人员】 ${formatMoney(summary.totalStaffFee)}`);
       coreConfig.staffMembers.filter(m => m.count > 0).forEach((member) => {
-        const totalFee = member.count * member.dailyFee * coreConfig.tripDays;
-        lines.push(`  ${member.name}：${member.count}人 × ${member.dailyFee}元/天 × ${coreConfig.tripDays}天 = ${formatMoney(totalFee)}`);
+        // 计算该工作人员的实际总费用（使用每日费用中的实际日薪）
+        let actualTotalFee = 0;
+        dailyExpenses.forEach(day => {
+          const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+          actualTotalFee += dailyFee * member.count;
+        });
+        // 获取默认日薪用于显示
+        const defaultDailyFee = member.dailyFee || (dailyExpenses[0]?.staffFees[member.id] ?? 0);
+        lines.push(`  ${member.name}：${member.count}人 × ${defaultDailyFee}元/天 × ${coreConfig.tripDays}天 = ${formatMoney(actualTotalFee)}`);
       });
     }
     
@@ -1538,11 +1545,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
                       {coreConfig.staffMembers.filter(m => m.count > 0).map((member) => {
-                        const totalFee = member.count * member.dailyFee * coreConfig.tripDays;
+                        // 计算该工作人员的实际总费用（使用每日费用中的实际日薪）
+                        let actualTotalFee = 0;
+                        dailyExpenses.forEach(day => {
+                          const dailyFee = day.staffFees[member.id] ?? member.dailyFee;
+                          actualTotalFee += dailyFee * member.count;
+                        });
+                        // 获取默认日薪用于显示
+                        const defaultDailyFee = member.dailyFee || (dailyExpenses[0]?.staffFees[member.id] ?? 0);
                         return (
                           <div key={member.id} className="flex justify-between">
-                            <span>{member.name} {member.count}人 × {member.dailyFee}元/天 × {coreConfig.tripDays}天</span>
-                            <span>{formatMoney(totalFee)}</span>
+                            <span>{member.name} {member.count}人 × {defaultDailyFee}元/天 × {coreConfig.tripDays}天</span>
+                            <span>{formatMoney(actualTotalFee)}</span>
                           </div>
                         );
                       })}
