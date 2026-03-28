@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // 优先使用环境变量，否则使用生产域名
     const baseUrl = process.env.COZE_PROJECT_DOMAIN_DEFAULT 
       || process.env.NEXT_PUBLIC_SITE_URL 
-      || 'https://yanxue-cost.cn';
+      || 'http://124.220.204.124:8080';
     const redirectTo = `${baseUrl}/auth/verify-email`;
     
     const { data, error } = await supabase.auth.signUp({
