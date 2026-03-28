@@ -15,6 +15,12 @@ export async function PUT(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
   try {
     const body = await request.json();
     const { name, parentId } = body;
@@ -27,6 +33,7 @@ export async function PUT(
       .from('folders')
       .update(updateData)
       .eq('id', id)
+      .eq('user_id', user.id)  // 关键：只操作当前用户的文件夹
       .select()
       .maybeSingle();
     
@@ -66,21 +73,29 @@ export async function DELETE(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
-  // 软删除文件夹
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
+  // 软删除文件夹（只删除当前用户的）
   const { error } = await client
     .from('folders')
     .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);  // 关键：只操作当前用户的文件夹
   
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   
-  // 同时将文件夹内的项目移到根目录
+  // 同时将文件夹内的项目移到根目录（只移动当前用户的项目）
   await client
     .from('projects')
     .update({ folder_id: null })
-    .eq('folder_id', id);
+    .eq('folder_id', id)
+    .eq('user_id', user.id);  // 关键：只操作当前用户的项目
   
   return NextResponse.json({ success: true });
 }

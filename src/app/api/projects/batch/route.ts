@@ -11,6 +11,12 @@ export async function POST(request: NextRequest) {
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
   try {
     const body = await request.json();
     const { action, projectIds, folderId, targetFolderId } = body;
@@ -21,11 +27,12 @@ export async function POST(request: NextRequest) {
     
     switch (action) {
       case 'delete': {
-        // 批量软删除
+        // 批量软删除（只删除当前用户的项目）
         const { error } = await client
           .from('projects')
           .update({ deleted_at: new Date().toISOString() })
-          .in('id', projectIds);
+          .in('id', projectIds)
+          .eq('user_id', user.id);  // 关键：只操作当前用户的项目
         
         if (error) {
           return NextResponse.json({ error: error.message }, { status: 500 });
@@ -34,11 +41,12 @@ export async function POST(request: NextRequest) {
       }
       
       case 'move': {
-        // 批量移动到文件夹
+        // 批量移动到文件夹（只移动当前用户的项目）
         const { error } = await client
           .from('projects')
           .update({ folder_id: targetFolderId || null })
-          .in('id', projectIds);
+          .in('id', projectIds)
+          .eq('user_id', user.id);  // 关键：只操作当前用户的项目
         
         if (error) {
           return NextResponse.json({ error: error.message }, { status: 500 });
@@ -47,18 +55,20 @@ export async function POST(request: NextRequest) {
       }
       
       case 'copy': {
-        // 获取要复制的项目
+        // 获取要复制的项目（只获取当前用户的项目）
         const { data: projects, error: fetchError } = await client
           .from('projects')
           .select('*')
-          .in('id', projectIds);
+          .in('id', projectIds)
+          .eq('user_id', user.id);  // 关键：只获取当前用户的项目
         
         if (fetchError) {
           return NextResponse.json({ error: fetchError.message }, { status: 500 });
         }
         
-        // 创建副本
+        // 创建副本（关联到当前用户）
         const copies = projects.map(p => ({
+          user_id: user.id,  // 关键：副本属于当前用户
           name: `${p.name} (副本)`,
           type: p.type,
           remark: p.remark,

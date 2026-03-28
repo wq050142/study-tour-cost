@@ -15,16 +15,23 @@ export async function POST(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
-  // 检查是否是批量操作
-  if (id === 'batch') {
-    return handleBatchOperation(client, request);
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
   }
   
-  // 恢复单个项目：清除 deleted_at 字段
+  // 检查是否是批量操作
+  if (id === 'batch') {
+    return handleBatchOperation(client, user.id, request);
+  }
+  
+  // 恢复单个项目：清除 deleted_at 字段（只恢复当前用户的项目）
   const { data, error } = await client
     .from('projects')
     .update({ deleted_at: null })
     .eq('id', id)
+    .eq('user_id', user.id)  // 关键：只操作当前用户的项目
     .select()
     .maybeSingle();
   
@@ -33,7 +40,7 @@ export async function POST(
   }
   
   if (!data) {
-    return NextResponse.json({ error: '项目不存在' }, { status: 404 });
+    return NextResponse.json({ error: '项目不存在或无权限' }, { status: 404 });
   }
   
   return NextResponse.json({ success: true, project: data });
@@ -53,11 +60,18 @@ export async function DELETE(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
-  // 永久删除
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
+  // 永久删除（只删除当前用户的项目）
   const { error } = await client
     .from('projects')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);  // 关键：只操作当前用户的项目
   
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -67,7 +81,7 @@ export async function DELETE(
 }
 
 // 批量操作处理
-async function handleBatchOperation(client: ReturnType<typeof getSupabaseClient>, request: NextRequest) {
+async function handleBatchOperation(client: ReturnType<typeof getSupabaseClient>, userId: string, request: NextRequest) {
   try {
     const body = await request.json();
     const { action, projectIds } = body;
@@ -77,11 +91,12 @@ async function handleBatchOperation(client: ReturnType<typeof getSupabaseClient>
     }
     
     if (action === 'restore') {
-      // 批量恢复
+      // 批量恢复（只恢复当前用户的项目）
       const { error } = await client
         .from('projects')
         .update({ deleted_at: null })
-        .in('id', projectIds);
+        .in('id', projectIds)
+        .eq('user_id', userId);  // 关键：只操作当前用户的项目
       
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -90,11 +105,12 @@ async function handleBatchOperation(client: ReturnType<typeof getSupabaseClient>
     }
     
     if (action === 'delete') {
-      // 批量永久删除
+      // 批量永久删除（只删除当前用户的项目）
       const { error } = await client
         .from('projects')
         .delete()
-        .in('id', projectIds);
+        .in('id', projectIds)
+        .eq('user_id', userId);  // 关键：只操作当前用户的项目
       
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });

@@ -12,6 +12,12 @@ export async function GET(request: NextRequest) {
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
   // 获取查询参数
   const { searchParams } = new URL(request.url);
   const folderId = searchParams.get('folderId');
@@ -19,6 +25,7 @@ export async function GET(request: NextRequest) {
   let query = client
     .from('projects')
     .select('id, name, type, remark, created_at, updated_at, folder_id')
+    .eq('user_id', user.id)  // 关键：只查询当前用户的项目
     .is('deleted_at', null);
   
   // 按文件夹筛选

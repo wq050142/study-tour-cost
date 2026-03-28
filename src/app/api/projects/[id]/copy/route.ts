@@ -15,11 +15,18 @@ export async function POST(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
-  // 获取原项目
+  // 获取当前用户
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
+  // 获取原项目（只允许复制自己的项目）
   const { data: original, error: fetchError } = await client
     .from('projects')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)  // 关键：只允许复制自己的项目
     .maybeSingle();
   
   if (fetchError) {
@@ -27,13 +34,7 @@ export async function POST(
   }
   
   if (!original) {
-    return NextResponse.json({ error: '项目不存在' }, { status: 404 });
-  }
-  
-  // 获取当前用户
-  const { data: { user }, error: userError } = await client.auth.getUser();
-  if (userError || !user) {
-    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+    return NextResponse.json({ error: '项目不存在或无权限' }, { status: 404 });
   }
   
   // 创建副本

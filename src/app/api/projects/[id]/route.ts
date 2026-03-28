@@ -15,10 +15,17 @@ export async function GET(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
   const { data, error } = await client
     .from('projects')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)  // 关键：验证项目属于当前用户
     .maybeSingle();
   
   if (error) {
@@ -46,6 +53,12 @@ export async function PUT(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
   try {
     const body = await request.json();
     const { name, remark, core_config, daily_expenses, other_expenses } = body;
@@ -64,6 +77,7 @@ export async function PUT(
       .from('projects')
       .update(updateData)
       .eq('id', id)
+      .eq('user_id', user.id)  // 关键：验证项目属于当前用户
       .select()
       .maybeSingle();
     
@@ -95,11 +109,18 @@ export async function DELETE(
   const token = authHeader.substring(7);
   const client = getSupabaseClient(token);
   
-  // 软删除：设置 deleted_at 字段
+  // 获取当前用户信息
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: '用户信息获取失败' }, { status: 401 });
+  }
+  
+  // 软删除：设置 deleted_at 字段，同时验证用户权限
   const { error } = await client
     .from('projects')
     .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);  // 关键：验证项目属于当前用户
   
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
