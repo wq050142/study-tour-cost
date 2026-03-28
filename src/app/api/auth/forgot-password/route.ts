@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseClient();
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.COZE_PROJECT_DOMAIN_DEFAULT || 'http://localhost:5000'}/auth/reset-password`,
+      redirectTo: `${process.env.COZE_PROJECT_DOMAIN_DEFAULT || 'http://124.220.204.124:8080'}/auth/reset-password`,
     });
     
     if (error) {
