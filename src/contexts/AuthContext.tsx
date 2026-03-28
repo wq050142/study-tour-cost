@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error(data.error) };
       }
       
-      // 如果返回了 session，说明可以直接登录
+      // 如果返回了 session，直接登录成功
       if (data.session && data.session.access_token) {
         setSession(data.session);
         setUser(data.session.user);
@@ -90,10 +90,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null };
       }
       
-      // 如果没有 session，可能需要邮箱验证
-      // 返回提示信息
+      // 如果没有 session（Supabase 开启了邮箱验证），尝试直接登录
+      // 因为用户可能已关闭邮箱验证，但 Supabase 仍要求验证
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const loginData = await loginResponse.json();
+      
+      if (loginData.session && loginData.session.access_token) {
+        setSession(loginData.session);
+        setUser(loginData.user);
+        localStorage.setItem(SESSION_KEY, JSON.stringify(loginData.session));
+        return { error: null };
+      }
+      
+      // 登录也失败，返回提示
       return { 
-        error: new Error('注册成功！如果项目开启了邮箱验证，请查收验证邮件。如果未开启邮箱验证，请直接登录。') 
+        error: new Error('注册成功，请直接登录') 
       };
     } catch (err) {
       return { error: err instanceof Error ? err : new Error('注册失败') };
