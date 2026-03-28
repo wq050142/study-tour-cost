@@ -22,6 +22,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +58,32 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 重新发送验证邮件
+  const handleResendVerification = async () => {
+    if (!email.trim()) return;
+    
+    setResending(true);
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setSuccess('验证邮件已重新发送，请查收邮箱');
+        setNeedsVerification(false);
+        setError('');
+      }
+    } finally {
+      setResending(false);
     }
   };
 
@@ -110,6 +138,10 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       } else {
         const { error } = await signIn(email.trim(), password);
         if (error) {
+          // 检查是否是未验证邮箱的错误
+          if (error.message.includes('验证') || error.message.includes('verify')) {
+            setNeedsVerification(true);
+          }
           setError(error.message);
         } else {
           onOpenChange(false);
@@ -127,12 +159,14 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     setConfirmPassword('');
     setError('');
     setSuccess('');
+    setNeedsVerification(false);
   };
 
   const handleModeChange = (newMode: 'login' | 'register' | 'forgot') => {
     setMode(newMode);
     setError('');
     setSuccess('');
+    setNeedsVerification(false);
   };
 
   const getTitle = () => {
@@ -219,6 +253,16 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           {error && (
             <div className="text-sm p-2 rounded text-red-500">
               {error}
+              {needsVerification && (
+                <button
+                  type="button"
+                  className="block mt-2 text-blue-600 hover:underline"
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                >
+                  {resending ? '发送中...' : '重新发送验证邮件'}
+                </button>
+              )}
             </div>
           )}
           
