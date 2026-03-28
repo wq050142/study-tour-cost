@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   // Docker 部署需要 standalone 输出
   output: 'standalone',
   
-  allowedDevOrigins: ['*.dev.coze.site'],
+  allowedDevOrigins: ['*.dev.coze.site', 'yanxue-cost.cn', '*.yanxue-cost.cn'],
   images: {
     remotePatterns: [
       {
