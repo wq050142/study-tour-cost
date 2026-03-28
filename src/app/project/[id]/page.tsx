@@ -142,7 +142,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const updateData = (updates: Partial<ProjectData>) => {
     if (!projectData) return;
-    setProjectData({ ...projectData, ...updates });
+    setProjectData(prev => {
+      if (!prev) return prev;
+      return { ...prev, ...updates };
+    });
   };
 
   const handleSave = async () => {
@@ -505,38 +508,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   // 更新工作人员
   const updateStaffMember = (id: string, updates: Partial<StaffMember>) => {
-    const newMembers = coreConfig.staffMembers.map(m => 
-      m.id === id ? { ...m, ...updates } : m
-    );
-    const newCoreConfig = { ...coreConfig, staffMembers: newMembers };
-    
-    // 同步更新每日费用中的日薪
-    let newDailyExpenses = dailyExpenses;
-    if (updates.dailyFee !== undefined) {
-      if (updates.dailyFee === 0) {
-        // 清除每日费用中对应的历史值
-        newDailyExpenses = dailyExpenses.map(day => {
-          const newStaffFees: Record<string, number> = {};
-          Object.entries(day.staffFees || {}).forEach(([key, value]) => {
-            if (key !== id) {
-              newStaffFees[key] = value;
-            }
+    setProjectData(prev => {
+      if (!prev) return prev;
+      
+      const newMembers = prev.coreConfig.staffMembers.map(m => 
+        m.id === id ? { ...m, ...updates } : m
+      );
+      const newCoreConfig = { ...prev.coreConfig, staffMembers: newMembers };
+      
+      // 同步更新每日费用中的日薪
+      let newDailyExpenses = prev.dailyExpenses;
+      if (updates.dailyFee !== undefined) {
+        if (updates.dailyFee === 0) {
+          newDailyExpenses = prev.dailyExpenses.map(day => {
+            const newStaffFees: Record<string, number> = {};
+            Object.entries(day.staffFees || {}).forEach(([key, value]) => {
+              if (key !== id) {
+                newStaffFees[key] = value;
+              }
+            });
+            return { ...day, staffFees: newStaffFees };
           });
-          return { ...day, staffFees: newStaffFees };
-        });
-      } else {
-        // 同步到每日费用
-        newDailyExpenses = dailyExpenses.map(day => ({
-          ...day,
-          staffFees: { ...(day.staffFees || {}), [id]: updates.dailyFee } as Record<string, number>
-        }));
+        } else {
+          newDailyExpenses = prev.dailyExpenses.map(day => ({
+            ...day,
+            staffFees: { ...(day.staffFees || {}), [id]: updates.dailyFee! } as Record<string, number>
+          }));
+        }
       }
-    }
-    
-    // 一次性更新所有数据
-    updateData({ 
-      coreConfig: newCoreConfig, 
-      dailyExpenses: newDailyExpenses 
+      
+      return { 
+        ...prev,
+        coreConfig: newCoreConfig, 
+        dailyExpenses: newDailyExpenses 
+      };
     });
   };
 
