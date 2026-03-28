@@ -151,6 +151,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const handleSave = async () => {
     if (!projectData) return;
     setIsSaving(true);
+    
+    // 调试日志
+    console.log('=== 保存数据 ===');
+    console.log('staffMembers:', JSON.stringify(projectData.coreConfig.staffMembers));
+    console.log('dailyExpenses[0].staffFees:', JSON.stringify(projectData.dailyExpenses[0]?.staffFees));
+    
     const success = await updateProjectData(projectData);
     setIsSaving(false);
     if (success) {
@@ -508,12 +514,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   // 更新工作人员
   const updateStaffMember = (id: string, updates: Partial<StaffMember>) => {
+    console.log('=== updateStaffMember ===');
+    console.log('id:', id, 'updates:', updates);
+    
     setProjectData(prev => {
       if (!prev) return prev;
+      
+      console.log('prev staffMembers:', prev.coreConfig.staffMembers.map(m => ({ id: m.id, name: m.name, count: m.count, dailyFee: m.dailyFee })));
       
       const newMembers = prev.coreConfig.staffMembers.map(m => 
         m.id === id ? { ...m, ...updates } : m
       );
+      
+      console.log('new staffMembers:', newMembers.map(m => ({ id: m.id, name: m.name, count: m.count, dailyFee: m.dailyFee })));
+      
       const newCoreConfig = { ...prev.coreConfig, staffMembers: newMembers };
       
       // 同步更新每日费用中的日薪
@@ -536,6 +550,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           }));
         }
       }
+      
+      console.log('newDailyExpenses[0].staffFees:', newDailyExpenses[0]?.staffFees);
       
       return { 
         ...prev,
