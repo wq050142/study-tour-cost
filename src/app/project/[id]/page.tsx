@@ -666,20 +666,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
         <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push('/')}>
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <Input value={projectData.project.name} onChange={(e) => updateData({ project: { ...projectData.project, name: e.target.value } })}
-                className="text-xl font-bold text-gray-900 border-0 p-0 h-auto w-auto min-w-32 max-w-64 focus-visible:ring-0" />
-              <span className="text-sm text-gray-500">
-                时长类型：<span className={`font-medium ${
-                  projectData.project.type === 'half-day' ? 'text-green-600' :
-                  projectData.project.type === 'one-day' ? 'text-blue-600' :
-                  'text-purple-600'
-                }`}>{PROJECT_TYPES.find(t => t.value === projectData.project.type)?.label}</span>
-              </span>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => router.push('/')}>
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <Input value={projectData.project.name} onChange={(e) => updateData({ project: { ...projectData.project, name: e.target.value } })}
+                  className="text-xl font-bold text-gray-900 border-0 p-0 h-auto flex-1 min-w-0 focus-visible:ring-0" placeholder="项目名称" />
+              </div>
+              <div className="flex items-center gap-4 mt-1 ml-11">
+                <span className="text-sm text-gray-500 flex-shrink-0">
+                  时长类型：<span className={`font-medium ${
+                    projectData.project.type === 'half-day' ? 'text-green-600' :
+                    projectData.project.type === 'one-day' ? 'text-blue-600' :
+                    'text-purple-600'
+                  }`}>{PROJECT_TYPES.find(t => t.value === projectData.project.type)?.label}</span>
+                </span>
+                {projectData.project.remark && (
+                  <span className="text-sm text-gray-500 truncate" title={projectData.project.remark}>
+                    备注：{projectData.project.remark}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               {/* 导出按钮 */}
