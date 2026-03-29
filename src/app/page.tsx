@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil, LogOut, User, LogIn, 
   Archive, RotateCcw, Trash, LayoutGrid, List, Folder as FolderIcon, FolderPlus, CheckSquare,
-  X, Check, ChevronRight, Home as HomeIcon, Move
+  X, Check, ChevronRight, Home as HomeIcon, Move, Key
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from '@/components/AuthModal';
+import { ChangePasswordModal } from '@/components/ChangePasswordModal';
 
 export default function Home() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function Home() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   
   // 表单状态
   const [newProject, setNewProject] = useState({ name: '', type: '' as ProjectType | '', remark: '' });
@@ -508,6 +510,10 @@ export default function Home() {
                     <DropdownMenuContent align="end">
                       <div className="px-2 py-1.5 text-sm text-gray-600">{user.email}</div>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)}>
+                        <Key className="w-4 h-4 mr-2" />
+                        修改密码
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleSignOut}>
                         <LogOut className="w-4 h-4 mr-2" />
                         退出登录
@@ -528,6 +534,9 @@ export default function Home() {
 
       {/* Auth Modal */}
       <AuthModal open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen} />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen} />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">

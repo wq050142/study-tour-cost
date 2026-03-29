@@ -20,6 +20,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  changePassword: (newPassword: string) => Promise<{ error: Error | null; message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -128,8 +129,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const changePassword = async (newPassword: string) => {
+    if (!session?.access_token) {
+      return { error: new Error('未登录') };
+    }
+
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        return { error: new Error(data.error) };
+      }
+      
+      return { error: null, message: data.message };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('修改密码失败') };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
