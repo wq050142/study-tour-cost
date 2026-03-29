@@ -419,89 +419,118 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-lg" />
+            <div className="flex items-center gap-2 md:gap-3">
+              <img src="/logo.png" alt="Logo" className="w-8 h-8 md:w-10 md:h-10 rounded-lg" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">研学旅行成本核算</h1>
-                <p className="text-sm text-gray-500">快速核算，精准报价</p>
+                <h1 className="text-base md:text-xl font-bold text-gray-900">研学旅行成本核算</h1>
+                <p className="text-xs md:text-sm text-gray-500 hidden sm:block">快速核算，精准报价</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               {user ? (
                 <>
-                  <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
+                  {/* 移动端：主要操作按钮 */}
+                  <Button className="gap-1 md:gap-2 h-9 md:h-10 px-3 md:px-4" onClick={() => setIsDialogOpen(true)}>
                     <Plus className="w-4 h-4" />
-                    新建项目
+                    <span className="hidden sm:inline">新建项目</span>
                   </Button>
                   
-                  <Button variant="outline" size="icon" onClick={() => setIsFolderDialogOpen(true)} title="新建文件夹">
-                    <FolderPlus className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button variant="outline" size="icon" onClick={handleOpenTrash} title="回收站">
-                    <Archive className="w-4 h-4" />
-                  </Button>
-                  
-                  <div className="border-l h-6 mx-1"></div>
-                  
-                  {/* 视图切换 */}
-                  <Button 
-                    variant={viewMode === 'card' ? 'default' : 'outline'} 
-                    size="icon" 
-                    onClick={() => setViewMode('card')}
-                    title="卡片视图"
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant={viewMode === 'list' ? 'default' : 'outline'} 
-                    size="icon" 
-                    onClick={() => setViewMode('list')}
-                    title="列表视图"
-                  >
-                    <List className="w-4 h-4" />
-                  </Button>
-                  
-                  <div className="border-l h-6 mx-1"></div>
-                  
-                  {/* 多选模式 */}
-                  {isSelectMode ? (
-                    <>
-                      <span className="text-sm text-gray-500">
-                        已选 {selectedProjectIds.size + selectedFolderIds.size} 项
-                      </span>
-                      <Button variant="outline" size="sm" onClick={toggleSelectAll}>
-                        全选
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => setIsMoveDialogOpen(true)} disabled={selectedProjectIds.size === 0}>
-                        <Move className="w-4 h-4 mr-1" />
-                        移动
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleBatchCopy(null)} disabled={selectedProjectIds.size === 0}>
-                        <Copy className="w-4 h-4 mr-1" />
-                        复制
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={handleBatchDelete} disabled={selectedProjectIds.size + selectedFolderIds.size === 0}>
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        删除
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={exitSelectMode}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => setIsSelectMode(true)}>
-                      <CheckSquare className="w-4 h-4 mr-1" />
-                      多选
-                    </Button>
-                  )}
-                  
+                  {/* 移动端：更多操作下拉菜单 */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
+                      <Button variant="outline" size="icon" className="h-9 w-9 md:hidden">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setIsFolderDialogOpen(true)}>
+                        <FolderPlus className="w-4 h-4 mr-2" />新建文件夹
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleOpenTrash}>
+                        <Archive className="w-4 h-4 mr-2" />回收站
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)}>
+                        <Key className="w-4 h-4 mr-2" />修改密码
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        <LogOut className="w-4 h-4 mr-2" />退出登录
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  {/* 桌面端：完整按钮组 */}
+                  <div className="hidden md:flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setIsFolderDialogOpen(true)} title="新建文件夹">
+                      <FolderPlus className="w-4 h-4" />
+                    </Button>
+                    
+                    <Button variant="outline" size="icon" onClick={handleOpenTrash} title="回收站">
+                      <Archive className="w-4 h-4" />
+                    </Button>
+                    
+                    <div className="border-l h-6 mx-1"></div>
+                    
+                    {/* 视图切换 */}
+                    <Button 
+                      variant={viewMode === 'card' ? 'default' : 'outline'} 
+                      size="icon" 
+                      onClick={() => setViewMode('card')}
+                      title="卡片视图"
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant={viewMode === 'list' ? 'default' : 'outline'} 
+                      size="icon" 
+                      onClick={() => setViewMode('list')}
+                      title="列表视图"
+                    >
+                      <List className="w-4 h-4" />
+                    </Button>
+                    
+                    <div className="border-l h-6 mx-1"></div>
+                    
+                    {/* 多选模式 */}
+                    {isSelectMode ? (
+                      <>
+                        <span className="text-sm text-gray-500">
+                          已选 {selectedProjectIds.size + selectedFolderIds.size} 项
+                        </span>
+                        <Button variant="outline" size="sm" onClick={toggleSelectAll}>
+                          全选
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setIsMoveDialogOpen(true)} disabled={selectedProjectIds.size === 0}>
+                          <Move className="w-4 h-4 mr-1" />
+                          移动
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleBatchCopy(null)} disabled={selectedProjectIds.size === 0}>
+                          <Copy className="w-4 h-4 mr-1" />
+                          复制
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={handleBatchDelete} disabled={selectedProjectIds.size + selectedFolderIds.size === 0}>
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          删除
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={exitSelectMode}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => setIsSelectMode(true)}>
+                        <CheckSquare className="w-4 h-4 mr-1" />
+                        多选
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {/* 桌面端：用户菜单 */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hidden md:flex">
                         <User className="w-5 h-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -522,7 +551,8 @@ export default function Home() {
               ) : (
                 <Button className="gap-2" onClick={() => setIsAuthModalOpen(true)}>
                   <LogIn className="w-4 h-4" />
-                  登录 / 注册
+                  <span className="hidden sm:inline">登录 / 注册</span>
+                  <span className="sm:hidden">登录</span>
                 </Button>
               )}
             </div>
@@ -539,54 +569,54 @@ export default function Home() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         {!user ? (
-          <div className="flex flex-col items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-8 md:py-12">
             {/* Hero Section */}
-            <img src="/logo.png" alt="Logo" className="w-28 h-28 rounded-2xl mb-8 shadow-lg shadow-blue-500/20" />
+            <img src="/logo.png" alt="Logo" className="w-20 h-20 md:w-28 md:h-28 rounded-2xl mb-6 md:mb-8 shadow-lg shadow-blue-500/20" />
             
-            <h2 className="text-3xl font-bold text-gray-800 mb-3 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2 md:mb-3 text-center px-4">
               研学旅行成本核算工具
             </h2>
-            <p className="text-gray-500 mb-8 text-center max-w-md">
+            <p className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center max-w-md px-4">
               专业的研学旅行成本核算与报价管理平台，助您高效管理项目、精准核算成本
             </p>
             
             <Button 
               onClick={() => setIsAuthModalOpen(true)} 
-              className="gap-2 px-8 py-6 text-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg shadow-blue-500/30"
+              className="gap-2 px-6 md:px-8 py-5 md:py-6 text-base md:text-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg shadow-blue-500/30"
             >
               <LogIn className="w-5 h-5" />
               登录 / 注册
             </Button>
 
             {/* Feature Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 w-full max-w-4xl">
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
-                  <Calculator className="w-6 h-6 text-blue-600" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-10 md:mt-16 w-full max-w-4xl">
+              <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-3 md:mb-4">
+                  <Calculator className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </div>
-                <h3 className="font-semibold text-gray-800 mb-2">成本核算</h3>
-                <p className="text-sm text-gray-500">支持半日、一日、多日研学项目，自动计算各项费用</p>
+                <h3 className="font-semibold text-gray-800 mb-1 md:mb-2 text-sm md:text-base">成本核算</h3>
+                <p className="text-xs md:text-sm text-gray-500">支持半日、一日、多日研学项目，自动计算各项费用</p>
               </div>
               
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
-                  <FileText className="w-6 h-6 text-purple-600" />
+              <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-purple-100 flex items-center justify-center mb-3 md:mb-4">
+                  <FileText className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                 </div>
-                <h3 className="font-semibold text-gray-800 mb-2">报价管理</h3>
-                <p className="text-sm text-gray-500">灵活设置报价策略，实时查看利润分析</p>
+                <h3 className="font-semibold text-gray-800 mb-1 md:mb-2 text-sm md:text-base">报价管理</h3>
+                <p className="text-xs md:text-sm text-gray-500">灵活设置报价策略，实时查看利润分析</p>
               </div>
               
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mb-4">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
+              <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-green-100 flex items-center justify-center mb-3 md:mb-4">
+                  <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
                 </div>
-                <h3 className="font-semibold text-gray-800 mb-2">数据分析</h3>
-                <p className="text-sm text-gray-500">清晰的数据展示，支持导出报价单截图</p>
+                <h3 className="font-semibold text-gray-800 mb-1 md:mb-2 text-sm md:text-base">数据分析</h3>
+                <p className="text-xs md:text-sm text-gray-500">清晰的数据展示，支持导出报价单截图</p>
               </div>
             </div>
 
             {/* Contact Developer */}
-            <p className="mt-12 text-sm text-gray-400">
+            <p className="mt-8 md:mt-12 text-xs md:text-sm text-gray-400">
               联系开发者：17682312594（同微信）
             </p>
           </div>
@@ -597,20 +627,20 @@ export default function Home() {
         ) : (
           <>
             {/* 面包屑导航 */}
-            <div className="flex items-center gap-2 mb-4 text-sm">
+            <div className="flex items-center gap-1 md:gap-2 mb-4 text-sm overflow-x-auto pb-2">
               <button 
                 onClick={() => setCurrentFolderId(null)} 
-                className={`flex items-center gap-1 hover:text-blue-600 ${!currentFolderId ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                className={`flex items-center gap-1 hover:text-blue-600 flex-shrink-0 ${!currentFolderId ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
               >
                 <HomeIcon className="w-4 h-4" />
                 全部项目
               </button>
               {currentPath.map((folder, idx) => (
-                <div key={folder.id} className="flex items-center gap-2">
+                <div key={folder.id} className="flex items-center gap-1 md:gap-2 flex-shrink-0">
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                   <button 
                     onClick={() => setCurrentFolderId(folder.id)}
-                    className={`hover:text-blue-600 ${idx === currentPath.length - 1 ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
+                    className={`hover:text-blue-600 whitespace-nowrap ${idx === currentPath.length - 1 ? 'text-blue-600 font-medium' : 'text-gray-600'}`}
                   >
                     {folder.name}
                   </button>
@@ -619,22 +649,23 @@ export default function Home() {
             </div>
 
             {projects.length === 0 && childFolders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mb-6">
-                  <Calendar className="w-12 h-12 text-blue-500" />
+              <div className="flex flex-col items-center justify-center py-12 md:py-16">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mb-4 md:mb-6">
+                  <Calendar className="w-10 h-10 md:w-12 md:h-12 text-blue-500" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-700 mb-2">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-700 mb-1 md:mb-2">
                   {currentFolderId ? '这个文件夹是空的' : '还没有项目'}
                 </h2>
-                <p className="text-gray-500 mb-6">点击上方"新建项目"开始创建</p>
-                <div className="flex gap-3">
+                <p className="text-sm md:text-base text-gray-500 mb-4 md:mb-6">点击上方"新建项目"开始创建</p>
+                <div className="flex gap-2 md:gap-3">
                   <Button onClick={() => setIsDialogOpen(true)} className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
                     <Plus className="w-4 h-4" />
                     创建项目
                   </Button>
                   <Button variant="outline" onClick={() => setIsFolderDialogOpen(true)} className="gap-2">
                     <FolderPlus className="w-4 h-4" />
-                    新建文件夹
+                    <span className="hidden sm:inline">新建文件夹</span>
+                    <span className="sm:hidden">文件夹</span>
                   </Button>
                 </div>
               </div>
@@ -769,7 +800,8 @@ export default function Home() {
             ) : (
               /* 列表视图 */
               <div className="bg-white rounded-lg border">
-                <div className="grid grid-cols-12 gap-4 p-3 border-b bg-gray-50 text-sm font-medium text-gray-500">
+                {/* 桌面端表头 */}
+                <div className="hidden md:grid grid-cols-12 gap-4 p-3 border-b bg-gray-50 text-sm font-medium text-gray-500">
                   <div className="col-span-5">名称</div>
                   <div className="col-span-2">类型</div>
                   <div className="col-span-2">创建时间</div>
@@ -792,14 +824,15 @@ export default function Home() {
                       }
                     }}
                   >
-                    <div className="col-span-5 flex items-center gap-2">
+                    <div className="col-span-11 md:col-span-5 flex items-center gap-2">
                       {isSelectMode && <Checkbox checked={selectedFolderIds.has(folder.id)} />}
                       <FolderIcon className="w-5 h-5 text-blue-500" />
                       <span className="font-medium">{folder.name}</span>
+                      <span className="md:hidden text-xs text-gray-400 ml-2">文件夹</span>
                     </div>
-                    <div className="col-span-2 text-sm text-gray-500">文件夹</div>
-                    <div className="col-span-2 text-sm text-gray-500">{new Date(folder.createdAt).toLocaleDateString()}</div>
-                    <div className="col-span-2 text-sm text-gray-500">{new Date(folder.updatedAt).toLocaleDateString()}</div>
+                    <div className="hidden md:block col-span-2 text-sm text-gray-500">文件夹</div>
+                    <div className="hidden md:block col-span-2 text-sm text-gray-500">{new Date(folder.createdAt).toLocaleDateString()}</div>
+                    <div className="hidden md:block col-span-2 text-sm text-gray-500">{new Date(folder.updatedAt).toLocaleDateString()}</div>
                     <div className="col-span-1">
                       {!isSelectMode && (
                         <DropdownMenu>
@@ -838,17 +871,20 @@ export default function Home() {
                       }
                     }}
                   >
-                    <div className="col-span-5 flex items-center gap-2">
+                    <div className="col-span-11 md:col-span-5 flex items-center gap-2">
                       {isSelectMode && <Checkbox checked={selectedProjectIds.has(project.id)} />}
                       <span className="font-medium">{project.name}</span>
+                      <span className="md:hidden px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700">
+                        {PROJECT_TYPE_LABELS[project.type]}
+                      </span>
                     </div>
-                    <div className="col-span-2">
+                    <div className="hidden md:block col-span-2">
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
                         {PROJECT_TYPE_LABELS[project.type]}
                       </span>
                     </div>
-                    <div className="col-span-2 text-sm text-gray-500">{new Date(project.createdAt).toLocaleDateString()}</div>
-                    <div className="col-span-2 text-sm text-gray-500">{new Date(project.updatedAt).toLocaleDateString()}</div>
+                    <div className="hidden md:block col-span-2 text-sm text-gray-500">{new Date(project.createdAt).toLocaleDateString()}</div>
+                    <div className="hidden md:block col-span-2 text-sm text-gray-500">{new Date(project.updatedAt).toLocaleDateString()}</div>
                     <div className="col-span-1">
                       {!isSelectMode && (
                         <DropdownMenu>
