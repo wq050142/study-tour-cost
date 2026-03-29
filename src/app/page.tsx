@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil, LogOut, User, LogIn, 
   Archive, RotateCcw, Trash, LayoutGrid, List, Folder as FolderIcon, FolderPlus, CheckSquare,
-  X, Check, ChevronRight, Home as HomeIcon, Move, Key, Phone, MessageCircle, Calculator, 
-  FileText, TrendingUp, Shield
+  X, Check, ChevronRight, Home as HomeIcon, Move, Key, Calculator, FileText, TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -591,22 +590,9 @@ export default function Home() {
             </div>
 
             {/* Contact Developer */}
-            <div className="mt-16 bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200 max-w-md">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-5 h-5 text-gray-500" />
-                <span className="font-medium text-gray-700">联系开发者</span>
-              </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-blue-500" />
-                  <span>电话：17682312594</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-green-500" />
-                  <span>微信：17682312594（同微信）</span>
-                </div>
-              </div>
-            </div>
+            <p className="mt-12 text-sm text-gray-400">
+              联系开发者：17682312594（同微信）
+            </p>
           </div>
         ) : projectsLoading ? (
           <div className="flex items-center justify-center py-20">
