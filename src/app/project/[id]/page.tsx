@@ -1326,68 +1326,61 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <>
                             <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={lunch.restaurantName || ''} onChange={(e) => updateMeal('lunch', { restaurantName: e.target.value })} />
                             {/* 客户用餐 */}
-                            <div className="space-y-2 text-sm">
+                            <div className="text-sm space-y-1">
                               <div className="flex items-center gap-2 text-gray-500">
                                 <span className="w-12 flex-shrink-0">客户</span>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`lunch-client-${day.day}`} checked={lunch.clientMealType === 'individual'} onChange={() => updateMeal('lunch', { clientMealType: 'individual', tableCount: 0, clientCount: lunch.clientCount || totalClients, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
-                                    <span>例餐</span>
-                                  </label>
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`lunch-client-${day.day}`} checked={(lunch.clientMealType || 'table') === 'table'} onChange={() => updateMeal('lunch', { clientMealType: 'table', tableCount: lunch.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
-                                    <span>桌餐</span>
-                                  </label>
-                                </div>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`lunch-client-${day.day}`} checked={lunch.clientMealType === 'individual'} onChange={() => updateMeal('lunch', { clientMealType: 'individual', tableCount: 0, clientCount: lunch.clientCount || totalClients, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
+                                  <span>例餐</span>
+                                </label>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`lunch-client-${day.day}`} checked={(lunch.clientMealType || 'table') === 'table'} onChange={() => updateMeal('lunch', { clientMealType: 'table', tableCount: lunch.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: lunch.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
+                                  <span>桌餐</span>
+                                </label>
                               </div>
-                              <div className="flex flex-wrap items-center gap-2 pl-12">
-                                <div className="flex items-center gap-1">
-                                  <NumberInput 
-                                    className="h-8 w-20 text-sm px-2 border rounded" 
-                                    value={(lunch.clientMealType || 'table') === 'table' 
-                                      ? (lunch.pricePerPerson || coreConfig.mealStandardClient || 0) * 10 
-                                      : (lunch.pricePerPerson || coreConfig.mealStandardClient || 0)} 
-                                    onChange={(v) => updateMeal('lunch', { pricePerPerson: (lunch.clientMealType || 'table') === 'table' ? v / 10 : v })} 
-                                  />
-                                  <span className="text-gray-500">{(lunch.clientMealType || 'table') === 'table' ? '元/桌' : '元/人'}</span>
-                                </div>
+                              {/* 单价 × 数量 = 总价 一行显示 */}
+                              <div className="flex items-center gap-1 pl-12 flex-wrap">
+                                <NumberInput 
+                                  className="h-8 w-16 text-sm px-2 border rounded" 
+                                  value={(lunch.clientMealType || 'table') === 'table' 
+                                    ? (lunch.pricePerPerson || coreConfig.mealStandardClient || 0) * 10 
+                                    : (lunch.pricePerPerson || coreConfig.mealStandardClient || 0)} 
+                                  onChange={(v) => updateMeal('lunch', { pricePerPerson: (lunch.clientMealType || 'table') === 'table' ? v / 10 : v })} 
+                                />
+                                <span className="text-gray-500">{(lunch.clientMealType || 'table') === 'table' ? '元/桌' : '元/人'}</span>
                                 <span className="text-gray-400">×</span>
                                 {lunch.clientMealType === 'individual' ? (
-                                  <div className="flex items-center gap-1">
-                                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={lunch.clientCount || totalClients} onChange={(v) => updateMeal('lunch', { clientCount: v })} />
+                                  <>
+                                    <NumberInput className="h-8 w-14 text-sm px-2 border rounded" value={lunch.clientCount || totalClients} onChange={(v) => updateMeal('lunch', { clientCount: v })} />
                                     <span className="text-gray-500">人</span>
-                                  </div>
+                                  </>
                                 ) : (
-                                  <div className="flex items-center gap-1">
-                                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={lunch.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('lunch', { tableCount: v })} />
+                                  <>
+                                    <NumberInput className="h-8 w-14 text-sm px-2 border rounded" value={lunch.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('lunch', { tableCount: v })} />
                                     <span className="text-gray-500">桌</span>
-                                  </div>
+                                  </>
                                 )}
                                 <span className="text-gray-400">=</span>
-                                <div className="flex items-center gap-1">
-                                  <NumberInput className="h-8 w-24 text-sm px-2 border rounded text-right" value={lunchAmount} onChange={(v) => updateMeal('lunch', { amount: v })} />
-                                  <span className="text-gray-500">元</span>
-                                </div>
+                                <NumberInput className="h-8 w-20 text-sm px-2 border rounded text-right" value={lunchAmount} onChange={(v) => updateMeal('lunch', { amount: v })} />
+                                <span className="text-gray-500">元</span>
                               </div>
                             </div>
                             {/* 工作人员用餐 */}
-                            <div className="space-y-2 text-sm">
+                            <div className="text-sm space-y-1">
                               <div className="flex items-center gap-2 text-gray-500">
-                                <span className="w-12 flex-shrink-0">工作人员</span>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`lunch-staff-${day.day}`} checked={(lunch.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('lunch', { staffMealType: 'with-group' })} className="w-4 h-4" />
-                                    <span>随团</span>
-                                  </label>
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`lunch-staff-${day.day}`} checked={lunch.staffMealType === 'independent'} onChange={() => updateMeal('lunch', { staffMealType: 'independent' })} className="w-4 h-4" />
-                                    <span>独立</span>
-                                  </label>
-                                </div>
+                                <span className="w-12 flex-shrink-0 whitespace-nowrap">工作人员</span>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`lunch-staff-${day.day}`} checked={(lunch.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('lunch', { staffMealType: 'with-group' })} className="w-4 h-4" />
+                                  <span>随团</span>
+                                </label>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`lunch-staff-${day.day}`} checked={lunch.staffMealType === 'independent'} onChange={() => updateMeal('lunch', { staffMealType: 'independent' })} className="w-4 h-4" />
+                                  <span>独立</span>
+                                </label>
                               </div>
                               {lunch.staffMealType === 'independent' && (
                                 <div className="flex items-center gap-1 pl-12">
-                                  <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
+                                  <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
                                   <span className="text-gray-500">元/人</span>
                                 </div>
                               )}
@@ -1414,68 +1407,61 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <>
                             <Input placeholder="餐厅名称（可选）" className="h-8 text-sm px-3" value={dinner.restaurantName || ''} onChange={(e) => updateMeal('dinner', { restaurantName: e.target.value })} />
                             {/* 客户用餐 */}
-                            <div className="space-y-2 text-sm">
+                            <div className="text-sm space-y-1">
                               <div className="flex items-center gap-2 text-gray-500">
                                 <span className="w-12 flex-shrink-0">客户</span>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`dinner-client-${day.day}`} checked={dinner.clientMealType === 'individual'} onChange={() => updateMeal('dinner', { clientMealType: 'individual', tableCount: 0, clientCount: dinner.clientCount || totalClients, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
-                                    <span>例餐</span>
-                                  </label>
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`dinner-client-${day.day}`} checked={(dinner.clientMealType || 'table') === 'table'} onChange={() => updateMeal('dinner', { clientMealType: 'table', tableCount: dinner.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
-                                    <span>桌餐</span>
-                                  </label>
-                                </div>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`dinner-client-${day.day}`} checked={dinner.clientMealType === 'individual'} onChange={() => updateMeal('dinner', { clientMealType: 'individual', tableCount: 0, clientCount: dinner.clientCount || totalClients, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
+                                  <span>例餐</span>
+                                </label>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`dinner-client-${day.day}`} checked={(dinner.clientMealType || 'table') === 'table'} onChange={() => updateMeal('dinner', { clientMealType: 'table', tableCount: dinner.tableCount || Math.ceil(totalClients / 10), clientCount: 0, pricePerPerson: dinner.pricePerPerson || coreConfig.mealStandardClient })} className="w-4 h-4" />
+                                  <span>桌餐</span>
+                                </label>
                               </div>
-                              <div className="flex flex-wrap items-center gap-2 pl-12">
-                                <div className="flex items-center gap-1">
-                                  <NumberInput 
-                                    className="h-8 w-20 text-sm px-2 border rounded" 
-                                    value={(dinner.clientMealType || 'table') === 'table' 
-                                      ? (dinner.pricePerPerson || coreConfig.mealStandardClient || 0) * 10 
-                                      : (dinner.pricePerPerson || coreConfig.mealStandardClient || 0)} 
-                                    onChange={(v) => updateMeal('dinner', { pricePerPerson: (dinner.clientMealType || 'table') === 'table' ? v / 10 : v })} 
-                                  />
-                                  <span className="text-gray-500">{(dinner.clientMealType || 'table') === 'table' ? '元/桌' : '元/人'}</span>
-                                </div>
+                              {/* 单价 × 数量 = 总价 一行显示 */}
+                              <div className="flex items-center gap-1 pl-12 flex-wrap">
+                                <NumberInput 
+                                  className="h-8 w-16 text-sm px-2 border rounded" 
+                                  value={(dinner.clientMealType || 'table') === 'table' 
+                                    ? (dinner.pricePerPerson || coreConfig.mealStandardClient || 0) * 10 
+                                    : (dinner.pricePerPerson || coreConfig.mealStandardClient || 0)} 
+                                  onChange={(v) => updateMeal('dinner', { pricePerPerson: (dinner.clientMealType || 'table') === 'table' ? v / 10 : v })} 
+                                />
+                                <span className="text-gray-500">{(dinner.clientMealType || 'table') === 'table' ? '元/桌' : '元/人'}</span>
                                 <span className="text-gray-400">×</span>
                                 {dinner.clientMealType === 'individual' ? (
-                                  <div className="flex items-center gap-1">
-                                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={dinner.clientCount || totalClients} onChange={(v) => updateMeal('dinner', { clientCount: v })} />
+                                  <>
+                                    <NumberInput className="h-8 w-14 text-sm px-2 border rounded" value={dinner.clientCount || totalClients} onChange={(v) => updateMeal('dinner', { clientCount: v })} />
                                     <span className="text-gray-500">人</span>
-                                  </div>
+                                  </>
                                 ) : (
-                                  <div className="flex items-center gap-1">
-                                    <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={dinner.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('dinner', { tableCount: v })} />
+                                  <>
+                                    <NumberInput className="h-8 w-14 text-sm px-2 border rounded" value={dinner.tableCount || Math.ceil(totalClients / 10)} onChange={(v) => updateMeal('dinner', { tableCount: v })} />
                                     <span className="text-gray-500">桌</span>
-                                  </div>
+                                  </>
                                 )}
                                 <span className="text-gray-400">=</span>
-                                <div className="flex items-center gap-1">
-                                  <NumberInput className="h-8 w-24 text-sm px-2 border rounded text-right" value={dinnerAmount} onChange={(v) => updateMeal('dinner', { amount: v })} />
-                                  <span className="text-gray-500">元</span>
-                                </div>
+                                <NumberInput className="h-8 w-20 text-sm px-2 border rounded text-right" value={dinnerAmount} onChange={(v) => updateMeal('dinner', { amount: v })} />
+                                <span className="text-gray-500">元</span>
                               </div>
                             </div>
                             {/* 工作人员用餐 */}
-                            <div className="space-y-2 text-sm">
+                            <div className="text-sm space-y-1">
                               <div className="flex items-center gap-2 text-gray-500">
-                                <span className="w-12 flex-shrink-0">工作人员</span>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`dinner-staff-${day.day}`} checked={(dinner.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('dinner', { staffMealType: 'with-group' })} className="w-4 h-4" />
-                                    <span>随团</span>
-                                  </label>
-                                  <label className="flex items-center gap-1 cursor-pointer">
-                                    <input type="radio" name={`dinner-staff-${day.day}`} checked={dinner.staffMealType === 'independent'} onChange={() => updateMeal('dinner', { staffMealType: 'independent' })} className="w-4 h-4" />
-                                    <span>独立</span>
-                                  </label>
-                                </div>
+                                <span className="w-12 flex-shrink-0 whitespace-nowrap">工作人员</span>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`dinner-staff-${day.day}`} checked={(dinner.staffMealType || 'with-group') === 'with-group'} onChange={() => updateMeal('dinner', { staffMealType: 'with-group' })} className="w-4 h-4" />
+                                  <span>随团</span>
+                                </label>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`dinner-staff-${day.day}`} checked={dinner.staffMealType === 'independent'} onChange={() => updateMeal('dinner', { staffMealType: 'independent' })} className="w-4 h-4" />
+                                  <span>独立</span>
+                                </label>
                               </div>
                               {dinner.staffMealType === 'independent' && (
                                 <div className="flex items-center gap-1 pl-12">
-                                  <NumberInput className="h-8 w-20 text-sm px-2 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
+                                  <NumberInput className="h-8 w-16 text-sm px-2 border rounded" value={coreConfig.mealStandardStaff || 0} onChange={(v) => updateData({ coreConfig: { ...coreConfig, mealStandardStaff: v } })} />
                                   <span className="text-gray-500">元/人</span>
                                 </div>
                               )}
