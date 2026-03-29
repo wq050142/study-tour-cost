@@ -17,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null; needsVerification?: boolean; message?: string }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -82,12 +82,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error(data.error) };
       }
       
-      // 注册成功，提示用户验证邮箱
-      return { 
-        error: null,
-        needsVerification: true,
-        message: '注册成功！验证邮件已发送到您的邮箱，请查收并点击验证链接。'
-      };
+      // 注册成功，直接登录（无需邮箱验证）
+      if (data.session && data.session.access_token) {
+        setSession(data.session);
+        setUser(data.session.user);
+        localStorage.setItem(SESSION_KEY, JSON.stringify(data.session));
+        return { error: null };
+      }
+      
+      return { error: new Error('注册成功，请登录') };
     } catch (err) {
       return { error: err instanceof Error ? err : new Error('注册失败') };
     }

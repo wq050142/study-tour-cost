@@ -14,19 +14,9 @@ export async function POST(request: NextRequest) {
     // 获取不带 token 的客户端进行注册
     const supabase = getSupabaseClient();
     
-    // 构建验证邮件的跳转链接
-    // 优先使用环境变量，否则使用生产域名
-    const baseUrl = process.env.COZE_PROJECT_DOMAIN_DEFAULT 
-      || process.env.NEXT_PUBLIC_SITE_URL 
-      || 'http://124.220.204.124:8080';
-    const redirectTo = `${baseUrl}/auth/verify-email`;
-    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectTo,
-      },
     });
     
     if (error) {
@@ -37,11 +27,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     
-    // 注册成功，返回提示（不返回 session，需要验证邮箱）
+    // 注册成功，返回 session（无需邮箱验证）
     return NextResponse.json({ 
       success: true, 
-      message: '注册成功！验证邮件已发送到您的邮箱，请查收并点击验证链接。',
-      needsVerification: true,
+      user: data.user,
+      session: data.session,
     });
   } catch (err) {
     return NextResponse.json({ error: '请求处理失败' }, { status: 500 });
