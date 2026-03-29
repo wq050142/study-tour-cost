@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { 
   Plus, Calendar, Users, MapPin, MoreVertical, Trash2, Copy, Pencil, LogOut, User, LogIn, 
   Archive, RotateCcw, Trash, LayoutGrid, List, Folder as FolderIcon, FolderPlus, CheckSquare,
-  X, Check, ChevronRight, Home as HomeIcon, Move, Key
+  X, Check, ChevronRight, Home as HomeIcon, Move, Key, Phone, MessageCircle, Calculator, 
+  FileText, TrendingUp, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -541,16 +542,71 @@ export default function Home() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         {!user ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
-              <User className="w-12 h-12 text-gray-400" />
+          <div className="flex flex-col items-center justify-center py-12">
+            {/* Hero Section */}
+            <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center mb-8 shadow-lg shadow-blue-500/30">
+              <MapPin className="w-14 h-14 text-white" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">欢迎使用研学旅行成本核算工具</h2>
-            <p className="text-gray-500 mb-6">请登录或注册账号，开始管理您的研学项目</p>
-            <Button onClick={() => setIsAuthModalOpen(true)} className="gap-2">
-              <LogIn className="w-4 h-4" />
+            
+            <h2 className="text-3xl font-bold text-gray-800 mb-3 text-center">
+              欢迎使用研学旅行成本核算工具
+            </h2>
+            <p className="text-gray-500 mb-8 text-center max-w-md">
+              专业的研学旅行成本核算与报价管理平台，助您高效管理项目、精准核算成本
+            </p>
+            
+            <Button 
+              onClick={() => setIsAuthModalOpen(true)} 
+              className="gap-2 px-8 py-6 text-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg shadow-blue-500/30"
+            >
+              <LogIn className="w-5 h-5" />
               登录 / 注册
             </Button>
+
+            {/* Feature Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 w-full max-w-4xl">
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-4">
+                  <Calculator className="w-6 h-6 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-gray-800 mb-2">成本核算</h3>
+                <p className="text-sm text-gray-500">支持半日、一日、多日研学项目，自动计算各项费用</p>
+              </div>
+              
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mb-4">
+                  <FileText className="w-6 h-6 text-purple-600" />
+                </div>
+                <h3 className="font-semibold text-gray-800 mb-2">报价管理</h3>
+                <p className="text-sm text-gray-500">灵活设置报价策略，实时查看利润分析</p>
+              </div>
+              
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mb-4">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="font-semibold text-gray-800 mb-2">数据分析</h3>
+                <p className="text-sm text-gray-500">清晰的数据展示，支持导出报价单截图</p>
+              </div>
+            </div>
+
+            {/* Contact Developer */}
+            <div className="mt-16 bg-white/80 backdrop-blur-sm rounded-xl p-6 border border-gray-200 max-w-md">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield className="w-5 h-5 text-gray-500" />
+                <span className="font-medium text-gray-700">联系开发者</span>
+              </div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-blue-500" />
+                  <span>电话：17682312594</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-green-500" />
+                  <span>微信：17682312594（同微信）</span>
+                </div>
+              </div>
+            </div>
           </div>
         ) : projectsLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -581,16 +637,16 @@ export default function Home() {
             </div>
 
             {projects.length === 0 && childFolders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-6">
-                  <Calendar className="w-12 h-12 text-gray-400" />
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mb-6">
+                  <Calendar className="w-12 h-12 text-blue-500" />
                 </div>
                 <h2 className="text-xl font-semibold text-gray-700 mb-2">
                   {currentFolderId ? '这个文件夹是空的' : '还没有项目'}
                 </h2>
                 <p className="text-gray-500 mb-6">点击上方"新建项目"开始创建</p>
-                <div className="flex gap-2">
-                  <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                <div className="flex gap-3">
+                  <Button onClick={() => setIsDialogOpen(true)} className="gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
                     <Plus className="w-4 h-4" />
                     创建项目
                   </Button>
