@@ -719,7 +719,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </header>
 
-      <main className="flex gap-4 p-4">
+      <main className="flex flex-col lg:flex-row gap-4 p-3 md:p-4">
         <div className="flex-1 min-w-0 space-y-4">
           {/* 项目时长 - 仅多日项目显示 */}
           {projectData.project.type === 'multi-day' && (
@@ -1607,7 +1607,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 右侧面板 */}
-        <div className="w-[420px] flex-shrink-0 space-y-4 sticky top-14 self-start max-h-[calc(100vh-56px)] overflow-y-auto">
+        <div className="w-full lg:w-[420px] flex-shrink-0 space-y-4 lg:sticky lg:top-14 lg:self-start lg:max-h-[calc(100vh-56px)] lg:overflow-y-auto">
           {/* 成本核算与利润分析 */}
           <div ref={costProfitCardRef}>
           <Card>
@@ -1751,9 +1751,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               </div>
                             )}
                             {dinnerAmount > 0 && (
-                              <div className="flex justify-between">
-                                <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''} {getMealDetail(dinner, dinnerAmount)}</span>
-                                <span>{formatMoney(dinnerAmount)}</span>
+                              <div className="flex justify-between gap-2">
+                                <span className="truncate">D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''} {getMealDetail(dinner, dinnerAmount)}</span>
+                                <span className="flex-shrink-0">{formatMoney(dinnerAmount)}</span>
                               </div>
                             )}
                           </div>
@@ -1778,9 +1778,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                       )}
                       {(coreConfig.otherTransports || []).map((t) => (
-                        <div key={t.id} className="flex justify-between">
-                          <span>{t.type === 'flight' ? '飞机' : '高铁'} {t.count}张 × {t.price}元/张</span>
-                          <span>{formatMoney(t.price * t.count)}</span>
+                        <div key={t.id} className="flex justify-between gap-2">
+                          <span className="truncate">{t.type === 'flight' ? '飞机' : '高铁'} {t.count}张 × {t.price}元/张</span>
+                          <span className="flex-shrink-0">{formatMoney(t.price * t.count)}</span>
                         </div>
                       ))}
                     </div>
@@ -1821,9 +1821,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             </div>
                             <div className="text-gray-500 pl-2 space-y-0.5">
                               {dayStaffDetails.map((d, idx) => (
-                                <div key={idx} className="flex justify-between">
-                                  <span>{d.name} {d.count}人 × {d.dailyFee}元/天</span>
-                                  <span>{formatMoney(d.amount)}</span>
+                                <div key={idx} className="flex justify-between gap-2">
+                                  <span className="truncate">{d.name} {d.count}人 × {d.dailyFee}元/天</span>
+                                  <span className="flex-shrink-0">{formatMoney(d.amount)}</span>
                                 </div>
                               ))}
                             </div>
@@ -1844,9 +1844,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
                       {dailyExpenses.map((day) => 
                         day.singleItems.filter(item => item.name && (item.totalPrice || item.price * item.count) > 0).map((item, idx) => (
-                          <div key={`${day.day}-${idx}`} className="flex justify-between">
-                            <span>D{day.day} {item.name} {item.price}元 × {item.count}{item.unit || '人'}</span>
-                            <span>{formatMoney(item.totalPrice || item.price * item.count)}</span>
+                          <div key={`${day.day}-${idx}`} className="flex justify-between gap-2">
+                            <span className="truncate">D{day.day} {item.name} {item.price}元 × {item.count}{item.unit || '人'}</span>
+                            <span className="flex-shrink-0">{formatMoney(item.totalPrice || item.price * item.count)}</span>
                           </div>
                         ))
                       )}
@@ -1863,27 +1863,27 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <div className="pl-2 text-xs text-gray-500 space-y-0.5 py-1 border-b border-gray-50">
                       {otherExpenses.insurance.totalAmount > 0 && (
-                        <div className="flex justify-between">
-                          <span>保险 {otherExpenses.insurance.pricePerPerson}元/人/天 × {otherExpenses.insurance.days}天 × {totalClients + totalStaff}人</span>
-                          <span>{formatMoney(otherExpenses.insurance.totalAmount)}</span>
+                        <div className="flex justify-between gap-2">
+                          <span className="truncate">保险 {otherExpenses.insurance.pricePerPerson}元/人/天 × {otherExpenses.insurance.days}天 × {totalClients + totalStaff}人</span>
+                          <span className="flex-shrink-0">{formatMoney(otherExpenses.insurance.totalAmount)}</span>
                         </div>
                       )}
                       {otherExpenses.reserveFund > 0 && (
-                        <div className="flex justify-between">
+                        <div className="flex justify-between gap-2">
                           <span>备用金</span>
-                          <span>{formatMoney(otherExpenses.reserveFund)}</span>
+                          <span className="flex-shrink-0">{formatMoney(otherExpenses.reserveFund)}</span>
                         </div>
                       )}
                       {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => (
-                        <div key={idx} className="flex justify-between">
-                          <span>杂费(客户)-{m.name} {m.price}元 × {m.quantity}</span>
-                          <span>{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
+                        <div key={idx} className="flex justify-between gap-2">
+                          <span className="truncate">杂费(客户)-{m.name} {m.price}元 × {m.quantity}</span>
+                          <span className="flex-shrink-0">{formatMoney(m.totalPrice || m.price * m.quantity)}</span>
                         </div>
                       ))}
                       {otherExpenses.otherExpenses.filter(o => o.totalPrice > 0 || o.price * o.quantity > 0).map((o, idx) => (
-                        <div key={idx} className="flex justify-between">
-                          <span>杂费(工作人员)-{o.name || '其他'} {o.price}元 × {o.quantity}</span>
-                          <span>{formatMoney(o.totalPrice || o.price * o.quantity)}</span>
+                        <div key={idx} className="flex justify-between gap-2">
+                          <span className="truncate">杂费(工作人员)-{o.name || '其他'} {o.price}元 × {o.quantity}</span>
+                          <span className="flex-shrink-0">{formatMoney(o.totalPrice || o.price * o.quantity)}</span>
                         </div>
                       ))}
                     </div>
@@ -2267,8 +2267,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           {dailyAccommodationDetails.map((detail) => (
                             <div key={detail.day} className="py-1">
                               <div className="flex justify-between font-medium text-gray-700">
-                                <span>D{detail.day} {ACCOMMODATION_TYPE_LABELS[detail.accommodationType]}{detail.hotelName ? ` · ${detail.hotelName}` : ''}</span>
-                                <div className="flex items-center gap-1">
+                                <span className="truncate pr-2">D{detail.day} {ACCOMMODATION_TYPE_LABELS[detail.accommodationType]}{detail.hotelName ? ` · ${detail.hotelName}` : ''}</span>
+                                <div className="flex items-center gap-1 flex-shrink-0">
                                   {isQuoteEditing ? (
                                     <NumberInput 
                                       className="h-6 w-16 text-xs px-1 text-right border rounded" 
@@ -2367,9 +2367,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             return (
                               <div key={day.day} className="space-y-1">
                                 {lunchAmount > 0 && (
-                                  <div className="flex justify-between items-center">
-                                    <span>D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
-                                    <div className="flex items-center gap-1">
+                                  <div className="flex justify-between items-center gap-2">
+                                    <span className="truncate">D{day.day}中餐{lunch.restaurantName ? `(${lunch.restaurantName})` : ''}</span>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
                                       {isQuoteEditing ? (
                                         <NumberInput 
                                           className="h-6 w-16 text-xs px-1 text-right border rounded" 
@@ -2383,9 +2383,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                   </div>
                                 )}
                                 {dinnerAmount > 0 && (
-                                  <div className="flex justify-between items-center">
-                                    <span>D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
-                                    <div className="flex items-center gap-1">
+                                  <div className="flex justify-between items-center gap-2">
+                                    <span className="truncate">D{day.day}晚餐{dinner.restaurantName ? `(${dinner.restaurantName})` : ''}</span>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
                                       {isQuoteEditing ? (
                                         <NumberInput 
                                           className="h-6 w-16 text-xs px-1 text-right border rounded" 
@@ -2472,9 +2472,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                               const qPrice = item.quotePrice ?? item.price;
                               const qTotal = item.quoteTotalPrice ?? (qPrice * item.count);
                               return (
-                                <div key={`${day.day}-${idx}`} className="flex justify-between items-center">
-                                  <span>D{day.day} {item.name}</span>
-                                  <div className="flex items-center gap-1">
+                                <div key={`${day.day}-${idx}`} className="flex justify-between items-center gap-2">
+                                  <span className="truncate">D{day.day} {item.name}</span>
+                                  <div className="flex items-center gap-1 flex-shrink-0">
                                     {isQuoteEditing ? (
                                       <NumberInput 
                                         className="h-6 w-16 text-xs px-1 text-right border rounded" 
@@ -2518,9 +2518,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <span className="font-medium">{formatMoney(insuranceQuote)}</span>
                           </div>
                           <div className="pl-2 text-xs text-gray-500 space-y-1 py-1 border-b border-gray-50">
-                            <div className="flex justify-between items-center">
-                              <span>{totalClients}人 × {otherExpenses.insurance.days}天</span>
-                              <div className="flex items-center gap-1">
+                            <div className="flex justify-between items-center gap-2">
+                              <span className="truncate">{totalClients}人 × {otherExpenses.insurance.days}天</span>
+                              <div className="flex items-center gap-1 flex-shrink-0">
                                 {isQuoteEditing ? (
                                   <NumberInput 
                                     className="h-6 w-16 text-xs px-1 text-right border rounded" 
@@ -2555,9 +2555,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           {otherExpenses.materials.filter(m => m.totalPrice > 0 || m.price * m.quantity > 0).map((m, idx) => {
                             const mQuote = m.quoteTotalPrice ?? m.totalPrice ?? m.price * m.quantity;
                             return (
-                              <div key={m.id || idx} className="flex justify-between items-center">
-                                <span>{m.name || `项目${idx + 1}`}</span>
-                                <div className="flex items-center gap-1">
+                              <div key={m.id || idx} className="flex justify-between items-center gap-2">
+                                <span className="truncate">{m.name || `项目${idx + 1}`}</span>
+                                <div className="flex items-center gap-1 flex-shrink-0">
                                   {isQuoteEditing ? (
                                     <NumberInput 
                                       className="h-6 w-16 text-xs px-1 text-right border rounded" 
@@ -2597,9 +2597,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="font-semibold text-gray-800">报价合计</span>
                       <span className="font-bold text-gray-900 text-xl">{formatMoney(quoteTotal)}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 gap-2">
                       <span className="text-gray-600">优惠</span>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <span className="text-gray-400">-</span>
                         {isQuoteEditing ? (
                           <NumberInput className="h-8 w-20 text-sm px-2 text-right border rounded" value={discount} onChange={(v) => setDiscount(v)} />
@@ -2612,9 +2612,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <span className="font-bold text-gray-800">应付金额</span>
                       <span className="font-bold text-gray-900 text-2xl">{formatMoney(quoteFinalPrice)}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2 text-gray-500">
-                      <span>人均费用</span>
-                      <div className="flex items-center gap-1">
+                    <div className="flex justify-between items-center py-2 text-gray-500 gap-2">
+                      <span className="flex-shrink-0">人均费用</span>
+                      <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
                         {isQuoteEditing ? (
                           <>
                             <NumberInput 
