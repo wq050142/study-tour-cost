@@ -422,9 +422,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-white" />
-              </div>
+              <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-lg" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">研学旅行成本核算</h1>
                 <p className="text-sm text-gray-500">快速核算，精准报价</p>
@@ -543,9 +541,7 @@ export default function Home() {
         {!user ? (
           <div className="flex flex-col items-center justify-center py-12">
             {/* Hero Section */}
-            <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center mb-8 shadow-lg shadow-blue-500/30">
-              <MapPin className="w-14 h-14 text-white" />
-            </div>
+            <img src="/logo.png" alt="Logo" className="w-28 h-28 rounded-2xl mb-8 shadow-lg shadow-blue-500/20" />
             
             <h2 className="text-3xl font-bold text-gray-800 mb-3 text-center">
               研学旅行成本核算工具
