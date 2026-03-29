@@ -548,7 +548,7 @@ export default function Home() {
             </div>
             
             <h2 className="text-3xl font-bold text-gray-800 mb-3 text-center">
-              欢迎使用研学旅行成本核算工具
+              研学旅行成本核算工具
             </h2>
             <p className="text-gray-500 mb-8 text-center max-w-md">
               专业的研学旅行成本核算与报价管理平台，助您高效管理项目、精准核算成本
